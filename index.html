@@ -1,0 +1,1760 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Meu Dentista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#FBF7F6;
+  --shell:#EFE6E3;
+  --surface:#FFFFFF;
+  --surface-2:#F7F1EF;
+  --ink:#221A19;
+  --ink-2:#5C4E4B;
+  --ink-3:#8B7B77;
+  --line:#E5D9D5;
+  --line-2:#D3C3BE;
+  --accent:#A8443F;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#F4E1DE;
+  --voice:#14615B;
+  --voice-soft:#DDEDEA;
+  --ok:#2C6B48;
+  --ok-soft:#DDEDE2;
+  --warn:#8A5A11;
+  --warn-soft:#F6E7CC;
+  --crit:#A8302C;
+  --crit-soft:#F7DEDC;
+  --shadow:0 1px 2px rgba(34,26,25,.06), 0 8px 24px -14px rgba(34,26,25,.28);
+
+  --f-display:"Bricolage Grotesque","Public Sans",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#17110F;
+    --shell:#0E0A09;
+    --surface:#221A18;
+    --surface-2:#2B2220;
+    --ink:#F3E9E6;
+    --ink-2:#C4B2AD;
+    --ink-3:#96837E;
+    --line:#3A2E2B;
+    --line-2:#4A3B37;
+    --accent:#E5847D;
+    --accent-ink:#2A100E;
+    --accent-soft:#3E2422;
+    --voice:#6FC6BC;
+    --voice-soft:#12332F;
+    --ok:#7FCB9F;
+    --ok-soft:#183227;
+    --warn:#E0B36A;
+    --warn-soft:#3A2C15;
+    --crit:#F09189;
+    --crit-soft:#40201E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -16px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#17110F; --shell:#0E0A09; --surface:#221A18; --surface-2:#2B2220;
+  --ink:#F3E9E6; --ink-2:#C4B2AD; --ink-3:#96837E; --line:#3A2E2B; --line-2:#4A3B37;
+  --accent:#E5847D; --accent-ink:#2A100E; --accent-soft:#3E2422;
+  --voice:#6FC6BC; --voice-soft:#12332F;
+  --ok:#7FCB9F; --ok-soft:#183227; --warn:#E0B36A; --warn-soft:#3A2C15;
+  --crit:#F09189; --crit-soft:#40201E;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -16px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--shell); color:var(--ink);
+  font-family:var(--f-body); font-size:15px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.015em}
+
+/* ---------- shell ---------- */
+.app{
+  max-width:430px; margin:0 auto; min-height:100vh;
+  background:var(--ground); position:relative;
+  display:flex; flex-direction:column;
+  border-inline:1px solid var(--line);
+}
+@media (min-width:900px){
+  .app{min-height:100vh; box-shadow:0 0 60px -30px rgba(0,0,0,.5)}
+}
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:color-mix(in srgb, var(--ground) 92%, transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+  padding:12px 16px 10px;
+  display:flex; align-items:center; gap:10px;
+}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 auto}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+.brand span{font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand b{white-space:nowrap}
+.topbar .spacer{display:none}
+.chip-date{
+  font-family:var(--f-mono);font-size:11px;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--line);
+  padding:5px 9px;border-radius:999px;white-space:nowrap;
+}
+.themebtn{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:var(--surface);display:grid;place-items:center;font-size:14px;
+}
+
+main{flex:1; padding:16px 16px 108px; display:flex; flex-direction:column; gap:16px}
+.screen{display:none; flex-direction:column; gap:16px}
+.screen.on{display:flex}
+
+/* ---------- primitives ---------- */
+.card{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:14px; padding:14px;
+}
+.card.flat{box-shadow:none}
+.sec-h{display:flex;align-items:baseline;gap:8px;padding:0 2px}
+.sec-h h2{font-size:15px;font-weight:700}
+.sec-h .hint{font-size:11.5px;color:var(--ink-3);margin-left:auto}
+.eyebrow{
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;
+  color:var(--ink-3);font-weight:600;
+}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+  letter-spacing:.01em;white-space:nowrap;
+}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.neutral{background:var(--surface-2);color:var(--ink-2)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:11px 16px;border-radius:11px;font-weight:600;font-size:14px;
+  border:1px solid var(--line-2);background:var(--surface);
+  transition:transform .08s ease, background .15s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.ghost{background:transparent;border-style:dashed;color:var(--ink-2)}
+.btn.wide{width:100%}
+.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+
+/* ---------- voice ---------- */
+.voicecard{
+  background:linear-gradient(170deg, var(--voice-soft), var(--surface) 78%);
+  border:1px solid var(--line); border-radius:18px; padding:18px 16px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;
+}
+.mic{
+  width:84px;height:84px;border-radius:50%;
+  background:var(--voice);color:#fff;display:grid;place-items:center;
+  border:none; position:relative; box-shadow:0 10px 24px -12px var(--voice);
+}
+.mic svg{width:34px;height:34px}
+.mic[data-state="listening"]::after{
+  content:"";position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid var(--voice);animation:ping 1.4s ease-out infinite;
+}
+@keyframes ping{0%{transform:scale(.96);opacity:.7}100%{transform:scale(1.22);opacity:0}}
+@media (prefers-reduced-motion: reduce){.mic[data-state="listening"]::after{animation:none;opacity:.5}}
+.voicestate{font-family:var(--f-display);font-weight:700;font-size:16px}
+.voicehelp{font-size:12.5px;color:var(--ink-2);max-width:34ch}
+.transcript{
+  width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:11px;padding:11px 12px;font-size:13.5px;text-align:left;
+  color:var(--ink-2);min-height:46px;
+}
+.transcript b{color:var(--ink);font-weight:600}
+.examples{display:flex;flex-direction:column;gap:6px;width:100%}
+.dictate{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left}
+.dictate textarea{
+  width:100%;background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:10px 12px;font-size:14px;resize:vertical;line-height:1.4;
+}
+.ex{
+  text-align:left;font-size:12.5px;color:var(--ink-2);
+  background:var(--surface);border:1px dashed var(--line-2);
+  border-radius:9px;padding:8px 10px;line-height:1.35;
+}
+.ex:hover{border-color:var(--voice);color:var(--ink)}
+
+/* ---------- form ---------- */
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);font-weight:600}
+.field input,.field select{
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:10px;padding:10px 11px;font-size:14px;width:100%;
+}
+.field.missing input,.field.missing select{border-color:var(--warn);background:var(--warn-soft)}
+.field .flag{font-size:11px;color:var(--warn);font-weight:600}
+.segs{display:flex;gap:6px}
+.seg{
+  flex:1;padding:9px 4px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface-2);font-size:13px;font-weight:600;color:var(--ink-2);
+}
+.seg[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.matline{
+  display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);
+}
+.matline:last-child{border-bottom:none}
+.matline .nm{flex:1;min-width:0;font-size:13.5px;line-height:1.25}
+.matline .nm small{display:block;color:var(--ink-3);font-size:11px}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px}
+.stepper button{width:28px;height:30px;font-size:15px;color:var(--ink-2)}
+.stepper span{min-width:26px;text-align:center;font-family:var(--f-mono);font-size:13px;font-weight:600}
+.rm{color:var(--ink-3);font-size:16px;padding:0 2px}
+
+/* ---------- lists ---------- */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:12px 13px;display:flex;gap:11px;align-items:center;width:100%;text-align:left;
+}
+.item .av{
+  width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:14px;flex:none;
+}
+.item .main{flex:1;min-width:0}
+.item .main b{display:block;font-size:14px;font-weight:600}
+.item .main small{color:var(--ink-3);font-size:11.5px}
+.item .end{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+
+.stock .bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:7px}
+.stock .bar i{display:block;height:100%;border-radius:3px;background:var(--ok)}
+.stock .bar i.warn{background:var(--warn)}
+.stock .bar i.crit{background:var(--crit)}
+
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 10px}
+.tile b{display:block;font-family:var(--f-display);font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;line-height:1.2;display:block;margin-top:3px}
+.tile.crit b{color:var(--crit)} .tile.warn b{color:var(--warn)}
+
+/* ---------- agenda ---------- */
+.slot{display:flex;gap:11px;align-items:stretch}
+.slot .t{width:52px;flex:none;font-family:var(--f-mono);font-size:12px;color:var(--ink-3);padding-top:12px;font-variant-numeric:tabular-nums}
+.slot .body{flex:1;min-width:0}
+.appt{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px}
+.appt.urgent{border-left-color:var(--crit);background:var(--crit-soft)}
+.appt b{font-size:13.5px}
+.appt small{display:block;color:var(--ink-3);font-size:11.5px}
+.free{border:1px dashed var(--line-2);border-radius:10px;padding:9px 12px;color:var(--ink-3);font-size:12.5px;background:transparent}
+.free.pick{border-color:var(--voice);color:var(--voice);font-weight:600;background:var(--voice-soft)}
+.banner{
+  border-radius:12px;padding:12px 13px;display:flex;gap:10px;align-items:flex-start;
+  background:var(--crit-soft);border:1px solid color-mix(in srgb,var(--crit) 35%,transparent);
+}
+.banner .ic{font-size:16px;line-height:1.2}
+.banner b{display:block;font-size:13.5px;color:var(--crit)}
+.banner p{margin:2px 0 0;font-size:12.5px;color:var(--ink-2)}
+.stage{
+  font-size:11px;color:var(--ink-3);border:1px dashed var(--line-2);
+  border-radius:9px;padding:8px 10px;line-height:1.4;
+}
+
+/* ---------- history ---------- */
+.tl{display:flex;flex-direction:column;gap:0}
+.ev{display:flex;gap:11px}
+.ev .rail{width:11px;flex:none;display:flex;flex-direction:column;align-items:center}
+.ev .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:14px;flex:none}
+.ev .ln{flex:1;width:1px;background:var(--line)}
+.ev:last-child .ln{display:none}
+.ev .content{flex:1;padding:10px 0 14px}
+.ev .content b{font-size:13.5px}
+.ev .content .meta{font-size:11.5px;color:var(--ink-3);font-family:var(--f-mono)}
+.ev .content ul{margin:6px 0 0;padding-left:16px;font-size:12.5px;color:var(--ink-2)}
+
+/* ---------- tabs ---------- */
+.tabs{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  display:flex;justify-content:center;pointer-events:none;
+}
+.tabs .inner{
+  pointer-events:auto;width:100%;max-width:430px;
+  background:color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(var(--tabs,4),1fr);
+  padding:7px 6px calc(9px + env(safe-area-inset-bottom));
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;color:var(--ink-3);font-size:10.5px;font-weight:600}
+.tab svg{width:20px;height:20px}
+.tab[aria-current="page"]{color:var(--accent)}
+.tab .badge{position:absolute;transform:translate(14px,-4px);width:7px;height:7px;border-radius:50%;background:var(--crit)}
+
+.toast{
+  position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--ink);color:var(--ground);padding:11px 16px;border-radius:11px;
+  font-size:13px;font-weight:500;z-index:50;opacity:0;transition:.25s ease;
+  max-width:min(380px,90vw);text-align:center;box-shadow:var(--shadow);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.backlink{font-size:12.5px;color:var(--accent);font-weight:600;padding:2px 0;text-align:left}
+.empty{font-size:13px;color:var(--ink-3);text-align:center;padding:18px 10px;border:1px dashed var(--line-2);border-radius:12px}
+.searchbox{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:14px}
+
+/* ---------- login ---------- */
+.login{
+  position:fixed;inset:0;z-index:100;background:var(--ground);
+  display:flex;align-items:center;justify-content:center;padding:24px 16px;overflow:auto;
+}
+.login .box{width:100%;max-width:398px;display:flex;flex-direction:column;gap:14px}
+.login h1{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.login .sub{font-size:13px;color:var(--ink-2);margin:0}
+.perfis{display:flex;flex-direction:column;gap:7px}
+.perfil{
+  display:flex;align-items:center;gap:11px;text-align:left;width:100%;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px;
+}
+.perfil[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.perfil .av{width:34px;height:34px;border-radius:9px;background:var(--surface-2);color:var(--ink-2);
+  display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:13px;flex:none}
+.perfil[aria-pressed="true"] .av{background:var(--accent);color:var(--accent-ink)}
+.perfil .main{flex:1;min-width:0}
+.perfil .main b{display:block;font-size:14px}
+.perfil .main small{color:var(--ink-3);font-size:11.5px}
+.aviso{
+  font-size:11.5px;line-height:1.45;color:var(--warn);background:var(--warn-soft);
+  border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:10px;padding:10px 11px;
+}
+.userchip{
+  flex:0 0 auto;max-width:62%;overflow:hidden;
+  display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:999px;padding:4px 6px 4px 10px;font-size:11.5px;color:var(--ink-2);white-space:nowrap;
+}
+.userchip b,.userchip span{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:380px){ .userchip span{display:none} }
+.userchip b{font-size:11.5px;color:var(--ink)}
+.userchip button{color:var(--ink-3);font-size:13px;padding:0 3px;line-height:1}
+
+/* ---------- ditado contínuo ---------- */
+.wake{display:flex;align-items:center;gap:8px;width:100%;font-size:12px;color:var(--ink-2);
+  background:var(--surface);border:1px dashed var(--line-2);border-radius:10px;padding:9px 11px;text-align:left}
+.wake input{accent-color:var(--voice);width:16px;height:16px;flex:none}
+.mic[data-state="wake"]{background:var(--surface);color:var(--voice);border:2px dashed var(--voice);box-shadow:none}
+.diag{
+  width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:9px;
+}
+.diag h3{font-size:13px;font-weight:700;font-family:var(--f-display)}
+.diag .linha{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.35}
+.diag .ic{flex:none;width:16px;text-align:center;font-weight:700}
+.diag .ic.ok{color:var(--ok)} .diag .ic.no{color:var(--crit)} .diag .ic.warn{color:var(--warn)}
+.diag b{display:block}
+.diag small{color:var(--ink-3);display:block;margin-top:1px}
+.diag .conclusao{
+  font-size:12.5px;line-height:1.45;padding:10px 11px;border-radius:9px;
+  background:var(--accent-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+}
+.editbar{
+  display:flex;align-items:center;gap:9px;background:var(--accent-soft);
+  border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);border-radius:11px;padding:10px 12px;
+}
+.editbar span{flex:1;font-size:12.5px;color:var(--accent);font-weight:600}
+.editbar button{font-size:12px;font-weight:600;color:var(--ink-2);text-decoration:underline}
+.rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.minibtn{font-size:11.5px;font-weight:600;color:var(--accent);border:1px solid var(--line);
+  background:var(--surface);border-radius:8px;padding:5px 9px}
+.dados{margin:12px 0 0;display:flex;flex-direction:column;gap:0}
+.dados div{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
+.dados div:last-child{border-bottom:none}
+.dados dt{flex:0 0 104px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin:0}
+.dados dd{margin:0;flex:1;min-width:0;font-size:13.5px;word-break:break-word}
+.lnk{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.pend{margin-top:10px;font-size:11.5px;color:var(--warn);background:var(--warn-soft);
+  border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:9px;padding:8px 10px}
+.audit{font-size:11px;color:var(--ink-3);font-style:italic;margin-top:5px}
+</style>
+</head>
+<body>
+
+
+<div class="login" id="loginScreen">
+  <div class="box">
+    <div>
+      <div class="eyebrow">Meu Dentista</div>
+      <h1>Entrar no consultório</h1>
+      <p class="sub">Escolha o perfil e informe a senha. Cada perfil enxerga só o que precisa.</p>
+    </div>
+    <div class="perfis" id="perfisBox"></div>
+    <div class="field">
+      <label for="inSenha">Senha</label>
+      <input id="inSenha" type="password" autocomplete="off" placeholder="senha do perfil">
+    </div>
+    <button class="btn primary wide" id="entrarBtn">Entrar</button>
+    <div class="aviso" id="loginAviso">
+      <b>Protótipo — não use dados reais de pacientes.</b> Este login demonstra os níveis de acesso, mas roda inteiro no navegador: não há servidor, criptografia nem proteção de verdade. A senha de cada perfil aparece ao selecioná-lo. Autenticação real exige backend, e prontuário odontológico tem exigências de LGPD e do CFO a cumprir.
+    </div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" hidden>
+  <div class="topbar">
+    <div class="brand">
+      <b>Meu Dentista</b>
+      <span id="clinicLabel">Implantodontia · Reabilitação oral</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="userchip" id="userChip" hidden>
+      <b id="userNome">—</b><span id="userPerfil"></span>
+      <button id="sairBtn" title="Sair" aria-label="Sair">⏻</button>
+    </div>
+    <button class="themebtn" id="themeBtn" aria-label="Alternar tema">◑</button>
+  </div>
+
+  <main>
+    <!-- ================= HOJE ================= -->
+    <section class="screen on" id="scr-hoje">
+      <div class="sec-h"><h2 id="saudacao">Atendimento</h2><span class="hint mono" id="todayChip">—</span></div>
+      <div class="voicecard">
+        <button class="mic" id="micBtn" data-state="idle" aria-label="Ditar atendimento">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <rect x="9" y="2.5" width="6" height="11" rx="3" fill="currentColor" stroke="none"></rect>
+            <path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path><path d="M12 17.5V21"></path><path d="M8.5 21h7"></path>
+          </svg>
+        </button>
+        <div>
+          <div class="voicestate" id="voiceState">Toque e fale o atendimento</div>
+          <div class="voicehelp" id="voiceHelp">Paciente, procedimento, dentes, complexidade e materiais — tudo numa frase só.</div>
+        </div>
+        <div class="transcript" id="transcript"><span style="color:var(--ink-3)">O que você falar vai aparecendo no rascunho abaixo, e só vira ficha quando você mandar.</span></div>
+
+        <div class="dictate">
+          <label class="eyebrow" for="inFala">Rascunho — edite antes de interpretar</label>
+          <textarea id="inFala" rows="4" placeholder="Fale ou digite: implante unitário no 36 da Roberto Lima, complexidade alta, 1 implante cone morse e 2 tubetes de articaína"></textarea>
+          <div class="row">
+            <button class="btn primary" id="interpretarBtn" style="flex:1">Interpretar rascunho</button>
+            <button class="btn" id="limparFalaBtn">Apagar</button>
+          </div>
+          <label class="wake">
+            <input type="checkbox" id="wakeChk">
+            <span>Escuta contínua: dizer <b>“ô Charles”</b> começa a anotar sozinho</span>
+          </label>
+          <button class="btn ghost wide" id="diagBtn" style="font-size:12.5px;padding:9px 12px">
+            O ditado não funcionou? Descobrir por quê
+          </button>
+          <div id="diagBox" class="diag" hidden></div>
+        </div>
+
+        <div class="examples">
+          <div class="eyebrow" style="text-align:left">Exemplos para testar</div>
+          <button class="ex" data-say="Paciente Roberto Lima, instalação de implante unitário no dente 36, complexidade alta, usei 1 implante cone morse, 1 parafuso de cobertura, 2 tubetes de articaína e 1 sutura PTFE">🗣 “Paciente Roberto Lima, instalação de implante unitário no dente 36, complexidade alta, usei 1 implante cone morse, 1 parafuso de cobertura, 2 tubetes de articaína e 1 sutura PTFE”</button>
+          <button class="ex" data-say="Atendimento da Sandra Toledo, moldagem para prótese sobre implante na arcada superior, complexidade média, gastei 4 transferentes de moldagem, 1 silicone de adição e 1 moldeira">🗣 “Atendimento da Sandra Toledo, moldagem para prótese sobre implante na arcada superior, complexidade média, gastei 4 transferentes, 1 silicone de adição e 1 moldeira”</button>
+          <button class="ex" data-say="Consulta da Ana Clara Souza, instalação de coroa sobre implante no dente 21, complexidade média">🗣 “Consulta da Ana Clara Souza, instalação de coroa sobre implante no dente 21, complexidade média” <b style="color:var(--voice)">— sem citar material, para ver o kit padrão</b></button>
+        </div>
+      </div>
+
+      <div class="editbar" id="editBar" hidden>
+        <span id="editBarTxt"></span>
+        <button id="cancelEdit">cancelar</button>
+      </div>
+      <div class="sec-h"><h2>Ficha do atendimento</h2><span class="hint" id="fichaHint">preencha por voz ou digitando</span></div>
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="field" id="f-paciente">
+            <label for="inPaciente">Paciente</label>
+            <input id="inPaciente" list="pacList" placeholder="Nome do paciente" autocomplete="off">
+            <datalist id="pacList"></datalist>
+          </div>
+          <div class="field" id="f-proc">
+            <label for="inProc">Procedimento</label>
+            <input id="inProc" list="procList" placeholder="Ex.: instalação de implante unitário" autocomplete="off">
+            <datalist id="procList"></datalist>
+          </div>
+          <div class="grid2">
+            <div class="field" id="f-regiao">
+              <label for="inRegiao">Região / dentes</label>
+              <input id="inRegiao" placeholder="Ex.: quadrante 1" autocomplete="off">
+            </div>
+            <div class="field" id="f-dur">
+              <label for="inDur">Duração (min)</label>
+              <input id="inDur" type="number" min="5" step="5" value="45" class="mono">
+            </div>
+          </div>
+          <div class="field" id="f-cplx">
+            <label>Complexidade</label>
+            <div class="segs" id="segCplx" role="group" aria-label="Complexidade">
+              <button class="seg" data-v="Baixa" aria-pressed="false">Baixa</button>
+              <button class="seg" data-v="Média" aria-pressed="false">Média</button>
+              <button class="seg" data-v="Alta" aria-pressed="false">Alta</button>
+            </div>
+            <span class="flag" id="cplxFlag" hidden>não entendi na fala — selecione</span>
+          </div>
+
+          <div>
+            <div class="sec-h" style="padding:0 0 4px"><h2 style="font-size:13px">Materiais utilizados</h2><span class="hint" id="matHint">baixa automática no estoque</span></div>
+            <div id="matList"></div>
+            <div class="field" style="margin-top:10px">
+              <select id="addMat">
+                <option value="">+ adicionar material do estoque…</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn primary wide" id="saveAtend">Registrar atendimento</button>
+            <button class="btn ghost wide" id="clearAtend">Limpar ficha</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-h"><h2>Atendimentos de hoje</h2><span class="hint" id="hojeCount"></span></div>
+      <div class="list" id="hojeList"></div>
+    </section>
+
+    <!-- ================= PACIENTES ================= -->
+    <section class="screen" id="scr-pacientes">
+      <input class="searchbox" id="pacSearch" placeholder="Buscar paciente…" autocomplete="off">
+      <div class="list" id="pacList2"></div>
+      <div id="pacDetail" hidden></div>
+    </section>
+
+    <!-- ================= ESTOQUE ================= -->
+    <section class="screen" id="scr-estoque">
+      <div class="tiles" id="stockTiles"></div>
+      <div class="sec-h"><h2>Estoque do consultório</h2><span class="hint">unidade · mínimo</span></div>
+      <div class="list" id="stockList"></div>
+      <div class="sec-h"><h2>Referência de implantodontia e prótese</h2><span class="hint">itens de uso corrente</span></div>
+      <div class="stage">Insumos de uso corrente em implantodontia e reabilitação oral — toque para incluir no seu estoque com o mínimo já sugerido.</div>
+      <div class="list" id="catalogList"></div>
+    </section>
+
+    <!-- ================= AGENDA ================= -->
+    <section class="screen" id="scr-agenda">
+      <div class="banner" id="urgBanner" hidden>
+        <div class="ic">🚨</div>
+        <div>
+          <b>Emergência sinalizada</b>
+          <p id="urgText"></p>
+        </div>
+      </div>
+      <div class="sec-h"><h2 id="agendaDay">Agenda</h2><span class="hint" id="agendaFree"></span></div>
+      <div class="row">
+        <button class="btn" id="encaixeBtn">Sugerir encaixe</button>
+        <button class="btn" id="urgBtn">Simular dor intensa (pós-atendimento)</button>
+      </div>
+      <div class="list" id="agendaList" style="gap:6px"></div>
+      <div class="stage"><b>Etapa 2 — WhatsApp:</b> mensagem de acompanhamento automática após cada atendimento; resposta fora do padrão de recuperação devolve os 3 horários livres mais próximos ao dentista, e dor intensa dispara alerta imediato. <b>Etapa 3:</b> financeiro, pagamento por cartão e confirmação automática.</div>
+    </section>
+  </main>
+
+    <!-- ================= FINANCEIRO ================= -->
+    <section class="screen" id="scr-financeiro">
+      <div class="tiles" id="finTiles"></div>
+      <div class="sec-h"><h2>Atendimentos do período</h2><span class="hint">sem detalhe clínico</span></div>
+      <div class="list" id="finList"></div>
+      <div class="stage"><b>Etapa 3:</b> valores por procedimento, recebimento por cartão e link de pagamento, conciliação e relatório por convênio. Nesta prévia o perfil Financeiro vê quem foi atendido, quando e a complexidade — o que basta para faturar — mas não o conteúdo clínico do prontuário.</div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <div class="inner">
+      <button class="tab" data-scr="hoje" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="9" y="3" width="6" height="10" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0"></path><path d="M12 17.5V21"></path></svg>
+        Hoje
+      </button>
+      <button class="tab" data-scr="pacientes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"></path></svg>
+        Pacientes
+      </button>
+      <button class="tab" data-scr="estoque">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"></path><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"></path></svg>
+        Estoque
+      </button>
+      <button class="tab" data-scr="agenda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+        Agenda
+      </button>
+      <button class="tab" data-scr="financeiro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
+        Financeiro
+      </button>
+    </div>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ perfis de acesso ============
+   ATENÇÃO: autenticação de demonstração. As senhas estão no código da página e
+   qualquer pessoa com o navegador aberto contorna isso. Serve para desenhar e
+   validar os níveis de acesso; a versão real precisa de servidor, senha com
+   hash, sessão assinada e trilha de auditoria. */
+const USUARIOS = [
+  {id:"u1", nome:"Dra. Helena Prado",  perfil:"Dentista",      senha:"dentista",  ini:"HP"},
+  {id:"u2", nome:"Camila Rezende",     perfil:"Secretaria",    senha:"secretaria",ini:"CR"},
+  {id:"u3", nome:"Marcos Vieira",      perfil:"Financeiro",    senha:"financeiro",ini:"MV"},
+  {id:"u4", nome:"Patrícia Alencar",   perfil:"Estoque",       senha:"estoque",   ini:"PA"},
+  {id:"u5", nome:"Luiz Raminelli",     perfil:"Administrador", senha:"admin",     ini:"LR"}
+];
+const PERFIS = {
+  Administrador:{
+    rotulo:"Administrador", desc:"Acesso total, incluindo perfis e configurações",
+    telas:["hoje","pacientes","estoque","agenda","financeiro"],
+    atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true
+  },
+  Dentista:{
+    rotulo:"Dentista", desc:"Atende, edita prontuário e agenda; estoque só leitura",
+    telas:["hoje","pacientes","estoque","agenda"],
+    atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:false, cadastro:true
+  },
+  Secretaria:{
+    rotulo:"Secretária", desc:"Cadastro e contato do paciente, agenda; não vê conteúdo clínico",
+    telas:["pacientes","agenda"],
+    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true
+  },
+  Financeiro:{
+    rotulo:"Financeiro", desc:"Faturamento e agenda; sem conteúdo clínico",
+    telas:["financeiro","agenda"],
+    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false
+  },
+  Estoque:{
+    rotulo:"Estoque", desc:"Entradas, baixas e reposição de materiais",
+    telas:["estoque"],
+    atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false
+  }
+};
+let usuario = null;                    // usuário logado
+const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
+
+/* ============ dados de exemplo ============ */
+const CATALOGO = [
+  /* ---- implantes e componentes protéticos ---- */
+  {id:"imp_cm",  nome:"Implante cone morse 3,5 × 10 mm", un:"un", min:6, sug:12, cat:"Implantes", termos:["implante cone morse","cone morse","implante 3,5"]},
+  {id:"imp_he",  nome:"Implante hexágono externo 4,0 × 11,5 mm", un:"un", min:4, sug:8, cat:"Implantes", termos:["hexagono externo","implante he","implante 4,0"]},
+  {id:"imp_est", nome:"Implante estreito 3,0 × 10 mm", un:"un", min:2, sug:4, cat:"Implantes", termos:["implante estreito","mini implante","implante 3,0"]},
+  {id:"cicatr",  nome:"Cicatrizador 4,5 × 4 mm", un:"un", min:8, sug:15, cat:"Componentes", termos:["cicatrizador","healing"]},
+  {id:"par_cob", nome:"Parafuso de cobertura", un:"un", min:8, sug:15, cat:"Componentes", termos:["parafuso de cobertura","tampa de cobertura"]},
+  {id:"munhao",  nome:"Munhão universal (pilar protético)", un:"un", min:4, sug:8, cat:"Componentes", termos:["munhao","munhão","pilar protetico","abutment"]},
+  {id:"multiu",  nome:"Pilar Multi-Unit angulado 17°", un:"un", min:4, sug:8, cat:"Componentes", termos:["multi unit","multiunit","mini pilar","pilar angulado"]},
+  {id:"tibase",  nome:"Base de titânio (Ti-Base)", un:"un", min:3, sug:6, cat:"Componentes", termos:["ti base","ti-base","base de titanio"]},
+  {id:"transf",  nome:"Transferente de moldagem", un:"un", min:6, sug:12, cat:"Componentes", termos:["transferente","transfer de moldagem","transfer"]},
+  {id:"analogo", nome:"Análogo de implante", un:"un", min:6, sug:12, cat:"Componentes", termos:["analogo","análogo","replica de implante"]},
+  {id:"par_pro", nome:"Parafuso protético de fixação", un:"un", min:6, sug:12, cat:"Componentes", termos:["parafuso protetico","parafuso de fixacao","parafuso passante"]},
+
+  /* ---- cirúrgicos e biomateriais ---- */
+  {id:"enx",     nome:"Enxerto ósseo xenógeno 0,5 g", un:"frasco", min:3, sug:6, cat:"Biomateriais", termos:["enxerto osseo","enxerto ósseo","xenogeno","xenógeno","biomaterial","bio-oss","substituto osseo"]},
+  {id:"memb",    nome:"Membrana de colágeno reabsorvível", un:"un", min:3, sug:6, cat:"Biomateriais", termos:["membrana","colageno","colágeno"]},
+  {id:"osteo",   nome:"Parafuso de osteossíntese 1,5 mm", un:"un", min:4, sug:8, cat:"Biomateriais", termos:["osteossintese","osteossíntese","parafuso de fixacao de enxerto"]},
+  {id:"fresas",  nome:"Kit de fresas / broca helicoidal 2,0", un:"un", min:2, sug:4, cat:"Cirúrgicos", termos:["broca helicoidal","fresa","brocas de implante","fresas"]},
+  {id:"ptfe",    nome:"Fio de sutura PTFE 4-0", un:"envelope", min:10, sug:20, cat:"Cirúrgicos", termos:["ptfe","sutura ptfe","fio ptfe"]},
+  {id:"nylon",   nome:"Fio de sutura nylon 5-0", un:"envelope", min:10, sug:20, cat:"Cirúrgicos", termos:["nylon","sutura nylon","fio de sutura","5-0"]},
+  {id:"lam15",   nome:"Lâmina de bisturi 15c", un:"un", min:20, sug:40, cat:"Cirúrgicos", termos:["lamina","lâmina","bisturi","15c"]},
+  {id:"soro",    nome:"Soro fisiológico 0,9% 500 ml", un:"frasco", min:10, sug:20, cat:"Cirúrgicos", termos:["soro fisiologico","soro","irrigacao","irrigação"]},
+  {id:"campo",   nome:"Campo cirúrgico estéril", un:"un", min:10, sug:20, cat:"Cirúrgicos", termos:["campo cirurgico","campo cirúrgico","campo esteril"]},
+
+  /* ---- anestésicos e descartáveis ---- */
+  {id:"artic",   nome:"Articaína 4% c/ epinefrina", un:"tubete", min:40, sug:80, cat:"Anestésicos", termos:["articaina","articaína","artic"]},
+  {id:"mepi",    nome:"Mepivacaína 3% sem vaso", un:"tubete", min:20, sug:40, cat:"Anestésicos", termos:["mepivacaina","mepivacaína","mepi"]},
+  {id:"lido",    nome:"Lidocaína 2% c/ epinefrina 1:100.000", un:"tubete", min:20, sug:40, cat:"Anestésicos", termos:["lidocaina","lidocaína","lido"]},
+  {id:"ag30",    nome:"Agulha gengival 30G curta", un:"un", min:50, sug:100, cat:"Descartáveis", termos:["agulha","30g"]},
+  {id:"gaze",    nome:"Gaze estéril 7,5 × 7,5", un:"pacote", min:20, sug:40, cat:"Descartáveis", termos:["gaze"]},
+  {id:"sug",     nome:"Sugador descartável", un:"un", min:100, sug:200, cat:"Descartáveis", termos:["sugador"]},
+  {id:"luva",    nome:"Luva cirúrgica estéril 7,5", un:"par", min:40, sug:80, cat:"Descartáveis", termos:["luva","luva cirurgica"]},
+
+  /* ---- prótese e reabilitação ---- */
+  {id:"silic",   nome:"Silicone de adição (leve + pesado)", un:"kit", min:3, sug:6, cat:"Moldagem", termos:["silicone de adicao","silicone de adição","polivinil","pvs","silicone"]},
+  {id:"moldeira",nome:"Moldeira descartável", un:"un", min:15, sug:30, cat:"Moldagem", termos:["moldeira"]},
+  {id:"fio_ret", nome:"Fio retrator gengival nº 0", un:"frasco", min:2, sug:4, cat:"Moldagem", termos:["fio retrator","afastador gengival"]},
+  {id:"bisacr",  nome:"Resina bisacrílica para provisório", un:"tubo", min:3, sug:6, cat:"Provisórios", termos:["bisacrilica","bisacrílica","resina de provisorio","provisorio em resina"]},
+  {id:"acril",   nome:"Resina acrílica autopolimerizável", un:"kit", min:2, sug:4, cat:"Provisórios", termos:["resina acrilica","resina acrílica","acrilico","acrílico"]},
+  {id:"cim_pro", nome:"Cimento provisório sem eugenol", un:"bisnaga", min:2, sug:4, cat:"Cimentação", termos:["cimento provisorio","cimento provisório"]},
+  {id:"cim_res", nome:"Cimento resinoso autoadesivo", un:"seringa", min:2, sug:4, cat:"Cimentação", termos:["cimento resinoso","cimentacao definitiva","cimentação definitiva"]},
+  {id:"acido",   nome:"Ácido fosfórico 37%", un:"seringa", min:2, sug:4, cat:"Cimentação", termos:["acido fosforico","ácido fosfórico","condicionador"]},
+  {id:"adesivo", nome:"Sistema adesivo universal", un:"frasco", min:2, sug:4, cat:"Cimentação", termos:["sistema adesivo","adesivo"]},
+  {id:"teflon",  nome:"Fita de teflon (veda-parafuso)", un:"rolo", min:2, sug:4, cat:"Acabamento", termos:["fita de teflon","veda parafuso"]},
+  {id:"carbono", nome:"Papel carbono de articulação", un:"bloco", min:3, sug:6, cat:"Acabamento", termos:["papel carbono","carbono de articulacao","carbono"]},
+  {id:"diamant", nome:"Ponta diamantada para preparo", un:"un", min:15, sug:30, cat:"Acabamento", termos:["ponta diamantada","broca diamantada","diamantada"]},
+  {id:"polim",   nome:"Kit de polimento para cerâmica", un:"kit", min:2, sug:3, cat:"Acabamento", termos:["polimento","borracha de polimento"]}
+];
+
+/* Procedimentos da especialidade: expressão reconhecida na fala, duração típica
+   e o kit de materiais que costuma sair do estoque — sugerido quando o dentista
+   não cita material nenhum. */
+const PROCEDIMENTOS = [
+  {nome:"Instalação de implante unitário", re:/implante unitario|instalacao de implante|instalei .{0,12}implante|coloquei .{0,12}implante|colocacao de implante/, dur:90,
+   kit:[["imp_cm",1],["par_cob",1],["artic",2],["ptfe",1],["lam15",1],["soro",1]]},
+  {nome:"Instalação de múltiplos implantes", re:/multiplos implantes|varios implantes|dois implantes|tres implantes|quatro implantes/, dur:150,
+   kit:[["imp_cm",2],["par_cob",2],["artic",4],["ptfe",2],["lam15",1],["soro",2]]},
+  {nome:"Levantamento de seio maxilar", re:/levantamento de seio|seio maxilar|sinus lift/, dur:120,
+   kit:[["enx",2],["memb",1],["artic",4],["ptfe",2],["lam15",1]]},
+  {nome:"Regeneração óssea guiada (enxerto)", re:/regeneracao ossea|enxerto osseo|\brog\b|preenchimento osseo/, dur:90,
+   kit:[["enx",1],["memb",1],["ptfe",1],["artic",3],["lam15",1]]},
+  {nome:"Segunda fase cirúrgica (reabertura)", re:/segunda fase|reabertura|instalacao de cicatrizador|troca por cicatrizador/, dur:40,
+   kit:[["cicatr",1],["artic",1],["lam15",1]]},
+  {nome:"Moldagem para prótese sobre implante", re:/moldagem/, dur:60,
+   kit:[["transf",1],["analogo",1],["silic",1],["moldeira",1]]},
+  {nome:"Instalação de coroa sobre implante", re:/coroa sobre implante|coroa parafusada|coroa cimentada|instalacao de coroa|entrega de coroa/, dur:60,
+   kit:[["par_pro",1],["teflon",1],["carbono",1]]},
+  {nome:"Carga imediata / provisório sobre implante", re:/carga imediata|protese provisoria|provisorio imediato|provisorio sobre implante/, dur:120,
+   kit:[["multiu",2],["bisacr",1],["par_pro",2],["carbono",1]]},
+  {nome:"Protocolo total fixo sobre implantes", re:/protocolo|protese total fixa|all on four|all-on-4|all on 4/, dur:180,
+   kit:[["multiu",4],["par_pro",4],["acril",1],["carbono",1]]},
+  {nome:"Overdenture sobre implantes", re:/overdenture|sobredentadura|protese removivel sobre implante/, dur:90,
+   kit:[["acril",1],["silic",1],["moldeira",1]]},
+  {nome:"Coroa unitária em cerâmica", re:/coroa unitaria|coroa em ceramica|coroa de ceramica|coroa total/, dur:70,
+   kit:[["diamant",2],["fio_ret",1],["silic",1],["bisacr",1],["cim_res",1]]},
+  {nome:"Faceta em cerâmica", re:/faceta|laminado ceramico/, dur:70,
+   kit:[["diamant",2],["fio_ret",1],["silic",1],["acido",1],["adesivo",1],["cim_res",1]]},
+  {nome:"Prova de infraestrutura / prova de peça", re:/prova de infraestrutura|prova da peca|prova de barra|prova do protocolo/, dur:45, kit:[["carbono",1]]},
+  {nome:"Ajuste oclusal", re:/ajuste oclusal|ajuste de oclusao|ajuste da oclusao/, dur:30, kit:[["carbono",1],["polim",1]]},
+  {nome:"Reaperto / manutenção de prótese", re:/reaperto|manutencao de protese|troca de parafuso|parafuso soltou|afrouxou/, dur:30,
+   kit:[["par_pro",1],["teflon",1],["carbono",1]]},
+  {nome:"Tratamento de peri-implantite", re:/peri implantite|periimplantite|peri-implantite|mucosite peri/, dur:60,
+   kit:[["artic",2],["soro",1],["gaze",2]]},
+  {nome:"Remoção de implante", re:/remocao de implante|explantacao|retirada de implante/, dur:60,
+   kit:[["artic",3],["ptfe",1],["lam15",1],["soro",1]]},
+  {nome:"Cirurgia guiada com guia prototipada", re:/cirurgia guiada|guia prototipada|guia cirurgica/, dur:120,
+   kit:[["imp_cm",1],["par_cob",1],["artic",3],["fresas",1],["soro",1]]},
+  {nome:"Consulta de avaliação / planejamento", re:/avaliacao|planejamento|primeira consulta|tomografia/, dur:40, kit:[]}
+];
+
+
+const SEED = {
+  estoque:[
+    {id:"imp_cm", qtd:9}, {id:"imp_he", qtd:5},  {id:"cicatr", qtd:11},
+    {id:"par_cob",qtd:7}, {id:"munhao", qtd:3},  {id:"multiu", qtd:2},
+    {id:"transf", qtd:8}, {id:"analogo",qtd:8},  {id:"par_pro", qtd:5},
+    {id:"enx",    qtd:2}, {id:"memb",   qtd:3},  {id:"fresas",  qtd:2},
+    {id:"ptfe",   qtd:14},{id:"lam15",  qtd:38}, {id:"soro",    qtd:12},
+    {id:"artic",  qtd:64},{id:"mepi",   qtd:22}, {id:"ag30",    qtd:150},
+    {id:"gaze",   qtd:24},{id:"sug",    qtd:210},{id:"luva",    qtd:36},
+    {id:"silic",  qtd:4}, {id:"moldeira",qtd:18},{id:"bisacr",  qtd:2},
+    {id:"cim_res",qtd:3}, {id:"carbono",qtd:4},  {id:"diamant", qtd:21},
+    {id:"teflon", qtd:3}
+  ],
+  pacientes:[
+    {id:"p1", nome:"Sandra Toledo", nasc:"1969-04-22", sexo:"Feminino", cpf:"950.712.865-48", tel:"(11) 98812-4477", email:"sandra.toledo@exemplo.com.br",
+     obs:"Protocolo total fixo superior sobre 4 implantes · fase de provisório"},
+    {id:"p2", nome:"Roberto Lima", nasc:"1988-11-03", sexo:"Masculino", cpf:"742.948.166-35", tel:"(11) 99461-2038", email:"roberto.lima@exemplo.com.br",
+     obs:"Implante unitário no 36 · osso tipo III, aguardando osseointegração"},
+    {id:"p3", nome:"Ana Clara Souza", nasc:"1995-07-15", sexo:"Feminino", cpf:"198.879.895-76", tel:"(11) 97730-8891", email:"anaclara.souza@exemplo.com.br",
+     obs:"Coroa sobre implante no 21 · bruxismo controlado com placa"},
+    {id:"p4", nome:"Jorge Nakamura", nasc:"1962-02-09", sexo:"Masculino", cpf:"", tel:"(11) 98105-6642", email:"",
+     obs:"Overdenture inferior sobre 2 implantes · manutenção anual"}
+  ],
+  atendimentos:[
+    {id:"a1", pac:"p2", data:"2026-08-12", proc:"Instalação de implante unitário", regiao:"Dente 36", cplx:"Alta", dur:90,
+     mats:[["imp_cm",1],["par_cob",1],["artic",2],["ptfe",1],["lam15",1]].map(([id,q])=>({id,q})),
+     obs:"Torque de inserção 45 N·cm · reabertura prevista em 90 dias"},
+    {id:"a2", pac:"p1", data:"2026-08-28", proc:"Moldagem para prótese sobre implante", regiao:"Arcada superior", cplx:"Média", dur:60,
+     mats:[["transf",4],["analogo",4],["silic",1],["moldeira",1]].map(([id,q])=>({id,q})),
+     obs:"Índice de silicone conferido em boca · cor A2"},
+    {id:"a3", pac:"p4", data:"2026-09-03", proc:"Reaperto / manutenção de prótese", regiao:"Arcada inferior", cplx:"Baixa", dur:30,
+     mats:[["par_pro",1],["teflon",1],["carbono",1]].map(([id,q])=>({id,q})),
+     obs:"Parafuso do pilar esquerdo reapertado a 15 N·cm"}
+  ],
+  agenda:[
+    {h:"08:00", dur:60, pac:"Jorge Nakamura", proc:"Manutenção de overdenture"},
+    {h:"10:00", dur:90, pac:"Sandra Toledo", proc:"Prova do protocolo superior"},
+    {h:"14:00", dur:60, pac:"Roberto Lima", proc:"Segunda fase cirúrgica (reabertura)"}
+  ]
+};
+
+
+/* ============ estado ============ */
+const KEY="meu-dentista-demo-v1";
+let S;
+function load(){
+  try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}
+  S=JSON.parse(JSON.stringify(SEED));
+}
+/* dados salvos por versões anteriores: nascimento era só o ano e não havia
+   telefone/e-mail/sexo. Normaliza para o formato novo sem perder nada. */
+function migrar(){
+  (S.pacientes||[]).forEach(p=>{
+    if(p.nasc && /^\d{4}$/.test(p.nasc)) p.nasc = p.nasc + "-01-01";
+    if(p.nasc === "—") p.nasc = "";
+    ["sexo","cpf","tel","email"].forEach(k=>{ if(p[k]===undefined) p[k]=""; });
+  });
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+load();
+migrar();
+
+const catById = id => CATALOGO.find(c=>c.id===id);
+const stockById = id => S.estoque.find(e=>e.id===id);
+const pacById = id => S.pacientes.find(p=>p.id===id);
+const hoje = new Date();
+const ISO = d => d.toISOString().slice(0,10);
+const fmtData = iso => { const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; };
+
+/* ============ utilidades UI ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+let toastT;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),3200);
+}
+function stockStatus(e){
+  const c=catById(e.id); const r=e.qtd/Math.max(c.min,1);
+  if(e.qtd===0) return {k:"crit", label:"sem estoque"};
+  if(r<0.5) return {k:"crit", label:"crítico"};
+  if(r<1) return {k:"warn", label:"abaixo do mínimo"};
+  return {k:"ok", label:"ok"};
+}
+
+/* ============ ficha em edição ============ */
+let ficha = null;
+function fichaVazia(){ return {paciente:"", proc:"", regiao:"", cplx:"", dur:45, mats:[], faltando:[], kit:false, editId:null, obs:""}; }
+ficha = fichaVazia();
+
+function renderFicha(){
+  $("#inPaciente").value = ficha.paciente;
+  $("#inProc").value = ficha.proc;
+  $("#inRegiao").value = ficha.regiao;
+  $("#inDur").value = ficha.dur;
+  $$("#segCplx .seg").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===ficha.cplx)));
+  $("#cplxFlag").hidden = !ficha.faltando.includes("cplx");
+  ["paciente","proc","regiao"].forEach(k=>{
+    const el = {paciente:"#f-paciente",proc:"#f-proc",regiao:"#f-regiao"}[k];
+    $(el).classList.toggle("missing", ficha.faltando.includes(k));
+  });
+  $("#f-cplx").classList.toggle("missing", ficha.faltando.includes("cplx"));
+
+  const box=$("#matList"); box.innerHTML="";
+  if(!ficha.mats.length){
+    box.innerHTML = '<div class="stage">Nenhum material na ficha. Fale “usei 1 implante cone morse e 2 tubetes de articaína” ou escolha abaixo.</div>';
+  }
+  ficha.mats.forEach((m,i)=>{
+    const c=catById(m.id); const e=stockById(m.id);
+    const saldo = e ? e.qtd : 0;
+    const line=document.createElement("div"); line.className="matline";
+    line.innerHTML = `
+      <div class="nm">${c.nome}<small>${c.un} · saldo ${saldo}${saldo-m.q<0?' <span style="color:var(--crit)">insuficiente</span>':''}</small></div>
+      <div class="stepper">
+        <button data-act="dec" data-i="${i}" aria-label="Diminuir">−</button>
+        <span class="mono">${m.q}</span>
+        <button data-act="inc" data-i="${i}" aria-label="Aumentar">+</button>
+      </div>
+      <button class="rm" data-act="rm" data-i="${i}" aria-label="Remover">✕</button>`;
+    box.appendChild(line);
+  });
+  $("#matHint").textContent = ficha.kit && ficha.mats.length
+    ? "kit padrão sugerido — confira"
+    : "baixa automática no estoque";
+  $("#matHint").style.color = ficha.kit && ficha.mats.length ? "var(--voice)" : "";
+  $("#fichaHint").textContent = ficha.faltando.length
+    ? ficha.faltando.length + " campo(s) não compreendido(s)"
+    : "preencha por voz ou digitando";
+}
+
+$("#matList").addEventListener("click", ev=>{
+  const b=ev.target.closest("button[data-act]"); if(!b) return;
+  const i=+b.dataset.i;
+  if(b.dataset.act==="inc") ficha.mats[i].q++;
+  if(b.dataset.act==="dec") ficha.mats[i].q=Math.max(1,ficha.mats[i].q-1);
+  if(b.dataset.act==="rm") ficha.mats.splice(i,1);
+  renderFicha();
+});
+$("#segCplx").addEventListener("click", ev=>{
+  const b=ev.target.closest(".seg"); if(!b) return;
+  ficha.cplx=b.dataset.v;
+  ficha.faltando=ficha.faltando.filter(f=>f!=="cplx");
+  renderFicha();
+});
+["inPaciente","inProc","inRegiao","inDur"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", e=>{
+    const map={inPaciente:"paciente",inProc:"proc",inRegiao:"regiao",inDur:"dur"};
+    const k=map[id];
+    ficha[k] = k==="dur" ? (+e.target.value||0) : e.target.value;
+    if(e.target.value) ficha.faltando=ficha.faltando.filter(f=>f!==k);
+  });
+});
+$("#addMat").addEventListener("change", e=>{
+  const id=e.target.value; if(!id) return;
+  const ex=ficha.mats.find(m=>m.id===id);
+  if(ex) ex.q++; else ficha.mats.push({id,q:1});
+  e.target.value=""; renderFicha();
+});
+$("#clearAtend").addEventListener("click", ()=>{ ficha=fichaVazia(); $("#transcript").innerHTML='<span style="color:var(--ink-3)">Ficha limpa. Toque no microfone para ditar.</span>'; renderFicha(); });
+
+/* ============ interpretação da fala ============ */
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const NUMS = {um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10};
+
+function interpretar(texto){
+  const t = " " + norm(texto).replace(/\s+/g," ") + " ";
+  const f = fichaVazia();
+
+  // paciente
+  let m = t.match(/(?:paciente|atendimento (?:da|do|de)|consulta (?:da|do|de))\s+([a-zà-ÿ]+(?:\s+[a-zà-ÿ]+){0,2})/);
+  if(m){
+    const bruto = m[1].replace(/\b(fiz|foi|com|hoje|raspagem|cirurgia|manutencao|de|da|do|em|no|na)\b.*$/,"").trim();
+    const achado = S.pacientes.find(p=>norm(p.nome).startsWith(bruto.split(" ")[0]) && bruto.split(" ")[0].length>2);
+    f.paciente = achado ? achado.nome : bruto.replace(/\b\w/g, c=>c.toUpperCase());
+  }
+
+  // procedimento
+  // o procedimento é reconhecido apenas na parte da frase anterior à lista de
+  // materiais — senão um material citado depois ("usei enxerto ósseo") sequestra
+  // a classificação do procedimento
+  const cabeca = t.split(/\b(?:usei|gastei|utilizei|usamos|consumi|foram utilizados)\b/)[0] || t;
+  let procDef = null;
+  for(const p of PROCEDIMENTOS){ if(p.re.test(cabeca)){ f.proc = p.nome; procDef = p; break; } }
+  if(!procDef){ for(const p of PROCEDIMENTOS){ if(p.re.test(t)){ f.proc = p.nome; procDef = p; break; } } }
+
+  // região
+  let r = t.match(/quadrante\s+(\d)/);
+  if(r) f.regiao = "Quadrante " + r[1];
+  else {
+    r = t.match(/dentes?\s+((?:\d{2})(?:\s*(?:,|e)\s*\d{2})*)/);
+    if(r) f.regiao = "Dente(s) " + r[1].replace(/\s*e\s*/g,", ");
+    else if(/regiao d[oa]s? (\d{2})|na regiao (\d{2})/.test(t)) f.regiao = "Dente(s) " + (t.match(/regiao d[oa]s? (\d{2})|na regiao (\d{2})/)||[])[1];
+    else if(/lado direito|hemiarcada direita/.test(t)) f.regiao = "Lado direito";
+    else if(/lado esquerdo|hemiarcada esquerda/.test(t)) f.regiao = "Lado esquerdo";
+    else if(/arcada superior|maxila|superior/.test(t)) f.regiao = "Arcada superior";
+    else if(/arcada inferior|mandibula|inferior/.test(t)) f.regiao = "Arcada inferior";
+    else if(/boca toda|arcada completa|todos os dentes|reabilitacao total/.test(t)) f.regiao = "Boca toda";
+  }
+
+  // complexidade
+  if(/complexidade alta|caso complexo|alta complexidade|complexo/.test(t)) f.cplx="Alta";
+  else if(/complexidade media|media complexidade|moderad/.test(t)) f.cplx="Média";
+  else if(/complexidade baixa|baixa complexidade|caso simples|simples/.test(t)) f.cplx="Baixa";
+
+  // duração
+  const d = t.match(/(\d{1,3})\s*(?:minutos|min)\b/);
+  if(d) f.dur = +d[1];
+  else if(procDef) f.dur = procDef.dur;
+  else f.dur = f.cplx==="Alta" ? 90 : f.cplx==="Média" ? 60 : 40;
+
+  // materiais
+  CATALOGO.forEach(c=>{
+    for(const termo of c.termos){
+      const tn = norm(termo);
+      const idx = t.indexOf(tn);
+      if(idx<0) continue;
+      const antes = t.slice(Math.max(0,idx-40), idx);
+      let q = 1;
+      const qn = antes.match(/(\d{1,2})\s*(?:tubetes?|unidades?|envelopes?|frascos?|pacotes?|pares?|potes?|kits?|bisnagas?|de\s+)?\s*[a-zà-ÿ\s]*$/);
+      const qp = antes.match(/\b(um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez)\b[^\d]*$/);
+      if(qn && qn[1]) q = +qn[1];
+      else if(qp) q = NUMS[qp[1]] || 1;
+      if(!f.mats.find(x=>x.id===c.id)) f.mats.push({id:c.id, q:Math.min(q,99)});
+      break;
+    }
+  });
+
+  if(!f.mats.length && procDef && procDef.kit.length){
+    f.mats = procDef.kit.map(([id,q])=>({id,q}));
+    f.kit = true;   // materiais sugeridos, não ditados — o dentista confirma
+  }
+
+  ["paciente","proc","regiao","cplx"].forEach(k=>{ if(!f[k]) f.faltando.push(k); });
+  return f;
+}
+
+/* ============ voz ============
+   Um único reconhecedor com três modos:
+     off    — parado
+     wake   — escuta contínua esperando "ô Charles"
+     ditado — transcrevendo para o rascunho, sem fechar sozinho
+   O navegador encerra a sessão de reconhecimento em silêncios longos; o
+   onend reabre na hora, então o ditado só termina quando VOCÊ manda. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+// O reconhecimento de fala escreve nomes próprios de jeitos variados —
+// "charles", "charlys", "xarles", "charlie". Todas valem como ativação.
+const WAKE = /\b(charles|charlys|charlies|charlie|xarles|charless|charlos)\b/;
+let rec=null, modo="off", desligando=false;
+
+function setVoice(state, txt, help){
+  $("#micBtn").dataset.state=state;
+  if(txt) $("#voiceState").textContent=txt;
+  if(help) $("#voiceHelp").textContent=help;
+}
+function processarFala(texto){
+  ficha = Object.assign(interpretar(texto), ficha.editId?{editId:ficha.editId}:{});
+  renderFicha();
+  setVoice(modo==="wake"?"wake":"idle","Ficha preenchida","Confira os campos. O que não foi compreendido está destacado em âmbar.");
+  if(ficha.faltando.length) toast("Não entendi " + ficha.faltando.length + " campo(s) — complete manualmente.");
+  else toast("Rascunho interpretado. Confira e registre.");
+}
+$$(".ex").forEach(b=>b.addEventListener("click", ()=>{
+  $("#inFala").value = b.dataset.say;
+  processarFala(b.dataset.say);
+}));
+
+function interpretarDigitado(){
+  const txt = $("#inFala").value.trim();
+  if(!txt){ $("#inFala").focus(); toast("O rascunho está vazio."); return; }
+  processarFala(txt);
+}
+$("#interpretarBtn").addEventListener("click", interpretarDigitado);
+$("#limparFalaBtn").addEventListener("click", ()=>{ $("#inFala").value=""; $("#inFala").focus(); });
+$("#inFala").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && (e.metaKey||e.ctrlKey)) interpretarDigitado();
+});
+
+/* Por que o ditado pode não abrir: precisa de navegador com Web Speech API,
+   HTTPS e permissão de microfone. Dentro do visualizador a página roda em
+   iframe, que não recebe a permissão — daí a mensagem específica. */
+function motivoSemVoz(){
+  if(!SR) return "Este navegador não tem reconhecimento de fala. Chrome ou Edge no computador fazem o ditado; nos outros, use o rascunho por escrito.";
+  // Arquivo salvo no computador (file://) conta como contexto seguro, mas o
+  // Chrome não concede microfone a ele. É a pegadinha mais comum.
+  if(location.protocol === "file:") return "A página foi aberta como arquivo salvo no computador. O Chrome não libera microfone para endereços file:// — é preciso servir a página por HTTPS (ou localhost).";
+  if(!window.isSecureContext) return "A página precisa estar em HTTPS para o navegador liberar o microfone.";
+  if(window.self !== window.top) return "A página está aberta dentro do visualizador, que não repassa a permissão de microfone. Abra em aba própria e o ditado funciona.";
+  return null;
+}
+
+/* ---------- diagnóstico do ditado ----------
+   Em vez de tentar adivinhar por que não funcionou, a página testa cada
+   pré-requisito na ordem e mostra qual falhou. */
+async function diagnosticar(){
+  const box=$("#diagBox"); box.hidden=false;
+  box.innerHTML = '<div class="linha"><span class="ic">…</span><div><b>Testando</b><small>um instante</small></div></div>';
+  const linhas=[]; let bloqueio=null;
+  const add=(st,titulo,detalhe)=>linhas.push({st,titulo,detalhe});
+
+  // 1. navegador
+  if(SR) add("ok","Navegador reconhece fala","Web Speech API disponível.");
+  else { add("no","Navegador sem reconhecimento de fala",
+    "Firefox e alguns navegadores de celular não têm. Use Chrome ou Edge no computador.");
+    bloqueio = bloqueio || "navegador"; }
+
+  // 2. endereço da página
+  const proto = location.protocol;
+  if(proto === "file:"){
+    add("no","Aberta como arquivo local (file://)",
+      "O Chrome nunca concede microfone a arquivos abertos direto do disco, por mais que você clique em permitir.");
+    bloqueio = bloqueio || "arquivo";
+  } else if(proto === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1"){
+    add("ok","Endereço permite microfone", proto + "//" + location.hostname);
+  } else {
+    add("no","Endereço sem HTTPS", "O navegador só libera microfone em https ou localhost.");
+    bloqueio = bloqueio || "http";
+  }
+
+  // 3. moldura
+  if(window.self !== window.top){
+    add("no","Rodando dentro de outra página (iframe)",
+      "O visualizador não repassa a permissão de microfone. Abra o protótipo em aba própria.");
+    bloqueio = bloqueio || "iframe";
+  } else add("ok","Página em aba própria","Não está dentro de outra página.");
+
+  // 4. permissão já concedida?
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const st = await navigator.permissions.query({name:"microphone"});
+      if(st.state === "granted") add("ok","Permissão de microfone concedida","");
+      else if(st.state === "denied"){
+        add("no","Permissão de microfone negada",
+          "Clique no cadeado ao lado do endereço, ponha Microfone em Permitir e recarregue.");
+        bloqueio = bloqueio || "negado";
+      } else add("warn","Permissão ainda não decidida","O navegador vai perguntar no primeiro uso.");
+    }
+  }catch(e){ add("warn","Não consegui consultar a permissão", "Seguindo para o teste prático."); }
+
+  // 5. teste prático de captação
+  if(!bloqueio){
+    try{
+      const st = await navigator.mediaDevices.getUserMedia({audio:true});
+      const nome = (st.getAudioTracks()[0]||{}).label || "microfone padrão";
+      st.getTracks().forEach(t=>t.stop());
+      add("ok","Microfone capturou áudio", nome);
+    }catch(err){
+      add("no","O navegador recusou o microfone", err.name + " — " + (err.message||""));
+      bloqueio = "captura";
+    }
+  } else {
+    add("warn","Teste de captação não executado","Resolva o item acima primeiro.");
+  }
+
+  const conclusao = {
+    navegador:"Abra o protótipo no <b>Chrome ou Edge do computador</b>. O rascunho por escrito funciona em qualquer navegador.",
+    arquivo:"É este o caso mais comum. O arquivo salvo no computador não serve para ditado — <b>publique a página em um endereço https</b> (o GitHub Pages resolve em minutos e é gratuito) e o microfone passa a funcionar. Enquanto isso, o rascunho por escrito faz tudo o que o ditado faz.",
+    http:"Sirva a página por <b>https</b> ou por <b>http://localhost</b>.",
+    iframe:"Abra o protótipo <b>em aba própria</b>, fora do visualizador.",
+    negado:"Libere o microfone no <b>cadeado da barra de endereço</b> e recarregue a página.",
+    captura:"O navegador recusou a captação. Verifique se outro programa está usando o microfone e se o aparelho tem um microfone ativo."
+  }[bloqueio] || "Todos os pré-requisitos estão atendidos — toque no microfone e fale. Se ainda assim falhar, a mensagem de erro abaixo do botão dirá o motivo.";
+
+  box.innerHTML =
+    '<h3>Diagnóstico do ditado</h3>' +
+    linhas.map(l=>`<div class="linha"><span class="ic ${l.st}">${l.st==="ok"?"✓":l.st==="no"?"✕":"!"}</span>
+      <div><b>${l.titulo}</b>${l.detalhe?`<small>${l.detalhe}</small>`:""}</div></div>`).join("") +
+    `<div class="conclusao">${conclusao}</div>`;
+}
+$("#diagBtn").addEventListener("click", diagnosticar);
+async function pedirMicrofone(){
+  try{
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      const st = await navigator.mediaDevices.getUserMedia({audio:true});
+      st.getTracks().forEach(t=>t.stop());
+    }
+    return true;
+  }catch(err){ return false; }
+}
+
+function criarRec(){
+  const r = new SR();
+  r.lang="pt-BR"; r.interimResults=true; r.continuous=true;
+  r.onresult = e=>{
+    let interim="", finais="";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const res=e.results[i];
+      if(res.isFinal) finais += res[0].transcript + " "; else interim += res[0].transcript;
+    }
+    if(modo==="wake"){
+      const ouvido = norm(finais + " " + interim);
+      if(WAKE.test(ouvido)){
+        // remove a palavra de ativação e começa a anotar o resto da frase
+        const resto = (finais+" "+interim).replace(/.*?(charles|charlys|charlies|charlie|xarles|charless|charlos)[,\s]*/i,"").trim();
+        modo="ditado";
+        if(resto) $("#inFala").value = ($("#inFala").value + " " + resto).trim();
+        setVoice("listening","Anotando…","Fale à vontade. O rascunho abaixo cresce enquanto você fala; toque no microfone para encerrar.");
+        toast("🎙 “Charles” reconhecido — anotando.");
+      }else{
+        $("#transcript").innerHTML = '<span style="color:var(--ink-3)">Em escuta · aguardando “ô Charles”…</span>';
+      }
+      return;
+    }
+    if(finais) $("#inFala").value = ($("#inFala").value + " " + finais).replace(/\s+/g," ").trim();
+    $("#transcript").innerHTML = interim
+      ? '<span style="color:var(--ink-3)">…'+interim+'</span>'
+      : '<b>Rascunho atualizado.</b> <span style="color:var(--ink-3)">Continue falando ou encerre para interpretar.</span>';
+    $("#inFala").scrollTop = $("#inFala").scrollHeight;
+  };
+  r.onerror = ev=>{
+    if(ev.error==="no-speech") return;           // silêncio é normal, o onend reabre
+    const m = {
+      "not-allowed":"Permissão de microfone negada — libere no cadeado da barra de endereço.",
+      "service-not-allowed":"O serviço de reconhecimento de fala foi bloqueado neste navegador.",
+      "audio-capture":"Nenhum microfone encontrado neste aparelho.",
+      "network":"O reconhecimento de fala precisa de internet e a conexão falhou."
+    }[ev.error] || ("Falha no ditado ("+ev.error+"). Use o rascunho por escrito.");
+    desligando=true; modo="off"; $("#wakeChk").checked=false;
+    setVoice("idle","Não consegui ouvir", m); toast(m);
+  };
+  r.onend = ()=>{
+    // o navegador corta a sessão sozinho em silêncios longos: reabre e segue
+    if(!desligando && modo!=="off"){ try{ r.start(); }catch(e){} return; }
+    desligando=false;
+    if(modo==="off") setVoice("idle","Toque e fale o atendimento","Paciente, procedimento, dentes, complexidade e materiais — o rascunho fica editável antes de virar ficha.");
+  };
+  return r;
+}
+async function iniciar(novoModo){
+  const motivo = motivoSemVoz();
+  if(motivo){
+    setVoice("idle","Ditado bloqueado aqui", motivo);
+    $("#wakeChk").checked=false;
+    toast("Ditado indisponível neste contexto — use o rascunho por escrito.");
+    return false;
+  }
+  if(!await pedirMicrofone()){
+    setVoice("idle","Microfone negado","O navegador bloqueou o microfone para esta página. Libere no cadeado da barra de endereço e tente de novo.");
+    $("#wakeChk").checked=false;
+    toast("Permissão de microfone negada.");
+    return false;
+  }
+  if(!rec) rec = criarRec();
+  modo = novoModo;
+  try{ rec.start(); }catch(e){}
+  return true;
+}
+function parar(){
+  desligando=true; modo="off";
+  try{ if(rec) rec.stop(); }catch(e){}
+  setVoice("idle","Ditado encerrado","Confira o rascunho e toque em “Interpretar rascunho”.");
+}
+
+$("#micBtn").addEventListener("click", async ()=>{
+  if(modo==="ditado"){
+    parar();
+    if($("#wakeChk").checked){ setTimeout(()=>iniciar("wake").then(()=>setVoice("wake","Em escuta","Diga “ô Charles” para começar a anotar.")), 400); }
+    if($("#inFala").value.trim()) toast("Ditado encerrado — revise o rascunho antes de interpretar.");
+    return;
+  }
+  if(await iniciar("ditado")){
+    setVoice("listening","Anotando…","Fale à vontade, inclusive com pausas. O rascunho abaixo cresce enquanto você fala; toque no microfone de novo para encerrar.");
+  }
+});
+
+$("#wakeChk").addEventListener("change", async e=>{
+  if(e.target.checked){
+    if(await iniciar("wake")) setVoice("wake","Em escuta","Diga “ô Charles” para começar a anotar. O microfone fica aberto enquanto esta aba estiver visível.");
+  }else{
+    parar();
+    setVoice("idle","Toque e fale o atendimento","Paciente, procedimento, dentes, complexidade e materiais — tudo numa frase só.");
+  }
+});
+
+// não deixa o microfone aberto com a aba em segundo plano
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && modo!=="off"){ parar(); $("#wakeChk").checked=false; }
+});
+
+/* estado do ditado já na abertura, para não prometer o que não funciona aqui */
+(function(){
+  const motivo = motivoSemVoz();
+  if(motivo){
+    $("#voiceState").textContent = "Escreva o comando (ditado bloqueado aqui)";
+    $("#voiceHelp").textContent = motivo;
+    $("#wakeChk").disabled = true;
+  }
+})();
+
+/* ============ salvar / atualizar atendimento ============ */
+function ajustaEstoque(matsAntigos, matsNovos){
+  // aplica a diferença: devolve o que saiu da ficha, baixa o que entrou
+  const delta = {};
+  (matsAntigos||[]).forEach(m=> delta[m.id] = (delta[m.id]||0) + m.q);   // volta ao estoque
+  (matsNovos ||[]).forEach(m=> delta[m.id] = (delta[m.id]||0) - m.q);   // sai do estoque
+  const criticos=[];
+  Object.keys(delta).forEach(id=>{
+    if(!delta[id]) return;
+    let e=stockById(id);
+    if(!e){ e={id, qtd:0}; S.estoque.push(e); }
+    e.qtd = Math.max(0, e.qtd + delta[id]);
+    if(delta[id] < 0 && stockStatus(e).k!=="ok" && catById(id)) criticos.push(catById(id).nome);
+  });
+  return criticos;
+}
+
+$("#saveAtend").addEventListener("click", ()=>{
+  if(!pode("atender")){ toast("Seu perfil não registra atendimento clínico."); return; }
+  if(!ficha.paciente.trim()){ toast("Informe o paciente antes de registrar."); $("#inPaciente").focus(); return; }
+  if(!ficha.proc.trim()){ toast("Informe o procedimento."); $("#inProc").focus(); return; }
+  if(!ficha.cplx){ toast("Selecione a complexidade."); return; }
+
+  let pac = S.pacientes.find(p=>norm(p.nome)===norm(ficha.paciente.trim()));
+  if(!pac){
+    pac = {id:"p"+Date.now(), nome:ficha.paciente.trim(), nasc:"", sexo:"", cpf:"", tel:"", email:"",
+           obs:"Cadastrado no atendimento — completar contato"};
+    S.pacientes.push(pac);
+  }
+
+  if(ficha.editId){
+    const a = S.atendimentos.find(x=>x.id===ficha.editId);
+    const criticos = ajustaEstoque(a.mats, ficha.mats);
+    a.pac=pac.id; a.proc=ficha.proc.trim(); a.regiao=ficha.regiao.trim()||"—";
+    a.cplx=ficha.cplx; a.dur=ficha.dur; a.mats=ficha.mats.slice(); a.obs=ficha.obs||a.obs||"";
+    a.editadoPor = usuario.nome;
+    a.editadoEm = hoje.toLocaleDateString("pt-BR") + " " + hoje.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+    save(); sairDaEdicao(); renderAll();
+    toast(criticos.length ? "Alterações salvas. Atenção: "+criticos[0]+" abaixo do mínimo."
+                          : "Alterações salvas e estoque reajustado.");
+    return;
+  }
+
+  const criticos = ajustaEstoque([], ficha.mats);
+  S.atendimentos.push({
+    id:"a"+Date.now(), pac:pac.id, data:ISO(hoje), proc:ficha.proc.trim(),
+    regiao:ficha.regiao.trim()||"—", cplx:ficha.cplx, dur:ficha.dur,
+    mats:ficha.mats.slice(), obs:ficha.obs||"", criadoPor:usuario.nome
+  });
+  save();
+  ficha=fichaVazia();
+  $("#transcript").innerHTML='<span style="color:var(--ink-3)">Registrado. Toque no microfone para o próximo atendimento.</span>';
+  renderAll();
+  toast(criticos.length ? "Registrado. Atenção: "+criticos[0]+" abaixo do mínimo." : "Atendimento registrado e estoque atualizado.");
+});
+
+/* ============ renderizações ============ */
+function renderHoje(){
+  const list=$("#hojeList"); const hj=S.atendimentos.filter(a=>a.data===ISO(hoje));
+  $("#hojeCount").textContent = hj.length ? hj.length+" registrado(s)" : "";
+  list.innerHTML="";
+  if(!hj.length){ list.innerHTML='<div class="empty">Nenhum atendimento registrado hoje.</div>'; return; }
+  hj.slice().reverse().forEach(a=>{
+    const p=pacById(a.pac);
+    const el=document.createElement("div"); el.className="item";
+    el.innerHTML=`<div class="av">${p.nome.slice(0,1)}</div>
+      <div class="main"><b>${p.nome}</b><small>${a.proc} · ${a.regiao}</small></div>
+      <div class="end"><span class="pill ${a.cplx==="Alta"?"crit":a.cplx==="Média"?"warn":"ok"}">${a.cplx}</span>
+      <span class="mono" style="font-size:11px;color:var(--ink-3)">${a.dur} min</span></div>`;
+    list.appendChild(el);
+  });
+}
+
+let pacAberto = null;   // prontuário aberto no momento, para reabrir já atualizado
+function renderPacientes(){
+  if(pacAberto){
+    if(pacById(pacAberto)) { abrirPaciente(pacAberto); return; }
+    pacAberto = null;
+  }
+  $("#pacDetail").hidden=true; $("#pacSearch").hidden=false; $("#pacList2").hidden=false;
+  const q=norm($("#pacSearch").value.trim());
+  const list=$("#pacList2"); list.innerHTML="";
+  const arr = S.pacientes.filter(p=>!q || norm(p.nome).includes(q));
+  if(!arr.length){ list.innerHTML='<div class="empty">Nenhum paciente encontrado.</div>'; return; }
+  arr.forEach(p=>{
+    const n=S.atendimentos.filter(a=>a.pac===p.id).length;
+    const ult=S.atendimentos.filter(a=>a.pac===p.id).sort((a,b)=>a.data<b.data?1:-1)[0];
+    const b=document.createElement("button"); b.className="item";
+    const sub = pode("verClinico") ? (p.obs||"—") : (p.tel || p.email || "contato não informado");
+    b.innerHTML=`<div class="av">${p.nome.slice(0,1)}</div>
+      <div class="main"><b>${p.nome}</b><small>${sub}</small></div>
+      <div class="end"><span class="pill neutral">${n} atend.</span>
+      <span class="mono" style="font-size:11px;color:var(--ink-3)">${ult?fmtData(ult.data):"—"}</span></div>`;
+    b.addEventListener("click", ()=>abrirPaciente(p.id));
+    list.appendChild(b);
+  });
+}
+
+function abrirPaciente(id){
+  pacAberto = id;
+  const p=pacById(id);
+  const hist=S.atendimentos.filter(a=>a.pac===id).sort((a,b)=>a.data<b.data?1:-1);
+  const clinico = pode("verClinico");
+  const editaProntuario = pode("prontuario");
+  const editaCadastro = pode("cadastro");
+  const vazio = '<span style="color:var(--ink-3)">não informado</span>';
+  const pendencias = ["nasc","sexo","cpf","tel","email"].filter(k=>!p[k]).length;
+
+  $("#pacSearch").hidden=true; $("#pacList2").hidden=true;
+  const d=$("#pacDetail"); d.hidden=false;
+  d.innerHTML=`
+    <button class="backlink" id="voltarPac">← Todos os pacientes</button>
+
+    <div class="card" style="margin-top:8px" id="pacCard">
+      <div class="eyebrow">Ficha do paciente</div>
+      <h2 style="font-size:20px;margin-top:2px">${p.nome}</h2>
+      <div class="row" style="margin-top:8px">
+        ${p.nasc?`<span class="pill neutral">${idadeDe(p.nasc)} anos</span>`:""}
+        ${p.sexo?`<span class="pill neutral">${p.sexo}</span>`:""}
+        <span class="pill accent">${hist.length} atendimento(s)</span>
+      </div>
+
+      <dl class="dados">
+        <div><dt>Nascimento</dt><dd>${p.nasc?fmtData(p.nasc):vazio}</dd></div>
+        <div><dt>Sexo</dt><dd>${p.sexo||vazio}</dd></div>
+        <div><dt>CPF</dt><dd>${p.cpf?`<span class="mono">${p.cpf}</span>`:vazio}</dd></div>
+        <div><dt>Telefone</dt><dd>${p.tel?`<a href="tel:${p.tel.replace(/\D/g,"")}" class="lnk mono">${p.tel}</a>`:vazio}</dd></div>
+        <div><dt>E-mail</dt><dd>${p.email?`<a href="mailto:${p.email}" class="lnk">${p.email}</a>`:vazio}</dd></div>
+      </dl>
+
+      ${pendencias?`<div class="pend">${pendencias} campo(s) de contato em branco — ${editaCadastro?"complete o cadastro abaixo.":"peça à secretária para completar."}</div>`:""}
+      ${editaCadastro?`<div class="rowbtns"><button class="minibtn" id="editPac">Editar ficha do paciente</button></div>`:""}
+    </div>
+
+    ${clinico?`
+    <div class="card" style="margin-top:10px">
+      <div class="eyebrow">Observação clínica</div>
+      <p style="margin:6px 0 0;font-size:13px;color:var(--ink-2)">${p.obs||vazio}</p>
+      <div class="row" style="margin-top:10px">
+        <span class="pill neutral">${hist.reduce((s,a)=>s+a.dur,0)} min em cadeira</span>
+      </div>
+    </div>`:""}
+
+    <div class="sec-h" style="margin-top:14px"><h2>Histórico</h2><span class="hint">mais recente primeiro</span></div>
+    <div class="tl">${hist.map(a=>`
+      <div class="ev">
+        <div class="rail"><div class="dot"></div><div class="ln"></div></div>
+        <div class="content">
+          <div class="meta">${fmtData(a.data)} · ${a.dur} min · complexidade ${a.cplx}</div>
+          <b>${a.proc}</b> — ${a.regiao}
+          ${clinico && a.mats.length?`<ul>${a.mats.map(m=>`${catById(m.id)?`<li>${m.q}× ${catById(m.id).nome}</li>`:""}`).join("")}</ul>`:""}
+          ${clinico && a.obs?`<p style="margin:6px 0 0;font-size:12.5px;color:var(--ink-2)">${a.obs}</p>`:""}
+          ${a.editadoPor?`<div class="audit">editado por ${a.editadoPor} em ${a.editadoEm}</div>`:""}
+          ${editaProntuario?`<div class="rowbtns"><button class="minibtn" data-edit="${a.id}">Editar atendimento</button></div>`:""}
+        </div>
+      </div>`).join("") || '<div class="empty">Sem atendimentos registrados.</div>'}</div>`;
+
+  $("#voltarPac").addEventListener("click", ()=>{ pacAberto = null; renderPacientes(); });
+  const bp = $("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
+  d.querySelectorAll("button[data-edit]").forEach(b=>
+    b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
+}
+
+/* idade a partir da data de nascimento — o cadastro guarda a data, não a idade,
+   senão o número envelhece errado dentro do sistema */
+function idadeDe(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-").map(Number);
+  let a = hoje.getFullYear() - y;
+  const mesDia = (hoje.getMonth()+1)*100 + hoje.getDate();
+  if(mesDia < m*100 + d) a--;
+  return a;
+}
+
+/* --------- editar a ficha cadastral do paciente --------- */
+function editarPaciente(id){
+  const p=pacById(id);
+  const clinico = pode("verClinico");
+  const card=$("#pacCard");
+  const esc = v => (v||"").replace(/"/g,"&quot;");
+  card.innerHTML=`
+    <div class="eyebrow">Editando ficha do paciente</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div class="field"><label for="edNome">Nome completo</label>
+        <input id="edNome" value="${esc(p.nome)}" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="edNasc">Data de nascimento</label>
+          <input id="edNasc" type="date" value="${p.nasc||""}" max="${ISO(hoje)}"></div>
+        <div class="field"><label for="edSexo">Sexo</label>
+          <select id="edSexo">
+            <option value="">—</option>
+            ${["Feminino","Masculino","Outro","Prefiro não informar"].map(o=>
+              `<option ${p.sexo===o?"selected":""}>${o}</option>`).join("")}
+          </select></div>
+      </div>
+      <div class="field"><label for="edCpf">CPF</label>
+        <input id="edCpf" inputmode="numeric" placeholder="000.000.000-00" value="${esc(p.cpf)}" class="mono"></div>
+      <div class="field"><label for="edTel">Telefone / WhatsApp</label>
+        <input id="edTel" type="tel" inputmode="tel" placeholder="(11) 99999-0000" value="${esc(p.tel)}"></div>
+      <div class="field"><label for="edEmail">E-mail</label>
+        <input id="edEmail" type="email" inputmode="email" placeholder="nome@email.com" value="${esc(p.email)}"></div>
+      ${clinico?`<div class="field"><label for="edObs">Observação clínica</label>
+        <input id="edObs" value="${esc(p.obs)}"></div>`:
+        `<div class="stage">A observação clínica é editada pelo dentista.</div>`}
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="edSalvar">Salvar ficha</button>
+        <button class="btn" id="edCancelar">Cancelar</button>
+      </div>
+    </div>`;
+
+  $("#edCancelar").addEventListener("click", ()=>abrirPaciente(id));
+  $("#edSalvar").addEventListener("click", ()=>{
+    const nome=$("#edNome").value.trim();
+    if(!nome){ toast("O nome não pode ficar vazio."); $("#edNome").focus(); return; }
+    const email=$("#edEmail").value.trim();
+    if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ toast("E-mail inválido — confira o endereço."); $("#edEmail").focus(); return; }
+    const nasc=$("#edNasc").value;
+    if(nasc && nasc > ISO(hoje)){ toast("Data de nascimento no futuro."); $("#edNasc").focus(); return; }
+    const cpf=$("#edCpf").value.trim();
+    if(cpf && !cpfValido(cpf)){ toast("CPF inválido — confira os números."); $("#edCpf").focus(); return; }
+    if(cpf){
+      const dono = S.pacientes.find(x=>x.id!==id && x.cpf && x.cpf.replace(/\D/g,"")===cpf.replace(/\D/g,""));
+      if(dono){ toast("Este CPF já está no cadastro de "+dono.nome+"."); $("#edCpf").focus(); return; }
+    }
+
+    p.nome=nome; p.nasc=nasc; p.sexo=$("#edSexo").value; p.cpf=fmtCpf(cpf);
+    p.tel=fmtTel($("#edTel").value); p.email=email;
+    if(clinico) p.obs=$("#edObs").value.trim();
+    p.cadastroPor = usuario.nome;
+    p.cadastroEm = hoje.toLocaleDateString("pt-BR");
+    save(); renderAll();
+    toast("Ficha do paciente atualizada.");
+  });
+}
+
+/* CPF: formata e confere os dois dígitos verificadores (módulo 11). Digitar
+   errado um CPF é comum e só aparece meses depois, na hora de emitir nota. */
+function fmtCpf(v){
+  const d=(v||"").replace(/\D/g,"").slice(0,11);
+  if(d.length!==11) return (v||"").trim();
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+}
+function cpfValido(v){
+  const d=(v||"").replace(/\D/g,"");
+  if(d.length!==11 || /^(\d)\1{10}$/.test(d)) return false;
+  const dig = pos => {
+    let soma=0;
+    for(let i=0;i<pos;i++) soma += Number(d[i]) * (pos+1-i);
+    const r = 11 - (soma % 11);
+    return r >= 10 ? 0 : r;
+  };
+  return dig(9)===Number(d[9]) && dig(10)===Number(d[10]);
+}
+
+/* telefone brasileiro: guarda formatado, aceita digitado de qualquer jeito */
+function fmtTel(v){
+  const d=(v||"").replace(/\D/g,"").slice(0,11);
+  if(d.length===11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if(d.length===10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return v.trim();
+}
+
+/* --------- editar um atendimento já salvo ---------/* --------- editar um atendimento já salvo ---------
+   Carrega o atendimento na mesma ficha da tela Hoje. Ao salvar, o estoque é
+   ajustado pela DIFERENÇA entre o que estava lançado e o que ficou. */
+function editarAtendimento(aid){
+  const a=S.atendimentos.find(x=>x.id===aid); if(!a) return;
+  const p=pacById(a.pac);
+  ficha = {paciente:p?p.nome:"", proc:a.proc, regiao:a.regiao, cplx:a.cplx, dur:a.dur,
+           mats:a.mats.map(m=>({id:m.id,q:m.q})), faltando:[], kit:false, editId:a.id, obs:a.obs||""};
+  $("#editBar").hidden=false;
+  $("#editBarTxt").textContent = "Editando o atendimento de " + fmtData(a.data) + " — " + a.proc;
+  $("#saveAtend").textContent = "Salvar alterações";
+  $("#transcript").innerHTML = '<span style="color:var(--ink-3)">Atendimento carregado para edição. Ajuste os campos e salve.</span>';
+  document.querySelector(".tab[data-scr='hoje']").click();
+  renderFicha();
+}
+function sairDaEdicao(){
+  ficha = fichaVazia();
+  $("#editBar").hidden=true;
+  $("#saveAtend").textContent = pode("atender") ? "Registrar atendimento" : "Somente o dentista registra atendimento";
+  renderFicha();
+}
+$("#cancelEdit").addEventListener("click", ()=>{ sairDaEdicao(); toast("Edição cancelada."); });
+
+/* --------- tela do financeiro (prévia da etapa 3) --------- */
+function renderFinanceiro(){
+  const atd = S.atendimentos.slice().sort((a,b)=>a.data<b.data?1:-1);
+  const porCplx = c => atd.filter(a=>a.cplx===c).length;
+  $("#finTiles").innerHTML = `
+    <div class="tile"><b>${atd.length}</b><span>atendimentos</span></div>
+    <div class="tile"><b>${atd.reduce((s,a)=>s+a.dur,0)}</b><span>min em cadeira</span></div>
+    <div class="tile warn"><b>${porCplx("Alta")}</b><span>de alta complexidade</span></div>`;
+  $("#finList").innerHTML = atd.map(a=>{
+    const p=pacById(a.pac);
+    return `<div class="item">
+      <div class="av">${p?p.nome.slice(0,1):"?"}</div>
+      <div class="main"><b>${p?p.nome:"—"}</b><small>${a.proc} · ${fmtData(a.data)}</small></div>
+      <div class="end"><span class="pill ${a.cplx==="Alta"?"crit":a.cplx==="Média"?"warn":"ok"}">${a.cplx}</span>
+      <span class="mono" style="font-size:11px;color:var(--ink-3)">${a.dur} min</span></div>
+    </div>`;
+  }).join("") || '<div class="empty">Nenhum atendimento no período.</div>';
+}
+
+function renderEstoque(){
+  const abaixo=S.estoque.filter(e=>stockStatus(e).k!=="ok");
+  const crit=S.estoque.filter(e=>stockStatus(e).k==="crit");
+  $("#stockTiles").innerHTML=`
+    <div class="tile"><b>${S.estoque.length}</b><span>itens ativos</span></div>
+    <div class="tile warn"><b>${abaixo.length}</b><span>abaixo do mínimo</span></div>
+    <div class="tile crit"><b>${crit.length}</b><span>repor hoje</span></div>`;
+
+  const grupos={};
+  S.estoque.forEach(e=>{ const c=catById(e.id); (grupos[c.cat]=grupos[c.cat]||[]).push(e); });
+  const list=$("#stockList"); list.innerHTML="";
+  Object.keys(grupos).sort().forEach(cat=>{
+    const h=document.createElement("div"); h.className="eyebrow"; h.style.marginTop="6px"; h.textContent=cat;
+    list.appendChild(h);
+    grupos[cat].sort((a,b)=> (a.qtd/catById(a.id).min) - (b.qtd/catById(b.id).min) ).forEach(e=>{
+      const c=catById(e.id), st=stockStatus(e);
+      const pct=Math.min(100, Math.round(e.qtd/Math.max(c.min,1)*100));
+      const el=document.createElement("div"); el.className="item stock";
+      el.innerHTML=`
+        <div class="main">
+          <b>${c.nome}</b>
+          <small>mín. ${c.min} ${c.un} · saldo <span class="mono">${e.qtd}</span></small>
+          <div class="bar"><i class="${st.k==="ok"?"":st.k}" style="width:${pct}%"></i></div>
+        </div>
+        <div class="end">
+          <span class="pill ${st.k}">${st.label}</span>
+          <div class="stepper">
+            <button data-s="dec" data-id="${e.id}" aria-label="Baixar 1">−</button>
+            <span class="mono">${e.qtd}</span>
+            <button data-s="inc" data-id="${e.id}" aria-label="Entrada 1">+</button>
+          </div>
+        </div>`;
+      list.appendChild(el);
+    });
+  });
+
+  const faltantes=CATALOGO.filter(c=>!stockById(c.id));
+  const cl=$("#catalogList"); cl.innerHTML="";
+  if(!faltantes.length){ cl.innerHTML='<div class="empty">Todo o catálogo de referência já está no seu estoque.</div>'; }
+  faltantes.forEach(c=>{
+    const b=document.createElement("button"); b.className="item";
+    b.innerHTML=`<div class="main"><b>${c.nome}</b><small>${c.cat} · sugestão de mínimo: ${c.min} ${c.un}</small></div>
+      <div class="end"><span class="pill accent">+ incluir</span></div>`;
+    b.addEventListener("click", ()=>{
+      S.estoque.push({id:c.id, qtd:c.sug}); save(); renderAll();
+      toast(c.nome+" incluído com "+c.sug+" "+c.un+".");
+    });
+    cl.appendChild(b);
+  });
+
+  const sel=$("#addMat");
+  sel.innerHTML='<option value="">+ adicionar material do estoque…</option>' +
+    S.estoque.map(e=>`<option value="${e.id}">${catById(e.id).nome}</option>`).join("");
+}
+$("#stockList").addEventListener("click", ev=>{
+  const b=ev.target.closest("button[data-s]"); if(!b) return;
+  const e=stockById(b.dataset.id);
+  e.qtd = b.dataset.s==="inc" ? e.qtd+1 : Math.max(0,e.qtd-1);
+  save(); renderEstoque();
+});
+
+/* ============ agenda ============ */
+const H_INI=8, H_FIM=18;
+function livres(){
+  const ocupados=[];
+  S.agenda.forEach(a=>{
+    const [h,m]=a.h.split(":").map(Number);
+    const ini=h*60+m; ocupados.push([ini, ini+a.dur]);
+  });
+  const out=[];
+  for(let t=H_INI*60; t<H_FIM*60; t+=30){
+    if(!ocupados.some(([a,b])=>t<b && t+30>a)) out.push(t);
+  }
+  return out;
+}
+const hhmm = t => String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+let encaixes=[];
+
+function renderAgenda(){
+  const l=livres();
+  $("#agendaDay").textContent = "Agenda · " + hoje.toLocaleDateString("pt-BR",{weekday:"long", day:"2-digit", month:"long"});
+  $("#agendaFree").textContent = l.length + " janelas de 30 min livres";
+  const list=$("#agendaList"); list.innerHTML="";
+  const marcados = S.agenda.slice().sort((a,b)=>a.h<b.h?-1:1);
+  for(let t=H_INI*60; t<H_FIM*60; t+=30){
+    const ap = marcados.find(a=>a.h===hhmm(t));
+    const dentro = marcados.some(a=>{ const [h,m]=a.h.split(":").map(Number); const i=h*60+m; return t>i && t<i+a.dur; });
+    if(dentro) continue;
+    const row=document.createElement("div"); row.className="slot";
+    if(ap){
+      row.innerHTML=`<div class="t">${ap.h}</div><div class="body"><div class="appt ${ap.urgente?"urgent":""}">
+        <b>${ap.pac}</b><small>${ap.proc} · ${ap.dur} min</small></div></div>`;
+    }else{
+      const pick = encaixes.includes(t);
+      row.innerHTML=`<div class="t">${hhmm(t)}</div><div class="body">
+        <div class="free ${pick?"pick":""}">${pick?"Sugerido para encaixe · toque para confirmar":"Livre"}</div></div>`;
+      if(pick) row.querySelector(".free").addEventListener("click", ()=>{
+        S.agenda.push({h:hhmm(t), dur:30, pac:"Maria Fernandes", proc:"Reavaliação pós-operatória (encaixe)", urgente:true});
+        encaixes=[]; save(); renderAgenda(); toast("Encaixe confirmado às "+hhmm(t)+".");
+      });
+    }
+    list.appendChild(row);
+  }
+}
+// os n horários livres mais próximos a partir de agora; se hoje já não tem n janelas,
+// completa com as primeiras do expediente (na prática, o próximo dia útil)
+function proximos(n){
+  const agora = hoje.getHours()*60 + hoje.getMinutes();
+  const todas = livres();
+  const daqui = todas.filter(t=>t>=Math.max(agora, H_INI*60));
+  return {lista:[...daqui, ...todas.filter(t=>!daqui.includes(t))].slice(0,n), hoje:daqui.length};
+}
+$("#encaixeBtn").addEventListener("click", ()=>{
+  const r = proximos(3); encaixes = r.lista;
+  renderAgenda();
+  if(!encaixes.length) toast("Nenhuma janela livre — agenda cheia.");
+  else if(r.hoje>=3) toast("3 horários mais próximos sugeridos.");
+  else toast("Sugeridos os "+encaixes.length+" horários mais próximos — hoje restam poucas janelas.");
+});
+$("#urgBtn").addEventListener("click", ()=>{
+  const r = proximos(3); encaixes = r.lista;
+  $("#urgBanner").hidden=false;
+  $("#urgText").textContent = 'Maria Fernandes respondeu ao acompanhamento: “dor muito forte, 9 de 10, inchaço aumentando”. Prioridade de emergência — encaixe sugerido para '
+    + (encaixes.length ? encaixes.map(hhmm).join(", ") : "o próximo horário disponível") + '.';
+  renderAgenda();
+  document.querySelector(".tab[data-scr='agenda']").click();
+  toast("🚨 Emergência: encaixe imediato sugerido.");
+});
+
+/* ============ navegação ============ */
+$$(".tab").forEach(t=>t.addEventListener("click", ()=>{
+  $$(".tab").forEach(x=>x.removeAttribute("aria-current"));
+  t.setAttribute("aria-current","page");
+  $$(".screen").forEach(s=>s.classList.remove("on"));
+  $("#scr-"+t.dataset.scr).classList.add("on");
+  window.scrollTo({top:0, behavior:"instant"});
+}));
+$("#pacSearch").addEventListener("input", renderPacientes);
+
+/* ============ tema ============ */
+$("#themeBtn").addEventListener("click", ()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark?"light":"dark");
+});
+
+/* ============ login e níveis de acesso ============ */
+let perfilSel = null;
+function renderLogin(){
+  $("#perfisBox").innerHTML = USUARIOS.map(u=>{
+    const P = PERFIS[u.perfil];
+    return `<button class="perfil" data-u="${u.id}" aria-pressed="false">
+      <div class="av">${u.ini}</div>
+      <div class="main"><b>${u.nome}</b><small>${P.rotulo} — ${P.desc}</small></div>
+    </button>`;
+  }).join("");
+}
+$("#perfisBox").addEventListener("click", ev=>{
+  const b=ev.target.closest(".perfil"); if(!b) return;
+  perfilSel = USUARIOS.find(u=>u.id===b.dataset.u);
+  $$("#perfisBox .perfil").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+  $("#inSenha").value=""; $("#inSenha").placeholder = 'senha de demonstração: "'+perfilSel.senha+'"';
+  $("#inSenha").focus();
+});
+function entrar(){
+  if(!perfilSel){ toast("Escolha um perfil."); return; }
+  if($("#inSenha").value.trim() !== perfilSel.senha){ toast("Senha incorreta para esse perfil."); $("#inSenha").select(); return; }
+  usuario = perfilSel;
+  try{ sessionStorage.setItem("md-user", usuario.id); }catch(e){}
+  $("#loginScreen").hidden = true;
+  $("#appRoot").hidden = false;
+  aplicarPermissoes();
+  renderAll();
+}
+$("#entrarBtn").addEventListener("click", entrar);
+$("#inSenha").addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
+$("#sairBtn").addEventListener("click", ()=>{
+  usuario=null; perfilSel=null;
+  try{ sessionStorage.removeItem("md-user"); }catch(e){}
+  pacAberto = null; sairDaEdicao();
+  $("#appRoot").hidden = true; $("#loginScreen").hidden = false;
+  $("#inSenha").value=""; $$("#perfisBox .perfil").forEach(x=>x.setAttribute("aria-pressed","false"));
+});
+
+function aplicarPermissoes(){
+  const P = PERFIS[usuario.perfil];
+  $("#userChip").hidden = false;
+  $("#userNome").textContent = usuario.nome.split(" ").slice(0,2).join(" ");
+  $("#userPerfil").textContent = "· " + P.rotulo;
+  $("#saudacao").textContent = P.atender ? "Atendimento" : "Início";
+
+  // abas visíveis conforme o perfil
+  let primeira = null;
+  $$(".tab").forEach(t=>{
+    const ok = P.telas.includes(t.dataset.scr);
+    t.hidden = !ok;
+    if(ok && !primeira) primeira = t;
+  });
+  document.querySelector(".tabs .inner").style.setProperty("--tabs", P.telas.length);
+  if(primeira) primeira.click();
+
+  // ações bloqueadas por perfil
+  $("#saveAtend").disabled = !P.atender;
+  $("#saveAtend").textContent = P.atender ? "Registrar atendimento" : "Somente o dentista registra atendimento";
+  $("#encaixeBtn").disabled = !P.agenda;
+  $("#urgBtn").disabled = !P.agenda;
+}
+
+/* ============ boot ============ */
+function renderAll(){
+  if(!usuario) return;
+  renderFinanceiro();
+  $("#pacList").innerHTML = S.pacientes.map(p=>`<option value="${p.nome}"></option>`).join("");
+  $("#procList").innerHTML = PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
+  renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderAgenda();
+}
+$("#todayChip").textContent = hoje.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+renderLogin();
+// sessão da aba: recarregar a página não obriga a logar de novo
+try{
+  const uid = sessionStorage.getItem("md-user");
+  const u = uid && USUARIOS.find(x=>x.id===uid);
+  if(u){ usuario=u; perfilSel=u; $("#loginScreen").hidden=true; $("#appRoot").hidden=false; aplicarPermissoes(); }
+}catch(e){}
+renderAll();
+})();
+</script>
+
+</body>
+</html>
