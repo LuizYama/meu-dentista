@@ -310,6 +310,83 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
   border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:var(--r-sm);padding:10px 12px}
 .editbar span{flex:1;font-size:12.5px;color:var(--accent);font-weight:600}
 .editbar button{font-size:12px;font-weight:600;color:var(--ink-2);text-decoration:underline}
+
+/* ===================================================================
+   Layout por aparelho
+   celular  (< 720px)  — coluna única, navegação embaixo (polegar)
+   tablet   (720–1099) — trilho lateral de ícones, conteúdo mais largo
+   desktop  (≥ 1100px) — menu com rótulos, duas colunas onde ajuda
+   A quebra é por largura útil, não por "user agent": um tablet deitado
+   merece o layout largo e o mesmo tablet em pé merece o estreito.
+   =================================================================== */
+.colb{display:flex;flex-direction:column;gap:16px;min-width:0}
+.navfoot{display:none}
+
+@media (min-width:720px){
+  body{background:var(--shell)}
+  .app{
+    max-width:none;min-height:100vh;border:none;
+    display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto 1fr;
+    grid-template-areas:"top top" "nav conteudo";
+  }
+  .topbar{grid-area:top;padding:12px 22px}
+  .topbar .logo svg{width:36px;height:36px}
+  .userchip{max-width:none}
+
+  .tabs{grid-area:nav;position:static;display:block;pointer-events:auto}
+  .tabs .inner{
+    position:sticky;top:57px;width:96px;max-width:none;height:calc(100vh - 57px);
+    display:flex;flex-direction:column;gap:3px;padding:14px 10px;
+    border-top:none;border-right:1px solid var(--line);
+    background:color-mix(in srgb,var(--surface) 70%,transparent);
+  }
+  .tab{border-radius:var(--r-sm);padding:11px 4px;gap:5px}
+  .tab:hover{background:var(--surface-2)}
+  .tab[aria-current="page"]{background:var(--accent-soft)}
+  .navfoot{display:block;margin-top:auto;padding:10px 4px 2px;border-top:1px solid var(--line);
+    font-size:9.5px;line-height:1.35;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;text-align:center}
+
+  main{grid-area:conteudo;padding:22px;max-width:760px;margin:0 auto;width:100%}
+  .toast{bottom:26px}
+  .tiles{grid-template-columns:repeat(3,1fr)}
+}
+
+@media (min-width:1100px){
+  .tabs .inner{width:232px;padding:16px 12px}
+  .tab{flex-direction:row;justify-content:flex-start;gap:11px;padding:11px 12px;font-size:13.5px}
+  .tab svg{width:19px;height:19px}
+  .navfoot{text-align:left;padding-left:12px}
+  main{max-width:1180px;padding:24px 28px}
+
+  /* Hoje: console de voz fixo à esquerda, ficha à direita — o dentista
+     dita e confere sem rolar a tela */
+  #scr-hoje.on{display:grid;grid-template-columns:minmax(330px,392px) 1fr;
+    grid-auto-rows:min-content;gap:14px 24px;align-items:start}
+  #scr-hoje > [data-col="full"]{grid-column:1 / -1}
+  #scr-hoje > [data-col="a"]{grid-column:1;position:sticky;top:78px}
+  #scr-hoje > [data-col="b"]{grid-column:2}
+
+  /* Pacientes: lista e prontuário lado a lado */
+  #scr-pacientes.on{display:grid;grid-template-columns:310px 1fr;gap:14px 24px;align-items:start}
+  #pacSearch{grid-column:1;grid-row:1}
+  #pacList2{grid-column:1;grid-row:2;max-height:calc(100vh - 210px);overflow:auto;padding-right:4px}
+  #pacDetail{grid-column:2;grid-row:1 / span 2}
+  html[data-dispositivo="desktop"] #pacDetail:not([hidden]) ~ * {}
+
+  /* Estoque e financeiro ganham duas colunas de cartões */
+  #scr-estoque .list,#scr-financeiro .list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #scr-estoque .list .eyebrow{grid-column:1 / -1}
+  #scr-estoque .list .empty,#scr-financeiro .list .empty{grid-column:1 / -1}
+  #scr-agenda .list{max-width:640px}
+}
+
+/* aparelho com toque: alvos maiores, sem estados de hover enganosos */
+html[data-toque="sim"] .tab{padding-block:12px}
+html[data-toque="sim"] .item:hover{border-color:var(--line)}
+@media (min-width:720px) and (max-width:1099px){
+  html[data-toque="sim"] .stepper button{width:34px;height:36px}
+  html[data-toque="sim"] .minibtn{padding:8px 12px}
+}
 </style>
 </head>
 <body>
@@ -402,9 +479,9 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
   <main>
     <!-- ===== HOJE ===== -->
     <section class="screen on" id="scr-hoje">
-      <div class="sec-h"><h2 id="saudacao">Atendimento</h2><span class="hint mono" id="todayChip">—</span></div>
+      <div class="sec-h" data-col="full"><h2 id="saudacao">Atendimento</h2><span class="hint mono" id="todayChip">—</span></div>
 
-      <div class="voice">
+      <div class="voice" data-col="a">
         <div class="head">
           <button class="mic" id="micBtn" data-state="idle" aria-label="Ditar atendimento">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -452,6 +529,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
         </div>
       </div>
 
+      <div class="colb">
       <div class="editbar" id="editBar" hidden>
         <span id="editBarTxt"></span>
         <button id="cancelEdit">cancelar</button>
@@ -498,6 +576,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 
       <div class="sec-h"><h2>Atendimentos de hoje</h2><span class="hint" id="hojeCount"></span></div>
       <div class="list" id="hojeList"></div>
+      </div>
     </section>
 
     <!-- ===== PACIENTES ===== -->
@@ -572,6 +651,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
       <button class="tab" data-scr="financeiro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
         Financeiro</button>
+      <div class="navfoot"><span id="dispLabel"></span></div>
     </div>
   </nav>
 </div>
@@ -743,6 +823,31 @@ const SEED = {
     {h:"14:00", dur:60, pac:"Roberto Lima", proc:"Segunda fase cirúrgica (reabertura)"}
   ]
 };
+
+
+/* ===================== aparelho =====================
+   Classifica pela largura útil e pelo tipo de ponteiro, não pelo user
+   agent — string de navegador mente, e o mesmo tablet muda de categoria
+   ao girar. O resultado vira atributo no <html>, e o CSS faz o resto. */
+function classificarAparelho(){
+  const w = window.innerWidth;
+  const toque = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1;
+  const disp = w < 720 ? "mobile" : (w < 1100 ? "tablet" : "desktop");
+  const raiz = document.documentElement;
+  const mudou = raiz.dataset.dispositivo !== disp;
+  raiz.dataset.dispositivo = disp;
+  raiz.dataset.toque = toque ? "sim" : "nao";
+  const rot = {mobile:"Celular", tablet:"Tablet", desktop:"Computador"}[disp];
+  const el = document.getElementById("dispLabel");
+  if(el) el.textContent = rot + " · " + w + "px";
+  if(mudou && usuario) renderPacientes();   // a lista fica visível ao lado do prontuário no desktop
+  return disp;
+}
+const ehDesktop = () => document.documentElement.dataset.dispositivo === "desktop";
+let redimT;
+window.addEventListener("resize", ()=>{ clearTimeout(redimT); redimT=setTimeout(classificarAparelho,150); });
+window.addEventListener("orientationchange", ()=>setTimeout(classificarAparelho,200));
+classificarAparelho();
 
 /* ===================== estado =====================*/
 const KEY="meu-dentista-v9";
@@ -1379,6 +1484,9 @@ let pacAberto=null;
 function renderPacientes(){
   if(pacAberto){ if(pacById(pacAberto)){ abrirPaciente(pacAberto); return; } pacAberto=null; }
   $("#pacDetail").hidden=true; $("#pacSearch").hidden=false; $("#pacList2").hidden=false;
+  renderListaPacientes();
+}
+function renderListaPacientes(){
   const q=norm($("#pacSearch").value.trim()), list=$("#pacList2"); list.innerHTML="";
   const arr=S.pacientes.filter(p=>!q||norm(p.nome).includes(q));
   if(!arr.length){ list.innerHTML='<div class="empty">Nenhum paciente encontrado.</div>'; return; }
@@ -1391,6 +1499,7 @@ function renderPacientes(){
       <div class="main"><b>${p.nome}</b><small>${sub}</small></div>
       <div class="end"><span class="pill neutral">${n} atend.</span>
       <span class="mono" style="font-size:11px;color:var(--ink-3)">${ult?fmtData(ult.data):"—"}</span></div>`;
+    if(p.id===pacAberto) b.style.borderColor="var(--accent)";
     b.addEventListener("click", ()=>abrirPaciente(p.id));
     list.appendChild(b);
   });
@@ -1409,7 +1518,8 @@ function abrirPaciente(id){
   const clinico=pode("verClinico"), editaPront=pode("prontuario"), editaCad=pode("cadastro");
   const vazio='<span style="color:var(--ink-3)">não informado</span>';
   const pend=["nasc","sexo","cpf","tel","email"].filter(k=>!p[k]).length;
-  $("#pacSearch").hidden=true; $("#pacList2").hidden=true;
+  const lado = ehDesktop();
+  $("#pacSearch").hidden=!lado; $("#pacList2").hidden=!lado;
   const d=$("#pacDetail"); d.hidden=false;
   d.innerHTML=`
     <button class="backlink" id="voltarPac">← Todos os pacientes</button>
@@ -1447,7 +1557,9 @@ function abrirPaciente(id){
           ${a.editadoPor?`<div class="audit">editado por ${a.editadoPor} em ${a.editadoEm}</div>`:""}
           ${editaPront?`<div class="rowbtns"><button class="minibtn" data-edit="${a.id}">Editar atendimento</button></div>`:""}
         </div></div>`).join("") || '<div class="empty">Sem atendimentos registrados.</div>'}</div>`;
-  $("#voltarPac").addEventListener("click", ()=>{ pacAberto=null; renderPacientes(); });
+  const vp=$("#voltarPac"); vp.hidden = lado;      // no desktop a lista já está do lado
+  vp.addEventListener("click", ()=>{ pacAberto=null; renderPacientes(); });
+  if(lado) renderListaPacientes();
   const bp=$("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
   d.querySelectorAll("button[data-edit]").forEach(b=>b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
 }
