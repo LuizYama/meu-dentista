@@ -437,7 +437,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 
           <div class="toggles">
             <label class="tog"><input type="checkbox" id="wakeChk">
-              <span>Escuta contínua — dizer <b>“ô Charles”</b> começa a anotar</span></label>
+              <span>Escuta contínua — dizer <b>“hei Charles”</b> começa a anotar</span></label>
             <label class="tog"><input type="checkbox" id="vozChk" checked>
               <span>Charles <b>responde em voz</b> e cobra o que falta</span></label>
           </div>
@@ -944,13 +944,14 @@ function interpretar(texto){
 
 /* ===================== voz: reconhecimento + fala =====================
    Um só reconhecedor com quatro modos:
-     off | wake (espera "ô Charles") | ditado (rascunho) | resposta (conferência)
+     off | wake (espera "hei Charles") | ditado (rascunho) | resposta (conferência)
    A fala do Charles pausa o reconhecimento — senão ele transcreve a si mesmo. */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const TTS = window.speechSynthesis;
 const WAKE_WORDS = "charles|charlys|charlies|charlie|xarles|charless|charlos";
 const WAKE = new RegExp("\\b(?:"+WAKE_WORDS+")\\b");
-const WAKE_LIMPA = new RegExp("\\b(?:o|ô|oi|ol[aá]|opa|ei|e)?\\s*(?:"+WAKE_WORDS+")\\b[,.\\s]*","gi");
+const SAUDACOES = "hei|hey|hai|rei|ei|ô|o|oi|ol[aá]|opa|e";
+const WAKE_LIMPA = new RegExp("\\b(?:"+SAUDACOES+")?\\s*(?:"+WAKE_WORDS+")\\b[,.\\s]*","gi");
 let rec=null, modo="off", desligando=false, falando=false, retomarApos=null;
 
 function vozLigada(){ return $("#vozChk").checked && !!TTS; }
@@ -1165,7 +1166,7 @@ function criarRec(){
         if(resto) acrescentarRascunho(resto);
         setVoice("listening","Anotando…","Fale à vontade. Toque no microfone para encerrar.");
       }else{
-        $("#transcript").innerHTML='<span style="color:var(--ink-3)">Em escuta · aguardando “ô Charles”…</span>';
+        $("#transcript").innerHTML='<span style="color:var(--ink-3)">Em escuta · aguardando “hei Charles”…</span>';
       }
       return;
     }
@@ -1202,7 +1203,7 @@ function criarRec(){
 function acrescentarRascunho(txt){
   const limpo = txt.replace(WAKE_LIMPA,"")
     // \b do JavaScript é ASCII: "ô" não conta como fronteira e sobraria solto
-    .replace(/^\s*(?:ô|o|oi|ol[aá]|opa|ei|e)(?=[\s,.]|$)[,.\s]*/i,"")
+    .replace(/^\s*(?:hei|hey|hai|rei|ei|ô|o|oi|ol[aá]|opa|e)(?=[\s,.]|$)[,.\s]*/i,"")
     .replace(/\s+/g," ").trim();
   if(!limpo) return;
   const el=$("#inFala");
@@ -1245,7 +1246,7 @@ $("#micBtn").addEventListener("click", async ()=>{
 });
 $("#wakeChk").addEventListener("change", async e=>{
   if(e.target.checked){ if(await iniciar("wake"))
-    setVoice("wake","Em escuta","Diga “ô Charles” para começar a anotar. O microfone fica aberto enquanto esta aba estiver visível."); }
+    setVoice("wake","Em escuta","Diga “hei Charles” para começar a anotar. O microfone fica aberto enquanto esta aba estiver visível."); }
   else { pararEscuta(); setVoice("idle","Toque e fale o atendimento","Paciente, procedimento, dente, complexidade e materiais."); }
 });
 document.addEventListener("visibilitychange", ()=>{
