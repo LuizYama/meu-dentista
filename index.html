@@ -77,6 +77,36 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:
 a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:4px}
 
+/* ---------- exames ---------- */
+.galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:9px}
+.exame{display:flex;flex-direction:column;gap:0;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)}
+.exame:hover{border-color:var(--accent)}
+.exame .mini{height:94px;display:grid;place-items:center;font-size:26px;background:var(--surface-2);
+  color:var(--ink-3);background-size:cover;background-position:center}
+.exame .info{padding:9px 10px}
+.exame .info b{display:block;font-size:12.5px;line-height:1.3}
+.exame .info small{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+#exProgresso .bar{background:var(--surface-2);border-radius:4px;overflow:hidden;margin-bottom:4px}
+#exProgresso .bar i{display:block;height:100%;background:var(--accent);transition:width .2s}
+
+/* ---------- aviso de lote ---------- */
+.modal-fundo{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:20px;
+  background:color-mix(in srgb,var(--ink) 55%,transparent);backdrop-filter:blur(3px)}
+.modal-caixa{width:100%;max-width:440px;max-height:84vh;overflow:auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);
+  padding:20px;display:flex;flex-direction:column;gap:12px}
+.modal-caixa h2{font-size:17px}
+.modal-caixa .sub{margin:0;font-size:12.5px;color:var(--ink-2)}
+.lote-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.lote-row:last-child{border-bottom:none}
+.lote-row .cod{flex:none;width:30px;height:30px;border-radius:8px;background:var(--accent-soft);
+  color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:12px}
+.lote-row .txt{flex:1;min-width:0}
+.lote-row .txt b{display:block;font-size:13.5px}
+.lote-row .txt small{display:block;font-size:11.5px;color:var(--ink-3);line-height:1.45}
+.matline .lote-dica{display:block;font-size:11px;margin-top:2px}
+
 /* ---------- marca ---------- */
 .logo{display:flex;align-items:center;gap:10px}
 .logo svg{width:34px;height:34px;flex:none}
@@ -512,7 +542,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 
           <div class="toggles">
             <label class="tog"><input type="checkbox" id="wakeChk">
-              <span>Escuta contínua — dizer <b>“hei Charles”</b> começa a anotar</span></label>
+              <span>Escuta contínua — dizer <b>“hei Charles”</b> começa a anotar,
+                <b>“pode parar”</b> encerra</span></label>
             <label class="tog"><input type="checkbox" id="vozChk" checked>
               <span>Charles <b>responde em voz</b> e cobra o que falta</span></label>
           </div>
@@ -520,7 +551,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
           <div id="diagBox" hidden></div>
 
           <div class="stage" id="comandos">
-            <b>Comandos por voz:</b> “ler ficha” confere tudo em voz alta · “o que falta” lista as pendências ·
+            <b>Comandos por voz:</b> “pode parar” encerra o ditado (ou 10 s em silêncio) ·
+            “ler ficha” confere tudo em voz alta · “o que falta” lista as pendências ·
             “corrigir procedimento” (ou paciente, dente, complexidade) reabre o campo ·
             “confirmar” registra · “cancelar” encerra a conferência.
           </div>
@@ -587,6 +619,17 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     <!-- ===== ESTOQUE ===== -->
     <section class="screen" id="scr-estoque">
       <div class="tiles" id="stockTiles"></div>
+
+      <div id="validadeBox" hidden></div>
+
+      <div class="row" id="estoqueAcoes" hidden>
+        <button class="btn primary" id="novaEntradaBtn">+ Entrada por nota fiscal</button>
+        <button class="btn" id="novoMatBtn">+ Material novo</button>
+      </div>
+
+      <div class="card" id="entradaCard" hidden></div>
+      <div class="card" id="matNovoCard" hidden></div>
+
       <div class="sec-h"><h2>Estoque do consultório</h2><span class="hint">saldo · mínimo</span></div>
       <div class="list" id="stockList"></div>
       <div class="sec-h"><h2>Referência de implantodontia e prótese</h2><span class="hint">itens de uso corrente</span></div>
@@ -653,6 +696,23 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     </div>
   </nav>
 </div>
+<div class="modal-fundo" id="exameModal" hidden>
+  <div class="modal-caixa" style="max-width:680px" role="dialog" aria-modal="true" aria-labelledby="exameModalTit">
+    <div style="display:flex;align-items:center;gap:10px">
+      <h2 id="exameModalTit" style="flex:1">Exame</h2>
+      <button class="iconbtn" id="exameModalX" aria-label="Fechar">✕</button>
+    </div>
+    <div id="exameModalCorpo"></div>
+  </div>
+</div>
+<div class="modal-fundo" id="loteModal" hidden>
+  <div class="modal-caixa" role="dialog" aria-modal="true" aria-labelledby="loteModalTit">
+    <h2 id="loteModalTit">Lotes a usar</h2>
+    <p class="sub">Primeiro a vencer, primeiro a sair.</p>
+    <div id="loteModalLista"></div>
+    <button class="btn primary wide" id="loteModalOk">Entendi</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -666,19 +726,24 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 const PERFIS = {
   Administrador:{rotulo:"Administrador", desc:"Acesso total e aprovação de usuários",
     telas:["hoje","pacientes","estoque","agenda","financeiro"],
-    atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true, admin:true},
+    atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true, admin:true,
+    valores:true, lancaLote:true},
   Dentista:{rotulo:"Dentista", desc:"Atende, edita prontuário e agenda",
     telas:["hoje","pacientes","estoque","agenda"],
-    atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false},
+    atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
+    valores:false, lancaLote:false},
   Secretaria:{rotulo:"Secretária", desc:"Cadastro, contato e agenda",
     telas:["pacientes","agenda"],
-    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false},
+    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
+    valores:false, lancaLote:false},
   Financeiro:{rotulo:"Financeiro", desc:"Faturamento e agenda",
     telas:["financeiro","agenda"],
-    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false, admin:false},
+    atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false, admin:false,
+    valores:true, lancaLote:false},
   Estoque:{rotulo:"Estoque", desc:"Entradas, baixas e reposição",
     telas:["estoque"],
-    atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false, admin:false}
+    atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false, admin:false,
+    valores:true, lancaLote:true}
 };
 const USUARIOS_SEED = [
   {id:"u1", nome:"Dra. Helena Prado", email:"helena@clinica.com.br", perfil:"Dentista",      senha:"dentista",   ativo:true},
@@ -715,7 +780,7 @@ const CPLX_DB2APP = {baixa:"Baixa", media:"Média", alta:"Alta"};
 const CPLX_APP2DB = {"Baixa":"baixa","Média":"media","Media":"media","Alta":"alta"};
 
 /* uuid do banco <-> id curto que a interface já usa */
-const UID = {mat:{}, matRev:{}, pac:{}, pacRev:{}, atd:{}, agd:{}};
+const UID = {mat:{}, matRev:{}, pac:{}, pacRev:{}, atd:{}, agd:{}, lote:{}};
 
 const DB = {
   tok:null, ref:null, clinica:null, meuId:null, pausado:false,
@@ -824,7 +889,7 @@ const DB = {
   /* ---------------- leitura ---------------- */
   async carregarTudo(){
     const [mats, proc, kits, est, pacs, atds] = await Promise.all([
-      DB.rest("GET","materiais?select=id,nome,categoria,unidade,minimo,termos_voz&ativo=is.true&order=nome"),
+      DB.rest("GET","materiais?select=id,nome,categoria,unidade,minimo,termos_voz,codigo,margem_pct&ativo=is.true&order=nome"),
       DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz&ativo=is.true"),
       DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade"),
       DB.rest("GET","estoque?select=material_id,saldo"),
@@ -855,6 +920,7 @@ const DB = {
         obs:(nota&&nota.nota)||""};
     });
     await DB.carregarAgenda();
+    await DB.carregarLotes();
   },
 
   mapearMateriais(mats){
@@ -869,6 +935,8 @@ const DB = {
         c.min = Number(m.minimo); c.un = m.unidade; c.cat = m.categoria;
         if(m.termos_voz && m.termos_voz.length) c.termos = m.termos_voz;
       }
+      c.codigo = m.codigo || c.codigo || "";
+      c.margem = Number(m.margem_pct || 0);
       UID.mat[c.id]=m.id; UID.matRev[m.id]=c.id;
     });
   },
@@ -961,13 +1029,14 @@ const DB = {
 
   /* saldo nunca é escrito à mão: entra movimento e o gatilho recalcula.
      É o que permite auditar depois de onde veio cada unidade. */
-  async movimentarEstoque(localId, delta, tipo, obs){
+  async movimentarEstoque(localId, delta, tipo, obs, loteId){
     const mid = UID.mat[localId];
     if(!mid) throw new Error("Material sem correspondência no banco.");
     await DB.rest("POST","estoque_movimentos",
       {material_id:mid, tipo:tipo||(delta>0?"entrada":"ajuste"), quantidade:delta,
-       observacao:obs||null, criado_por:DB.meuId});
+       lote_id: loteId || null, observacao:obs||null, criado_por:DB.meuId});
     await DB.recarregarEstoque();
+    await DB.carregarLotes();
   },
 
   async gravarAgendamento({minuto, dur, pacienteNome, proc, status}){
@@ -979,6 +1048,102 @@ const DB = {
       {clinica_id:DB.clinica, paciente_id:pid, inicio:d.toISOString(), duracao_min:dur||30,
        procedimento:proc||null, status:status||"encaixe", criado_por:DB.meuId});
     await DB.carregarAgenda();
+  },
+
+
+  /* ---------------- lotes, custo e margem ---------------- */
+  /* O custo vem de tabela separada e pode voltar VAZIO sem ser erro:
+     para dentista e secretária o banco simplesmente não entrega a linha.
+     A interface trata ausência de custo como "não autorizado a ver",
+     nunca como "custo zero" — zero seria um número errado com cara de
+     número certo. */
+  async carregarLotes(){
+    const [lotes, sugeridos, alertas] = await Promise.all([
+      DB.rest("GET","lotes?select=id,material_id,codigo_lote,fabricacao,validade,"+
+        "quantidade_ini,saldo,fornecedor,nf_numero,nf_serie,nf_emissao,recebido_em&order=validade.asc.nullslast"),
+      DB.rest("GET","vw_lote_sugerido?select=material_id,lote_id,codigo_lote,validade,saldo,"+
+        "vencido,vence_em_breve,dias_para_vencer"),
+      DB.rest("GET","vw_validade_alerta?select=lote_id,material_id,material,codigo,codigo_lote,"+
+        "validade,saldo,unidade,vencido,dias_para_vencer&order=validade.asc")
+    ]);
+    S.lotes = lotes.map(l=>({...l, mat:UID.matRev[l.material_id]}))
+                   .filter(l=>l.mat!==undefined);
+    S.lotes.forEach(l=>{ UID.lote[l.id]=l.id; });
+    S.sugeridos = {};
+    sugeridos.forEach(s=>{ const m=UID.matRev[s.material_id]; if(m) S.sugeridos[m]=s; });
+    S.validade = alertas;
+
+    S.custos = null;
+    if(pode("valores")){
+      try{
+        const c = await DB.rest("GET","lotes_custo?select=lote_id,custo_unitario,nf_valor_total");
+        S.custos = {}; c.forEach(x=>{ S.custos[x.lote_id]=x; });
+        S.valorizado = await DB.rest("GET","vw_estoque_valorizado?select=material_id,codigo,nome,"+
+          "saldo,margem_pct,custo_total,custo_medio,valor_com_margem,saldo_sem_custo");
+      }catch(e){ S.custos=null; S.valorizado=null; }
+    }else{ S.valorizado=null; }
+  },
+
+  /* Lote e custo são duas gravações porque são duas tabelas — e são duas
+     tabelas porque RLS protege linha, não coluna. Se a segunda falhar, o
+     lote existe sem custo: aparece como "sem nota lançada", que é a
+     verdade, em vez de sumir. */
+  async gravarLote(d){
+    const mid = UID.mat[d.mat];
+    if(!mid) throw new Error("Material sem correspondência no banco.");
+    const r = await DB.rest("POST","lotes", {
+      material_id: mid,
+      codigo_lote: d.lote,
+      fabricacao: d.fabricacao || null,
+      validade:   d.validade   || null,
+      quantidade_ini: d.qtd,
+      fornecedor: d.fornecedor || null,
+      nf_numero:  d.nf || null,
+      nf_serie:   d.nfSerie || null,
+      nf_emissao: d.nfData || null,
+      recebido_por: DB.meuId,
+      observacao: d.obs || null
+    }, "return=representation");
+    const lote = r[0];
+    if(d.custo !== null && d.custo !== undefined && d.custo !== ""){
+      await DB.rest("POST","lotes_custo", {
+        lote_id: lote.id,
+        custo_unitario: d.custo,
+        nf_valor_total: d.nfTotal === "" || d.nfTotal === null || d.nfTotal === undefined
+                        ? null : d.nfTotal,
+        atualizado_por: DB.meuId
+      }, "resolution=merge-duplicates");
+    }
+    await DB.recarregarEstoque();
+    await DB.carregarLotes();
+    return lote.id;
+  },
+
+  async gravarMargem(localId, pct){
+    const mid = UID.mat[localId];
+    if(!mid) throw new Error("Material sem correspondência no banco.");
+    await DB.rest("PATCH","materiais?id=eq."+mid, {margem_pct: pct});
+    const c = catById(localId); if(c) c.margem = pct;
+    if(pode("valores")){
+      S.valorizado = await DB.rest("GET","vw_estoque_valorizado?select=material_id,codigo,nome,"+
+        "saldo,margem_pct,custo_total,custo_medio,valor_com_margem,saldo_sem_custo");
+    }
+  },
+
+  async gravarMaterial(d){
+    const r = await DB.rest("POST","materiais", {
+      clinica_id: DB.clinica, nome: d.nome, categoria: d.cat,
+      unidade: d.un, minimo: d.min, margem_pct: d.margem || 0,
+      termos_voz: d.termos || []
+    }, "return=representation");
+    const m = r[0];
+    const local = "m_"+m.id.slice(0,8);
+    CATALOGO.push({id:local, nome:m.nome, un:m.unidade, min:Number(m.minimo),
+      sug:Math.max(1,Math.round(Number(m.minimo)*2)), cat:m.categoria,
+      termos:m.termos_voz||[], codigo:m.codigo, margem:Number(m.margem_pct)});
+    UID.mat[local]=m.id; UID.matRev[m.id]=local;
+    await DB.recarregarEstoque();
+    return local;
   },
 
   async alternarUsuario(u){
@@ -1099,6 +1264,16 @@ const SEED = {
     {id:"cim_res",qtd:3}, {id:"carbono",qtd:4},  {id:"diamant", qtd:21},
     {id:"teflon", qtd:3}
   ],
+  lotes:[
+    {id:"l1", mat:"imp_cm", codigo_lote:"CM-4417", fabricacao:"2026-02-10", validade:"2029-02-10",
+     quantidade_ini:12, saldo:12, nf_numero:"008812", fornecedor:"Neodent", recebido_em:"2026-08-02T10:00:00Z"},
+    {id:"l2", mat:"artic",  codigo_lote:"ART-2291", fabricacao:"2025-11-01", validade:"2026-11-20",
+     quantidade_ini:50, saldo:38, nf_numero:"008813", fornecedor:"DFL", recebido_em:"2026-08-02T10:00:00Z"},
+    {id:"l3", mat:"artic",  codigo_lote:"ART-3004", fabricacao:"2026-05-14", validade:"2028-05-14",
+     quantidade_ini:50, saldo:50, nf_numero:"009120", fornecedor:"DFL", recebido_em:"2026-09-18T10:00:00Z"},
+    {id:"l4", mat:"memb",   codigo_lote:"MB-7781", fabricacao:"2024-10-01", validade:"2026-10-15",
+     quantidade_ini:6, saldo:4, nf_numero:"008813", fornecedor:"Bionnovation", recebido_em:"2026-08-02T10:00:00Z"}
+  ],
   pacientes:[
     {id:"p1", nome:"Sandra Toledo", nasc:"1969-04-22", sexo:"Feminino", cpf:"950.712.865-48",
      tel:"(11) 98812-4477", email:"sandra.toledo@exemplo.com.br",
@@ -1166,6 +1341,21 @@ function load(){
 function migrar(){
   if(!S.usuarios) S.usuarios = JSON.parse(JSON.stringify(USUARIOS_SEED));
   if(!S.solicitacoes) S.solicitacoes = [];
+  if(!S.lotes) S.lotes = JSON.parse(JSON.stringify(SEED.lotes||[]));
+  if(!S.sugeridos) S.sugeridos = null;
+  if(!S.validade){
+    // no modo demo o alerta de validade é calculado aqui; na nuvem vem
+    // pronto da view, para a regra viver num lugar só
+    const h = new Date();
+    S.validade = (S.lotes||[]).filter(l=>l.validade && Number(l.saldo)>0).map(l=>{
+      const dias = Math.round((new Date(l.validade)-h)/86400000);
+      // catById ainda não existe neste ponto da carga; busca direta no catálogo
+      const c = CATALOGO.find(x=>x.id===l.mat);
+      return {lote_id:l.id, material_id:l.mat, material:c?c.nome:l.mat, codigo:c?c.codigo:"",
+              codigo_lote:l.codigo_lote, validade:l.validade, saldo:l.saldo,
+              unidade:c?c.un:"un", vencido:dias<0, dias_para_vencer:dias};
+    }).filter(a=>a.dias_para_vencer<=90).sort((a,b)=>a.validade<b.validade?-1:1);
+  }
   (S.pacientes||[]).forEach(p=>{
     if(p.nasc && /^\d{4}$/.test(p.nasc)) p.nasc = p.nasc + "-01-01";
     if(p.nasc === "—") p.nasc = "";
@@ -1245,8 +1435,16 @@ function renderFicha(){
   }
   ficha.mats.forEach((m,i)=>{
     const c=catById(m.id), e=stockById(m.id), saldo=e?e.qtd:0;
+    const sug=loteSugerido(m.id);
+    const dica = sug
+      ? `<small class="lote-dica" style="color:${sug.vencido?"var(--crit)":sug.vence_em_breve?"var(--warn)":"var(--accent)"}">`+
+        `usar lote <b>${sug.codigo_lote}</b>`+
+        (sug.validade ? (sug.vencido ? ` — <b>VENCIDO em ${fmtData(sug.validade)}</b>`
+                                     : ` · vence ${fmtData(sug.validade)}`) : " · sem validade")+
+        `</small>`
+      : "";
     const line=document.createElement("div"); line.className="matline";
-    line.innerHTML=`<div class="nm">${c.nome}<small>${c.un} · saldo ${saldo}${saldo-m.q<0?' <span style="color:var(--crit)">insuficiente</span>':''}</small></div>
+    line.innerHTML=`<div class="nm">${c.nome}<small>${c.un} · saldo ${fmtQtd(saldo)}${saldo-m.q<0?' <span style="color:var(--crit)">insuficiente</span>':''}</small>${dica}</div>
       <div class="stepper"><button data-act="dec" data-i="${i}" aria-label="Diminuir">−</button>
       <span class="mono">${m.q}</span><button data-act="inc" data-i="${i}" aria-label="Aumentar">+</button></div>
       <button class="rm" data-act="rm" data-i="${i}" aria-label="Remover">✕</button>`;
@@ -1280,9 +1478,10 @@ $("#addMat").addEventListener("change", e=>{
   const id=e.target.value; if(!id) return;
   const ex=ficha.mats.find(m=>m.id===id);
   if(ex) ex.q++; else ficha.mats.push({id,q:1});
-  e.target.value=""; ficha.kit=false; renderFicha();
+  e.target.value=""; ficha.kit=false; renderFicha(); conferirLotes();
 });
 $("#clearAtend").addEventListener("click", ()=>{ pararAssistente(); ficha=fichaVazia();
+  loteAvisado.clear();
   $("#transcript").innerHTML='<span style="color:var(--ink-3)">Ficha limpa.</span>'; renderFicha(); });
 
 /* ===================== interpretador =====================*/
@@ -1553,6 +1752,47 @@ async function processarResposta(texto){
 }
 
 /* ===================== reconhecimento =====================*/
+/* Encerrar o ditado tem que ser possível sem tirar a luva: por fala, ou
+   sozinho depois de um tempo calado. Microfone que fica aberto sem
+   ninguém falando grava conversa de corredor — e conversa de corredor
+   em consultório costuma ser sobre paciente. */
+const PARAR_DITADO = new RegExp(
+  "\\b(?:pode parar|parar de (?:anotar|ouvir|escutar|gravar)"+
+  "|pare de (?:anotar|ouvir|escutar|gravar)"+
+  // "encerrar" sozinho só vale no fim da frase: "vou encerrar o
+  // tratamento em junho" é anotação clínica, não ordem ao sistema
+  "|encerrar(?: o)? (?:ditado|microfone)|encerra(?:r)? a (?:anota(?:ção|cao)|grava(?:ção|cao))"+
+  "|encerrar$|encerra$"+
+  "|fim do ditado|chega de anotar"+
+  "|desligar(?: o)? (?:ditado|microfone|charles)"+
+  "|obrigado charles|tchau charles)\\b");
+
+const SILENCIO_MS = 10000;   // 10 s sem fala encerra o ditado
+let silencioT = null;
+function adiarSilencio(){
+  clearTimeout(silencioT);
+  if(modo!=="ditado") return;
+  silencioT = setTimeout(()=>{
+    if(modo==="ditado") encerrarDitado("silêncio");
+  }, SILENCIO_MS);
+}
+function limparSilencio(){ clearTimeout(silencioT); silencioT=null; }
+
+/* Um só caminho para encerrar — toque, voz ou silêncio — para os três
+   terminarem no mesmo estado. */
+function encerrarDitado(motivo){
+  limparSilencio();
+  pararEscuta();
+  const temRascunho = $("#inFala").value.trim().length > 0;
+  const titulo = motivo==="silêncio" ? "Ditado encerrado por silêncio" : "Ditado encerrado";
+  const sub = motivo==="silêncio"
+    ? "Fiquei 10 segundos sem ouvir nada. O rascunho está guardado."
+    : "Confira o rascunho e interprete.";
+  setVoice("idle", titulo, sub);
+  if(temRascunho) interpretarDigitado();
+  else if($("#wakeChk").checked) setTimeout(()=>iniciar("wake"), 400);
+  if(motivo==="silêncio") toast("Parei de anotar — 10 segundos sem fala.");
+}
 function motivoSemVoz(){
   if(!SR) return "Este navegador não tem reconhecimento de fala. Chrome ou Edge fazem o ditado; nos outros, use o rascunho por escrito.";
   if(location.protocol==="file:") return "A página foi aberta como arquivo salvo no computador. O Chrome não libera microfone para endereços file:// — é preciso servir a página por HTTPS (ou localhost).";
@@ -1585,7 +1825,8 @@ function criarRec(){
         const resto=(finais+" "+interim).replace(WAKE_LIMPA,"").trim();
         modo="ditado";
         if(resto) acrescentarRascunho(resto);
-        setVoice("listening","Anotando…","Fale à vontade. Toque no microfone para encerrar.");
+        adiarSilencio();
+        setVoice("listening","Anotando…","Fale à vontade. Diga “pode parar” para encerrar.");
       }else{
         $("#transcript").innerHTML='<span style="color:var(--ink-3)">Em escuta · aguardando “hei Charles”…</span>';
       }
@@ -1597,10 +1838,20 @@ function criarRec(){
       else $("#transcript").innerHTML='<span style="color:var(--ink-3)">…'+interim+'</span>';
       return;
     }
-    if(finais) acrescentarRascunho(finais);
+    adiarSilencio();                          // ouviu algo: o relógio recomeça
+    if(finais){
+      if(PARAR_DITADO.test(norm(finais))){
+        // tira a ordem do rascunho: ela é comando, não anotação clínica
+        const antes = finais.replace(new RegExp(PARAR_DITADO.source+".*$","i"), "").trim();
+        if(antes) acrescentarRascunho(antes);
+        encerrarDitado("voz");
+        return;
+      }
+      acrescentarRascunho(finais);
+    }
     $("#transcript").innerHTML = interim
       ? '<span style="color:var(--ink-3)">…'+interim+'</span>'
-      : '<b>Rascunho atualizado.</b> <span style="color:var(--ink-3)">Continue ou encerre para interpretar.</span>';
+      : '<b>Rascunho atualizado.</b> <span style="color:var(--ink-3)">Diga “pode parar” ou toque no microfone para encerrar.</span>';
   };
   r.onerror=ev=>{
     if(ev.error==="no-speech" || ev.error==="aborted") return;
@@ -1644,8 +1895,8 @@ async function iniciar(novoModo){
   try{ rec.start(); }catch(e){}
   return true;
 }
-function pausarEscuta(){ desligando=true; try{ if(rec) rec.stop(); }catch(e){} }
-function pararEscuta(){ desligando=true; modo="off"; try{ if(rec) rec.stop(); }catch(e){} }
+function pausarEscuta(){ limparSilencio(); desligando=true; try{ if(rec) rec.stop(); }catch(e){} }
+function pararEscuta(){ limparSilencio(); desligando=true; modo="off"; try{ if(rec) rec.stop(); }catch(e){} }
 async function escutarResposta(){
   if(!SR || motivoSemVoz()){ return; }         // sem voz, o diálogo fica só na tela
   modo="resposta"; desligando=false;
@@ -1655,15 +1906,12 @@ async function escutarResposta(){
 }
 
 $("#micBtn").addEventListener("click", async ()=>{
-  if(modo==="ditado"){
-    pararEscuta();
-    setVoice("idle","Ditado encerrado","Confira o rascunho e interprete.");
-    if($("#inFala").value.trim()) interpretarDigitado();
-    else if($("#wakeChk").checked) setTimeout(()=>iniciar("wake"),400);
-    return;
-  }
+  if(modo==="ditado"){ encerrarDitado("toque"); return; }
   if(modo==="resposta"){ pararAssistente(); setVoice("idle","Conferência encerrada",""); return; }
-  if(await iniciar("ditado")) setVoice("listening","Anotando…","Fale à vontade, inclusive com pausas. Toque de novo para encerrar.");
+  if(await iniciar("ditado")){
+    adiarSilencio();
+    setVoice("listening","Anotando…","Fale à vontade. Diga “pode parar”, toque de novo, ou pare de falar por 10 s.");
+  }
 });
 $("#wakeChk").addEventListener("change", async e=>{
   if(e.target.checked){ if(await iniciar("wake"))
@@ -1682,6 +1930,7 @@ function interpretarDigitado(){
   ficha=interpretar(txt); if(editId) ficha.editId=editId;
   renderFicha();
   setVoice(modo==="wake"?"wake":"idle","Ficha preenchida","Confira os campos destacados em âmbar.");
+  conferirLotes();
   conferir();
 }
 $("#interpretarBtn").addEventListener("click", interpretarDigitado);
@@ -1732,6 +1981,301 @@ async function diagnosticar(){
 }
 $("#diagBtn").addEventListener("click", diagnosticar);
 
+
+
+/* ===================== exames e mídias =====================
+   O arquivo nunca entra no banco: o Postgres guarda tipo, data, laudo e
+   o caminho; o binário vai para o bucket. Uma tomografia tem de 500 MB a
+   1,5 GB — dentro do banco, cada backup diário carregaria isso junto.
+
+   Teto por arquivo é do PLANO, não nosso: 50 MB no gratuito do Supabase,
+   até 500 GB no Pro. Por isso a mensagem de recusa diz o número e o que
+   fazer, em vez de um "falha no envio" que não ajuda ninguém. */
+const TIPOS_EXAME = [
+  ["radiografia_periapical","Radiografia periapical"],
+  ["radiografia_panoramica","Radiografia panorâmica"],
+  ["tomografia_cone_beam","Tomografia cone beam"],
+  ["fotografia_intraoral","Foto intraoral"],
+  ["fotografia_extraoral","Foto extraoral"],
+  ["escaneamento_intraoral","Escaneamento intraoral"],
+  ["video","Vídeo"],
+  ["laudo","Laudo"],
+  ["outro","Outro"]
+];
+const rotuloTipo = t => (TIPOS_EXAME.find(x=>x[0]===t)||[t,t])[1];
+const fmtBytes = b => !b ? "—" : b<1048576 ? (b/1024).toFixed(0)+" KB"
+  : b<1073741824 ? (b/1048576).toFixed(1)+" MB" : (b/1073741824).toFixed(2)+" GB";
+const ehImagem = m => /^image\//.test(m||"");
+const ehVideo  = m => /^video\//.test(m||"");
+
+/* nome de arquivo vira caminho: sem acento, sem espaço, sem barra —
+   o caminho é a chave da política de acesso, não pode ter surpresa */
+function nomeSeguro(n){
+  return norm(n).replace(/[^a-z0-9._-]+/g,"-").replace(/-+/g,"-").slice(-80) || "arquivo";
+}
+
+const EXAMES = {
+  /* ---------- leitura ---------- */
+  async listar(pacienteLocal){
+    if(MODO!=="nuvem") return (S.exames||[]).filter(e=>e.pac===pacienteLocal);
+    const pid = UID.pac[pacienteLocal];
+    if(!pid) return [];
+    const r = await DB.rest("GET","exames?select=id,tipo,titulo,descricao,realizado_em,storage_path,"+
+      "mime,bytes,laudo,laudo_em,enviado_em&paciente_id=eq."+pid+"&order=realizado_em.desc");
+    return r.map(e=>({...e, pac:pacienteLocal}));
+  },
+
+  /* URL assinada e curta: o bucket é privado, então nada é servido por
+     link permanente. Uma hora é tempo de olhar, não de vazar. */
+  async urlDe(storagePath, segundos){
+    const r = await fetch(BACKEND.url+"/storage/v1/object/sign/exames/"+
+        storagePath.split("/").map(encodeURIComponent).join("/"),
+      {method:"POST", headers:{apikey:BACKEND.key, Authorization:"Bearer "+DB.tok,
+        "Content-Type":"application/json"},
+       body: JSON.stringify({expiresIn: segundos||3600})});
+    if(!r.ok){
+      const e = await r.json().catch(()=>({}));
+      throw new Error(e.message || ("não consegui abrir o arquivo (HTTP "+r.status+")"));
+    }
+    const d = await r.json();
+    return BACKEND.url + "/storage/v1" + d.signedURL;
+  },
+
+  /* ---------- envio ---------- */
+  /* XMLHttpRequest e não fetch: só ele dá progresso de upload, e um
+     arquivo de 800 MB sem barra de progresso parece travado. */
+  enviarArquivo(caminho, arquivo, aoProgredir){
+    return new Promise((ok, erro)=>{
+      const x = new XMLHttpRequest();
+      x.open("POST", BACKEND.url+"/storage/v1/object/exames/"+
+        caminho.split("/").map(encodeURIComponent).join("/"));
+      x.setRequestHeader("apikey", BACKEND.key);
+      x.setRequestHeader("Authorization", "Bearer "+DB.tok);
+      x.setRequestHeader("x-upsert", "false");
+      if(arquivo.type) x.setRequestHeader("Content-Type", arquivo.type);
+      x.upload.onprogress = ev=>{ if(ev.lengthComputable && aoProgredir)
+        aoProgredir(Math.round(ev.loaded/ev.total*100)); };
+      x.onload = ()=>{
+        if(x.status>=200 && x.status<300) return ok(true);
+        let msg = "HTTP "+x.status;
+        try{ const d=JSON.parse(x.responseText); msg = d.message||d.error||msg; }catch(e){}
+        if(x.status===413 || /exceeded|maximum allowed size|too large/i.test(msg)){
+          msg = "O arquivo tem "+fmtBytes(arquivo.size)+" e passou do limite do plano do Supabase "+
+                "(50 MB no gratuito, até 500 GB no Pro). Para tomografia é preciso o plano pago.";
+        }
+        erro(new Error(msg));
+      };
+      x.onerror = ()=> erro(new Error("A conexão caiu durante o envio."));
+      x.send(arquivo);
+    });
+  },
+
+  async enviar(pacienteLocal, arquivo, dados, aoProgredir){
+    const pid = UID.pac[pacienteLocal];
+    if(!pid) throw new Error("Paciente ainda não gravado no banco.");
+    const caminho = DB.clinica+"/"+pid+"/"+Date.now()+"-"+nomeSeguro(arquivo.name);
+    await EXAMES.enviarArquivo(caminho, arquivo, aoProgredir);
+    // metadado só depois do arquivo: linha apontando para objeto que não
+    // existe é pior do que arquivo órfão, que ao menos ninguém procura
+    await DB.rest("POST","exames", {
+      paciente_id: pid, tipo: dados.tipo, titulo: dados.titulo,
+      descricao: dados.descricao || null,
+      realizado_em: dados.data || ISO(new Date()),
+      storage_path: caminho, mime: arquivo.type || "application/octet-stream",
+      bytes: arquivo.size, enviado_por: DB.meuId
+    });
+  },
+
+  async salvarLaudo(exameId, texto){
+    await DB.rest("PATCH","exames?id=eq."+exameId,
+      {laudo: texto || null, laudo_por: DB.meuId, laudo_em: new Date().toISOString()});
+  }
+};
+
+/* ---------- interface ---------- */
+let examesDoPac = [];
+let examesCarregando = false;
+
+async function carregarExames(pacId){
+  examesCarregando = true;
+  try{ examesDoPac = await EXAMES.listar(pacId); }
+  catch(e){ examesDoPac = []; toast("Não consegui listar os exames: "+e.message); }
+  examesCarregando = false;
+  const el = $("#examesLista");
+  if(el) el.innerHTML = htmlExames(pacId);
+}
+
+function htmlExames(pacId){
+  if(examesCarregando) return '<div class="empty">carregando…</div>';
+  if(!pode("verClinico"))
+    return '<div class="stage">Você pode anexar exames, mas não abrir imagem nem ler laudo — '+
+           'isso é do dentista.</div>';
+  if(!examesDoPac.length) return '<div class="empty">Nenhum exame neste prontuário.</div>';
+  return '<div class="galeria">'+examesDoPac.map(e=>`
+    <button class="exame" data-ver="${e.id}">
+      <div class="mini" data-mini="${e.id}">${ehVideo(e.mime)?"▶":ehImagem(e.mime)?"🖼":"📄"}</div>
+      <div class="info">
+        <b>${e.titulo}</b>
+        <small>${rotuloTipo(e.tipo)} · ${fmtData(e.realizado_em)} · ${fmtBytes(e.bytes)}</small>
+        ${e.laudo?`<small style="color:var(--accent)">laudo registrado</small>`:""}
+      </div>
+    </button>`).join("")+'</div>';
+}
+
+function htmlEnvioExame(){
+  if(!pode("prontuario") && !pode("cadastro")) return "";
+  return `
+    <div class="card" style="margin-top:10px" id="envioCard">
+      <div class="eyebrow">Anexar exame</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <div class="grid2">
+          <div class="field"><label for="exTipo">Tipo</label>
+            <select id="exTipo">${TIPOS_EXAME.map(([v,r])=>`<option value="${v}">${r}</option>`).join("")}</select></div>
+          <div class="field"><label for="exData">Data do exame</label>
+            <input id="exData" type="date" value="${ISO(new Date())}"></div>
+        </div>
+        <div class="field"><label for="exTitulo">Título</label>
+          <input id="exTitulo" placeholder="Ex.: panorâmica inicial" autocomplete="off"></div>
+        <div class="field"><label for="exArq">Arquivo</label>
+          <input id="exArq" type="file" accept="image/*,video/*,application/pdf,.dcm,.zip"></div>
+        <div id="exProgresso" hidden></div>
+        <button class="btn primary wide" id="exEnviar">Enviar exame</button>
+        <div class="stage" style="margin:0">Imagem, vídeo, PDF de laudo ou tomografia compactada.
+          O arquivo fica no armazenamento da clínica, não no banco, e nunca é apagado —
+          prontuário tem prazo legal de guarda.</div>
+      </div>
+    </div>`;
+}
+
+function ligarEnvioExame(pacId){
+  const bt = $("#exEnviar"); if(!bt) return;
+  bt.addEventListener("click", async ()=>{
+    const arq = $("#exArq").files[0];
+    const titulo = $("#exTitulo").value.trim() || (arq ? arq.name : "");
+    if(!arq){ toast("Escolha o arquivo."); $("#exArq").focus(); return; }
+    if(!titulo){ toast("Dê um título ao exame."); $("#exTitulo").focus(); return; }
+    if(MODO!=="nuvem"){
+      toast("Envio de exame exige o banco na nuvem — esta cópia é de demonstração.");
+      return;
+    }
+    const prog = $("#exProgresso"); prog.hidden=false;
+    prog.innerHTML = '<div class="bar" style="height:7px"><i style="width:0%"></i></div>'+
+                     '<small style="color:var(--ink-3)">enviando '+fmtBytes(arq.size)+'…</small>';
+    bt.disabled = true; bt.textContent = "Enviando…";
+    try{
+      await EXAMES.enviar(pacId, arq, {
+        tipo: $("#exTipo").value, titulo,
+        data: $("#exData").value
+      }, pct=>{ const i=prog.querySelector("i"); if(i) i.style.width=pct+"%"; });
+      toast("Exame anexado ao prontuário.");
+      $("#exTitulo").value=""; $("#exArq").value="";
+      await carregarExames(pacId);
+    }catch(e){
+      toast("Não enviou: "+e.message);
+    }finally{
+      bt.disabled=false; bt.textContent="Enviar exame"; prog.hidden=true;
+    }
+  });
+}
+
+async function abrirExame(id){
+  const e = examesDoPac.find(x=>x.id===id); if(!e) return;
+  const cx = $("#exameModalCorpo");
+  $("#exameModalTit").textContent = e.titulo;
+  cx.innerHTML = '<div class="empty">abrindo…</div>';
+  $("#exameModal").hidden = false;
+  try{
+    const url = await EXAMES.urlDe(e.storage_path, 3600);
+    cx.innerHTML =
+      (ehImagem(e.mime) ? `<img src="${url}" alt="${e.titulo}" style="width:100%;border-radius:var(--r-sm)">`
+       : ehVideo(e.mime) ? `<video src="${url}" controls style="width:100%;border-radius:var(--r-sm)"></video>`
+       : `<div class="stage">Este formato não abre aqui dentro.</div>`) +
+      `<dl class="dados">
+        <div><dt>Tipo</dt><dd>${rotuloTipo(e.tipo)}</dd></div>
+        <div><dt>Data</dt><dd>${fmtData(e.realizado_em)}</dd></div>
+        <div><dt>Tamanho</dt><dd>${fmtBytes(e.bytes)}</dd></div>
+      </dl>
+      <a class="btn wide" href="${url}" target="_blank" rel="noopener">Abrir em nova aba</a>
+      ${pode("verClinico")?`
+      <div class="field" style="margin-top:10px"><label for="exLaudo">Laudo</label>
+        <textarea id="exLaudo" class="rasc" style="min-height:90px">${e.laudo||""}</textarea></div>
+      <button class="btn primary wide" id="exSalvarLaudo">Salvar laudo</button>`:""}`;
+    const bl = $("#exSalvarLaudo");
+    if(bl) bl.addEventListener("click", async ()=>{
+      bl.disabled=true;
+      try{
+        await EXAMES.salvarLaudo(e.id, $("#exLaudo").value.trim());
+        e.laudo = $("#exLaudo").value.trim();
+        toast("Laudo salvo.");
+        const el=$("#examesLista"); if(el) el.innerHTML = htmlExames(e.pac);
+      }catch(err){ toast("Não salvou o laudo: "+err.message); }
+      finally{ bl.disabled=false; }
+    });
+  }catch(err){
+    cx.innerHTML = `<div class="stage">Não consegui abrir: ${err.message}</div>`;
+  }
+}
+
+/* ===================== aviso de lote (FEFO) =====================
+   O dentista não deveria precisar abrir a tela de estoque no meio de uma
+   cirurgia. O aviso vem até ele, uma vez por ficha, e volta sozinho se
+   entrar material cujo lote está vencido ou perto de vencer — porque aí
+   deixou de ser conveniência e virou segurança do paciente. */
+let loteAvisado = new Set();
+
+function abrirAvisoLote(ids){
+  const linhas = ids.map(id=>{
+    const c=catById(id), s=loteSugerido(id);
+    if(!c) return "";
+    if(!s) return `<div class="lote-row"><div class="cod" style="background:var(--warn-soft);color:var(--warn)">!</div>
+      <div class="txt"><b>${c.nome}</b><small>Nenhum lote lançado — o consumo vai sair sem rastreabilidade.
+      Peça ao estoque para lançar a entrada.</small></div></div>`;
+    const cor = s.vencido ? "crit" : s.vence_em_breve ? "warn" : "ok";
+    const nota = s.vencido
+      ? `<b style="color:var(--crit)">VENCIDO em ${fmtData(s.validade)} — não usar</b>`
+      : s.validade
+        ? `vence ${fmtData(s.validade)}${s.vence_em_breve?` · faltam ${s.dias_para_vencer} dias`:""}`
+        : "sem validade informada";
+    return `<div class="lote-row">
+      <div class="cod">1º</div>
+      <div class="txt"><b>${c.nome}</b>
+        <small>lote <b>${s.codigo_lote}</b> · ${fmtQtd(s.saldo)} ${c.un} em estoque<br>${nota}</small></div>
+      <span class="pill ${cor}" style="flex:none">${s.vencido?"vencido":s.vence_em_breve?"atenção":"ok"}</span>
+    </div>`;
+  }).join("");
+  if(!linhas.trim()) return;
+  $("#loteModalLista").innerHTML = linhas;
+  const temVencido = ids.some(id=>{ const s=loteSugerido(id); return s && s.vencido; });
+  $("#loteModalTit").textContent = temVencido ? "Atenção: lote vencido" : "Lotes a usar";
+  $("#loteModal").hidden = false;
+  if(temVencido && vozLigada()) falar("Atenção: há lote vencido entre os materiais desta ficha.");
+}
+$("#loteModalOk").addEventListener("click", ()=>{ $("#loteModal").hidden = true; });
+$("#exameModalX").addEventListener("click", ()=>{ $("#exameModal").hidden = true; });
+$("#exameModal").addEventListener("click", ev=>{ if(ev.target.id==="exameModal") $("#exameModal").hidden=true; });
+$("#loteModal").addEventListener("click", ev=>{ if(ev.target.id==="loteModal") $("#loteModal").hidden=true; });
+document.addEventListener("keydown", ev=>{
+  if(ev.key!=="Escape") return;
+  if(!$("#exameModal").hidden){ $("#exameModal").hidden=true; return; }
+  if(!$("#loteModal").hidden) $("#loteModal").hidden=true;
+});
+
+/* Chamado sempre que a lista de materiais da ficha muda. Mostra o aviso
+   para material ainda não avisado nesta ficha; material com lote vencido
+   volta a avisar mesmo já tendo aparecido. */
+function conferirLotes(){
+  if(!pode("atender")) return;
+  const novos = ficha.mats.map(m=>m.id)
+    .filter(id=>{
+      const s=loteSugerido(id);
+      if(s && s.vencido) return true;             // vencido avisa sempre
+      return !loteAvisado.has(id);
+    });
+  if(!novos.length) return;
+  novos.forEach(id=>loteAvisado.add(id));
+  abrirAvisoLote(ficha.mats.map(m=>m.id));
+}
+
 /* ===================== estoque e salvamento =====================*/
 function ajustaEstoque(antigos, novos){
   const delta={};
@@ -1751,6 +2295,15 @@ $("#saveAtend").addEventListener("click", async ()=>{
   if(!ficha.paciente.trim()){ toast("Informe o paciente."); $("#inPaciente").focus(); return; }
   if(!ficha.proc.trim()){ toast("Informe o procedimento."); $("#inProc").focus(); return; }
   if(!ficha.cplx){ toast("Selecione a complexidade."); return; }
+
+  // Lote vencido não é alerta de tela que se fecha sem ler: exige o
+  // "sim" de quem está assinando o prontuário.
+  const vencidos = ficha.mats.map(m=>({m, s:loteSugerido(m.id)}))
+    .filter(x=>x.s && x.s.vencido)
+    .map(x=>catById(x.m.id).nome+" (lote "+x.s.codigo_lote+")");
+  if(vencidos.length && !confirm(
+      "Lote vencido entre os materiais:\n\n· "+vencidos.join("\n· ")+
+      "\n\nRegistrar assim mesmo? O vencimento fica gravado no prontuário.")) return;
 
   let pac=S.pacientes.find(p=>norm(p.nome)===norm(ficha.paciente.trim()));
   if(!pac){ pac={id:"p"+Date.now(), nome:ficha.paciente.trim(), nasc:"", sexo:"", cpf:"", tel:"", email:"",
@@ -1777,7 +2330,7 @@ $("#saveAtend").addEventListener("click", async ()=>{
   S.atendimentos.push(novo);
   save();
   if(!await naNuvem(()=>DB.gravarAtendimento(novo, pac), "atendimento")) return;
-  ficha=fichaVazia(); $("#inFala").value="";
+  ficha=fichaVazia(); loteAvisado.clear(); $("#inFala").value="";
   $("#transcript").innerHTML='<span style="color:var(--ink-3)">Registrado. Pronto para o próximo atendimento.</span>';
   renderAll(); esconderDialogo();
   const m = criticos.length ? "Atendimento registrado. Atenção: "+criticos[0]+" ficou abaixo do mínimo."
@@ -1867,6 +2420,10 @@ function abrirPaciente(id){
       <p style="margin:6px 0 0;font-size:13px;color:var(--ink-2)">${p.obs||vazio}</p>
       <div class="row" style="margin-top:10px"><span class="pill neutral">${hist.reduce((s,a)=>s+a.dur,0)} min em cadeira</span></div>
     </div>`:""}
+    <div class="sec-h" style="margin-top:14px"><h2>Exames e imagens</h2>
+      <span class="hint">raio-X, tomografia, fotos e vídeos</span></div>
+    <div id="examesLista"><div class="empty">carregando…</div></div>
+    ${htmlEnvioExame()}
     <div class="sec-h" style="margin-top:14px"><h2>Histórico</h2><span class="hint">mais recente primeiro</span></div>
     <div class="tl">${hist.map(a=>`
       <div class="ev"><div class="rail"><div class="dot"></div><div class="ln"></div></div>
@@ -1883,6 +2440,11 @@ function abrirPaciente(id){
   if(lado) renderListaPacientes();
   const bp=$("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
   d.querySelectorAll("button[data-edit]").forEach(b=>b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
+  ligarEnvioExame(id);
+  $("#examesLista").addEventListener("click", ev=>{
+    const b=ev.target.closest("button[data-ver]"); if(b) abrirExame(b.dataset.ver);
+  });
+  carregarExames(id);
 }
 function fmtTel(v){
   const d=(v||"").replace(/\D/g,"").slice(0,11);
@@ -1953,6 +2515,7 @@ function editarAtendimento(aid){
   const p=pacById(a.pac);
   ficha={paciente:p?p.nome:"", proc:a.proc, regiao:a.regiao, cplx:a.cplx, dur:a.dur,
     mats:a.mats.map(m=>({id:m.id,q:m.q})), faltando:[], kit:false, editId:a.id, obs:a.obs||""};
+  loteAvisado.clear();
   $("#editBar").hidden=false;
   $("#editBarTxt").textContent="Editando o atendimento de "+fmtData(a.data)+" — "+a.proc;
   $("#saveAtend").textContent="Salvar alterações";
@@ -1966,62 +2529,377 @@ function sairDaEdicao(){
 }
 $("#cancelEdit").addEventListener("click", ()=>{ sairDaEdicao(); toast("Edição cancelada."); });
 
+/* ===================== estoque: lote, validade e valor =====================
+   Três leitores diferentes na mesma tela:
+     · o dentista precisa saber QUAL LOTE usar e se venceu;
+     · quem repõe precisa de quantidade, validade e custo;
+     · o administrador precisa do valor imobilizado e da margem.
+   Quem não pode ver valor não vê campo vazio nem zero — não vê o campo.
+   Zero é um número, e número errado com cara de certo é pior que lacuna. */
+
+const fmtBRL = n => (n===null||n===undefined||isNaN(n)) ? "—"
+  : Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmtQtd = n => Number(n)%1 ? Number(n).toLocaleString("pt-BR",{maximumFractionDigits:2}) : String(Number(n));
+const hojeISO = () => ISO(new Date());
+
+function lotesDo(matId){
+  return (S.lotes||[]).filter(l=>l.mat===matId && Number(l.saldo)>0)
+    .sort((a,b)=>{
+      if(!a.validade && !b.validade) return 0;
+      if(!a.validade) return 1;           // sem validade vai para o fim
+      if(!b.validade) return -1;
+      return a.validade < b.validade ? -1 : 1;
+    });
+}
+function loteSugerido(matId){
+  if(S.sugeridos && S.sugeridos[matId]) return S.sugeridos[matId];
+  const l = lotesDo(matId)[0];
+  if(!l) return null;
+  const dias = l.validade ? Math.round((new Date(l.validade) - new Date(hojeISO()))/86400000) : null;
+  return {lote_id:l.id, codigo_lote:l.codigo_lote, validade:l.validade, saldo:l.saldo,
+          vencido: dias!==null && dias<0, vence_em_breve: dias!==null && dias<=90,
+          dias_para_vencer: dias};
+}
+function selo(l){
+  if(!l) return "";
+  if(l.vencido) return '<span class="pill crit">lote vencido</span>';
+  if(l.vence_em_breve) return `<span class="pill warn">vence em ${l.dias_para_vencer} d</span>`;
+  return "";
+}
+function valorDe(matId){
+  if(!pode("valores") || !S.valorizado) return null;
+  const uid = UID.mat[matId];
+  return S.valorizado.find(v=>v.material_id===uid) || null;
+}
+
+/* ---------- painel de validade ---------- */
+function renderValidade(){
+  const box=$("#validadeBox");
+  const alertas=(S.validade||[]).filter(a=>Number(a.saldo)>0);
+  if(!alertas.length){ box.hidden=true; box.innerHTML=""; return; }
+  box.hidden=false;
+  const venc=alertas.filter(a=>a.vencido), perto=alertas.filter(a=>!a.vencido);
+  box.className="banner";
+  box.style.background = venc.length ? "var(--crit-soft)" : "var(--warn-soft)";
+  box.style.borderColor = venc.length
+    ? "color-mix(in srgb,var(--crit) 35%,transparent)"
+    : "color-mix(in srgb,var(--warn) 35%,transparent)";
+  const linha = a => `<li><b>${a.material}</b> · lote ${a.codigo_lote} · ${fmtQtd(a.saldo)} ${a.unidade} · `+
+    (a.vencido ? `<b>venceu em ${fmtData(a.validade)}</b>` : `vence em ${a.dias_para_vencer} dias (${fmtData(a.validade)})`)+`</li>`;
+  box.innerHTML = `<div>${venc.length?"⛔":"⏳"}</div><div style="flex:1">
+    <b style="color:${venc.length?"var(--crit)":"var(--warn)"}">
+      ${venc.length ? venc.length+" lote(s) vencido(s)" : "Validade próxima"}</b>
+    <p style="margin:4px 0 0">
+      <ul style="margin:4px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6">
+        ${[...venc,...perto].slice(0,8).map(linha).join("")}
+      </ul>
+      ${alertas.length>8?`<small style="color:var(--ink-3)">e mais ${alertas.length-8}…</small>`:""}
+    </p></div>`;
+}
+
+/* ---------- formulário de entrada por nota fiscal ---------- */
+let entradaAberta=false;
+function renderEntrada(){
+  const card=$("#entradaCard");
+  if(!entradaAberta){ card.hidden=true; card.innerHTML=""; return; }
+  card.hidden=false;
+  const opts = CATALOGO.slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"))
+    .map(c=>`<option value="${c.id}">${c.codigo?c.codigo+" · ":""}${c.nome}</option>`).join("");
+  card.innerHTML=`
+    <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">Entrada por nota fiscal</h2>
+      <span class="hint">o saldo sobe por aqui, com rastro</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label for="enMat">Material</label>
+        <select id="enMat"><option value="">selecione…</option>${opts}</select></div>
+      <div class="grid2">
+        <div class="field"><label for="enLote">Número do lote</label>
+          <input id="enLote" placeholder="como vem na caixa" autocomplete="off"></div>
+        <div class="field"><label for="enQtd">Quantidade</label>
+          <input id="enQtd" type="number" min="0.01" step="any" class="mono" placeholder="0"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="enFab">Fabricação</label><input id="enFab" type="date"></div>
+        <div class="field"><label for="enVal">Validade</label><input id="enVal" type="date"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="enNF">Nota fiscal nº</label>
+          <input id="enNF" placeholder="000123" autocomplete="off"></div>
+        <div class="field"><label for="enNFData">Emissão da NF</label><input id="enNFData" type="date"></div>
+      </div>
+      <div class="field"><label for="enForn">Fornecedor</label>
+        <input id="enForn" placeholder="Neodent, Straumann, distribuidor…" autocomplete="off"></div>
+      ${pode("valores") ? `
+      <div class="grid2">
+        <div class="field"><label for="enCusto">Custo unitário (R$)</label>
+          <input id="enCusto" type="number" min="0" step="0.0001" class="mono" placeholder="0,00"></div>
+        <div class="field"><label for="enTotal">Valor total da NF (R$)</label>
+          <input id="enTotal" type="number" min="0" step="0.01" class="mono" placeholder="opcional"></div>
+      </div>
+      <div class="stage" style="margin:0">Valor de nota e margem aparecem só para Administrador,
+        Estoque e Financeiro. Dentista e secretária veem lote, validade e quantidade.</div>` : ""}
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="enSalvar">Lançar entrada</button>
+        <button class="btn" id="enCancelar">Cancelar</button>
+      </div>
+    </div>`;
+
+  $("#enCancelar").addEventListener("click", ()=>{ entradaAberta=false; renderEntrada(); });
+  $("#enSalvar").addEventListener("click", async ()=>{
+    const mat=$("#enMat").value, lote=$("#enLote").value.trim();
+    const qtd=parseFloat($("#enQtd").value);
+    const fab=$("#enFab").value, val=$("#enVal").value;
+    if(!mat){ toast("Escolha o material."); $("#enMat").focus(); return; }
+    if(!lote){ toast("Informe o número do lote — é ele que diz o que usar primeiro."); $("#enLote").focus(); return; }
+    if(!(qtd>0)){ toast("Quantidade precisa ser maior que zero."); $("#enQtd").focus(); return; }
+    if(fab && val && fab>=val){ toast("A validade tem que ser depois da fabricação."); $("#enVal").focus(); return; }
+    if(val && val < hojeISO() && !confirm("Esse lote já está vencido. Lançar mesmo assim?")) return;
+
+    const custoEl=$("#enCusto");
+    const dados={mat, lote, qtd, fabricacao:fab||null, validade:val||null,
+      nf:$("#enNF").value.trim()||null, nfData:$("#enNFData").value||null,
+      fornecedor:$("#enForn").value.trim()||null,
+      custo: custoEl && custoEl.value!=="" ? parseFloat(custoEl.value) : null,
+      nfTotal: $("#enTotal") && $("#enTotal").value!=="" ? parseFloat($("#enTotal").value) : null};
+
+    if(MODO==="nuvem"){
+      const btn=$("#enSalvar"); btn.disabled=true; btn.textContent="Lançando…";
+      const ok=await naNuvem(()=>DB.gravarLote(dados), "entrada de estoque");
+      btn.disabled=false; btn.textContent="Lançar entrada";
+      if(!ok) return;
+    }else{
+      // demo: mantém o mesmo formato que vem do banco
+      const e=stockById(mat) || (S.estoque.push({id:mat,qtd:0}), stockById(mat));
+      e.qtd += qtd;
+      (S.lotes=S.lotes||[]).push({id:"l"+Date.now(), mat, codigo_lote:lote, fabricacao:fab||null,
+        validade:val||null, quantidade_ini:qtd, saldo:qtd, nf_numero:dados.nf,
+        fornecedor:dados.fornecedor, recebido_em:new Date().toISOString()});
+      if(dados.custo!==null){ (S.custos=S.custos||{}); }
+      save();
+    }
+    entradaAberta=false;
+    renderAll();
+    toast(catById(mat).nome+": +"+fmtQtd(qtd)+" no lote "+lote+".");
+  });
+}
+
+/* ---------- material novo ---------- */
+let matNovoAberto=false;
+function renderMatNovo(){
+  const card=$("#matNovoCard");
+  if(!matNovoAberto){ card.hidden=true; card.innerHTML=""; return; }
+  card.hidden=false;
+  const cats=[...new Set(CATALOGO.map(c=>c.cat))].sort();
+  card.innerHTML=`
+    <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">Material novo</h2>
+      <span class="hint">o código é gerado pelo sistema</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label for="mnNome">Nome</label>
+        <input id="mnNome" placeholder="Como aparece na nota" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="mnCat">Categoria</label>
+          <select id="mnCat">${cats.map(c=>`<option>${c}</option>`).join("")}
+            <option value="__nova">+ nova categoria…</option></select></div>
+        <div class="field"><label for="mnUn">Unidade</label>
+          <input id="mnUn" placeholder="un, caixa, frasco, tubete" autocomplete="off"></div>
+      </div>
+      <div class="field" id="mnCatNovaWrap" hidden><label for="mnCatNova">Nome da categoria</label>
+        <input id="mnCatNova" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="mnMin">Estoque mínimo</label>
+          <input id="mnMin" type="number" min="0" step="any" class="mono" value="1"></div>
+        ${pode("valores")?`<div class="field"><label for="mnMargem">Margem (%)</label>
+          <input id="mnMargem" type="number" min="0" max="1000" step="0.01" class="mono" value="0"></div>`:""}
+      </div>
+      <div class="field"><label for="mnTermos">Como você fala esse material</label>
+        <input id="mnTermos" placeholder="separe por vírgula — o ditado usa isso" autocomplete="off"></div>
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="mnSalvar">Criar material</button>
+        <button class="btn" id="mnCancelar">Cancelar</button>
+      </div>
+    </div>`;
+  $("#mnCat").addEventListener("change", e=>{
+    $("#mnCatNovaWrap").hidden = e.target.value!=="__nova";
+  });
+  $("#mnCancelar").addEventListener("click", ()=>{ matNovoAberto=false; renderMatNovo(); });
+  $("#mnSalvar").addEventListener("click", async ()=>{
+    const nome=$("#mnNome").value.trim();
+    const cat = $("#mnCat").value==="__nova" ? $("#mnCatNova").value.trim() : $("#mnCat").value;
+    const un=$("#mnUn").value.trim(), min=parseFloat($("#mnMin").value);
+    if(nome.length<3){ toast("Informe o nome do material."); $("#mnNome").focus(); return; }
+    if(!cat){ toast("Informe a categoria."); return; }
+    if(!un){ toast("Informe a unidade."); $("#mnUn").focus(); return; }
+    if(CATALOGO.some(c=>norm(c.nome)===norm(nome))){ toast("Já existe material com esse nome."); return; }
+    const termos=$("#mnTermos").value.split(",").map(t=>t.trim()).filter(Boolean);
+    const margemEl=$("#mnMargem");
+    const d={nome, cat, un, min: isNaN(min)?0:min, termos,
+             margem: margemEl ? parseFloat(margemEl.value)||0 : 0};
+    if(MODO==="nuvem"){
+      if(!await naNuvem(()=>DB.gravarMaterial(d), "material novo")) return;
+    }else{
+      CATALOGO.push({id:"m"+Date.now(), nome, un, min:d.min, sug:Math.max(1,d.min*2),
+                     cat, termos, codigo:"NOV-001", margem:d.margem});
+      save();
+    }
+    matNovoAberto=false; renderAll();
+    toast(nome+" criado. Agora lance a entrada com lote e validade.");
+  });
+}
+
+/* ---------- lista ---------- */
+let matAberto=null;
 function renderEstoque(){
   const abaixo=S.estoque.filter(e=>stockStatus(e).k!=="ok");
   const crit=S.estoque.filter(e=>stockStatus(e).k==="crit");
-  $("#stockTiles").innerHTML=`
+  const neg=S.estoque.filter(e=>Number(e.qtd)<0);
+  const vencidos=(S.validade||[]).filter(a=>a.vencido).length;
+
+  let tiles=`
     <div class="tile"><b>${S.estoque.length}</b><span>itens ativos</span></div>
     <div class="tile warn"><b>${abaixo.length}</b><span>abaixo do mínimo</span></div>
     <div class="tile crit"><b>${crit.length}</b><span>repor hoje</span></div>`;
-  const grupos={}; S.estoque.forEach(e=>{ const c=catById(e.id); (grupos[c.cat]=grupos[c.cat]||[]).push(e); });
+  if(vencidos) tiles+=`<div class="tile crit"><b>${vencidos}</b><span>lotes vencidos</span></div>`;
+  if(neg.length) tiles+=`<div class="tile crit"><b>${neg.length}</b><span>saldo negativo</span></div>`;
+  if(pode("valores") && S.valorizado){
+    const total=S.valorizado.reduce((s,v)=>s+Number(v.custo_total||0),0);
+    const comMargem=S.valorizado.reduce((s,v)=>s+Number(v.valor_com_margem||0),0);
+    const semNota=S.valorizado.reduce((s,v)=>s+Number(v.saldo_sem_custo||0),0);
+    tiles+=`<div class="tile" style="grid-column:span 2"><b style="font-size:17px">${fmtBRL(total)}</b>
+      <span>imobilizado a custo${semNota?` · ${fmtQtd(semNota)} un sem nota`:""}</span></div>
+      <div class="tile"><b style="font-size:17px">${fmtBRL(comMargem)}</b><span>com margem</span></div>`;
+  }
+  $("#stockTiles").innerHTML=tiles;
+
+  $("#estoqueAcoes").hidden = !pode("estoque");
+  renderValidade(); renderEntrada(); renderMatNovo();
+
+  const grupos={}; S.estoque.forEach(e=>{ const c=catById(e.id); if(c) (grupos[c.cat]=grupos[c.cat]||[]).push(e); });
   const list=$("#stockList"); list.innerHTML="";
   Object.keys(grupos).sort().forEach(cat=>{
     const h=document.createElement("div"); h.className="eyebrow"; h.style.marginTop="6px"; h.textContent=cat;
     list.appendChild(h);
     grupos[cat].sort((a,b)=>(a.qtd/catById(a.id).min)-(b.qtd/catById(b.id).min)).forEach(e=>{
       const c=catById(e.id), st=stockStatus(e);
-      const pct=Math.min(100, Math.round(e.qtd/Math.max(c.min,1)*100));
+      const pct=Math.min(100, Math.round(Math.max(e.qtd,0)/Math.max(c.min,1)*100));
+      const sug=loteSugerido(e.id);
+      const val=valorDe(e.id);
+      const negativo=Number(e.qtd)<0;
+
       const el=document.createElement("div"); el.className="item stock";
-      el.innerHTML=`<div class="main"><b>${c.nome}</b>
-        <small>mín. ${c.min} ${c.un} · saldo <span class="mono">${e.qtd}</span></small>
-        <div class="bar"><i class="${st.k==="ok"?"":st.k}" style="width:${pct}%"></i></div></div>
-        <div class="end"><span class="pill ${st.k}">${st.label}</span>
-        <div class="stepper"><button data-s="dec" data-id="${e.id}" aria-label="Baixar 1">−</button>
-        <span class="mono">${e.qtd}</span><button data-s="inc" data-id="${e.id}" aria-label="Entrada 1">+</button></div></div>`;
+      el.style.flexDirection="column"; el.style.alignItems="stretch";
+      el.innerHTML=`
+        <div style="display:flex;gap:11px;align-items:center;width:100%">
+          <div class="main">
+            <b>${c.nome}</b>
+            <small>${c.codigo?`<span class="mono">${c.codigo}</span> · `:""}mín. ${fmtQtd(c.min)} ${c.un} · saldo <span class="mono">${fmtQtd(e.qtd)}</span></small>
+            ${sug?`<small style="color:var(--accent)">usar primeiro: lote <b>${sug.codigo_lote}</b>${sug.validade?` · vence ${fmtData(sug.validade)}`:" · sem validade"}</small>`:
+                   `<small style="color:var(--ink-3)">nenhum lote lançado</small>`}
+            ${val && pode("valores") && val.custo_medio!==null ?
+              `<small>custo médio <span class="mono">${fmtBRL(val.custo_medio)}</span> · imobilizado <span class="mono">${fmtBRL(val.custo_total)}</span> · margem <span class="mono">${fmtQtd(val.margem_pct)}%</span></small>`:""}
+            <div class="bar"><i class="${negativo?"crit":(st.k==="ok"?"":st.k)}" style="width:${pct}%"></i></div>
+          </div>
+          <div class="end">
+            ${negativo?'<span class="pill crit">saldo negativo</span>':`<span class="pill ${st.k}">${st.label}</span>`}
+            ${selo(sug)}
+            <div class="stepper"><button data-s="dec" data-id="${e.id}" aria-label="Baixar 1">−</button>
+              <span class="mono">${fmtQtd(e.qtd)}</span>
+              <button data-s="inc" data-id="${e.id}" aria-label="Entrada 1">+</button></div>
+          </div>
+        </div>
+        <div class="rowbtns">
+          <button class="minibtn" data-lotes="${e.id}">${matAberto===e.id?"ocultar lotes":"ver lotes ("+lotesDo(e.id).length+")"}</button>
+          ${pode("valores")?`<button class="minibtn" data-margem="${e.id}">margem ${fmtQtd(c.margem||0)}%</button>`:""}
+        </div>
+        ${matAberto===e.id?painelLotes(e.id):""}`;
       list.appendChild(el);
     });
   });
+
   const faltantes=CATALOGO.filter(c=>!stockById(c.id));
   const cl=$("#catalogList"); cl.innerHTML="";
   if(!faltantes.length) cl.innerHTML='<div class="empty">Todo o catálogo de referência já está no seu estoque.</div>';
   faltantes.forEach(c=>{
     const b=document.createElement("button"); b.className="item";
-    b.innerHTML=`<div class="main"><b>${c.nome}</b><small>${c.cat} · mínimo sugerido: ${c.min} ${c.un}</small></div>
+    b.innerHTML=`<div class="main"><b>${c.nome}</b><small>${c.cat} · mínimo sugerido: ${fmtQtd(c.min)} ${c.un}</small></div>
       <div class="end"><span class="pill accent">+ incluir</span></div>`;
-    b.addEventListener("click", ()=>{ if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
-      S.estoque.push({id:c.id, qtd:c.sug}); save();
-      (async ()=>{
-        const ok = await naNuvem(()=>DB.movimentarEstoque(c.id, c.sug, "entrada", "entrada inicial"),
-                                 "entrada de estoque");
-        renderAll();
-        if(ok) toast(c.nome+" incluído com "+c.sug+" "+c.un+".");
-      })(); });
+    b.addEventListener("click", ()=>{
+      if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
+      entradaAberta=true; renderEntrada();
+      setTimeout(()=>{ const s=$("#enMat"); if(s){ s.value=c.id; s.scrollIntoView({behavior:"smooth",block:"center"}); } },60);
+      toast("Lance a entrada com lote e validade.");
+    });
     cl.appendChild(b);
   });
   $("#addMat").innerHTML='<option value="">+ adicionar material do estoque…</option>'+
-    S.estoque.map(e=>`<option value="${e.id}">${catById(e.id).nome}</option>`).join("");
+    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("");
 }
+
+function painelLotes(matId){
+  const ls=lotesDo(matId), c=catById(matId);
+  if(!ls.length) return '<div class="stage" style="margin-top:8px">Nenhum lote com saldo. Lance uma entrada por nota fiscal.</div>';
+  const linhas = ls.map((l,i)=>{
+    const dias = l.validade ? Math.round((new Date(l.validade)-new Date(hojeISO()))/86400000) : null;
+    const cor = dias===null ? "" : dias<0 ? "crit" : dias<=90 ? "warn" : "ok";
+    const custo = pode("valores") && S.custos && S.custos[l.id] ? S.custos[l.id] : null;
+    return `<div style="display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)">
+      <span class="pill ${i===0?"accent":"neutral"}" style="flex:none">${i===0?"usar 1º":"#"+(i+1)}</span>
+      <div style="flex:1;min-width:0">
+        <b style="font-size:13px">lote ${l.codigo_lote}</b>
+        <div style="font-size:11.5px;color:var(--ink-3)">
+          ${fmtQtd(l.saldo)} ${c.un} de ${fmtQtd(l.quantidade_ini)}
+          ${l.nf_numero?` · NF ${l.nf_numero}`:""}${l.fornecedor?` · ${l.fornecedor}`:""}
+          ${l.fabricacao?` · fab. ${fmtData(l.fabricacao)}`:""}
+          ${custo?` · <span class="mono">${fmtBRL(custo.custo_unitario)}</span>/${c.un}`:""}
+        </div>
+      </div>
+      <span class="pill ${cor}" style="flex:none">${l.validade?(dias<0?`venceu ${fmtData(l.validade)}`:`${fmtData(l.validade)}`):"sem validade"}</span>
+    </div>`;
+  }).join("");
+  return `<div style="margin-top:8px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:var(--r-sm);padding:4px 12px">${linhas}</div>`;
+}
+
+/* cliques da lista: lotes, margem, e os botões de ±1 */
+$("#stockList").addEventListener("click", ev=>{
+  const bl=ev.target.closest("button[data-lotes]");
+  if(bl){ matAberto = matAberto===bl.dataset.lotes ? null : bl.dataset.lotes; renderEstoque(); return; }
+
+  const bm=ev.target.closest("button[data-margem]");
+  if(bm){
+    if(!pode("valores")){ toast("Seu perfil não vê margem."); return; }
+    const c=catById(bm.dataset.margem);
+    const atual = c.margem || 0;
+    const resp = prompt("Margem de lucro de "+c.nome+" (%)\n\nEla entra no cálculo do valor do estoque, não no orçamento do paciente.", String(atual));
+    if(resp===null) return;
+    const pct = parseFloat(String(resp).replace(",","."));
+    if(isNaN(pct) || pct<0 || pct>1000){ toast("Informe uma porcentagem entre 0 e 1000."); return; }
+    c.margem = pct;
+    if(MODO==="nuvem") naNuvem(()=>DB.gravarMargem(bm.dataset.margem, pct), "margem").then(()=>renderEstoque());
+    else { save(); renderEstoque(); }
+    toast("Margem de "+c.nome+" agora é "+fmtQtd(pct)+"%.");
+    return;
+  }
+});
+
 $("#stockList").addEventListener("click", ev=>{
   const b=ev.target.closest("button[data-s]"); if(!b) return;
   if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
   const e=stockById(b.dataset.id);
   const sobe = b.dataset.s==="inc";
-  if(!sobe && e.qtd<=0) return;
-  e.qtd = sobe ? e.qtd+1 : Math.max(0,e.qtd-1);
+  if(sobe){
+    // entrada avulsa sem nota perde lote e validade; mandamos para o
+    // formulário, que é onde esses campos existem
+    entradaAberta=true; renderEstoque();
+    setTimeout(()=>{ const s=$("#enMat"); if(s){ s.value=e.id; s.scrollIntoView({behavior:"smooth",block:"center"}); } },60);
+    toast("Entrada entra com lote e validade — use o formulário.");
+    return;
+  }
+  if(e.qtd<=0){ toast("Saldo já está zerado."); return; }
+  const sug = loteSugerido(e.id);
+  e.qtd = e.qtd-1;
   save(); renderEstoque();
   (async ()=>{
-    await naNuvem(()=>DB.movimentarEstoque(e.id, sobe?1:-1, sobe?"entrada":"ajuste",
-      sobe?"entrada manual":"baixa manual"), "movimento de estoque");
+    await naNuvem(()=>DB.movimentarEstoque(e.id, -1, "ajuste", "baixa manual",
+      sug ? sug.lote_id : null), "movimento de estoque");
     renderEstoque();
   })();
 });
@@ -2336,6 +3214,15 @@ $("#themeBtn").addEventListener("click", ()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const dark = cur ? cur==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.setAttribute("data-theme", dark?"light":"dark");
+});
+
+$("#novaEntradaBtn") && $("#novaEntradaBtn").addEventListener("click", ()=>{
+  if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
+  entradaAberta=!entradaAberta; matNovoAberto=false; renderEstoque();
+});
+$("#novoMatBtn") && $("#novoMatBtn").addEventListener("click", ()=>{
+  if(!pode("estoque")){ toast("Seu perfil não cria material."); return; }
+  matNovoAberto=!matNovoAberto; entradaAberta=false; renderEstoque();
 });
 
 function renderAll(){
