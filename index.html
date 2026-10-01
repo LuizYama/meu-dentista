@@ -388,9 +388,6 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
   html[data-toque="sim"] .minibtn{padding:8px 12px}
 }
 </style>
-</head>
-<body>
-
 
 <!-- ============ LOGIN ============ -->
 <div class="login" id="loginScreen">
@@ -421,6 +418,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <div class="field"><label for="inSenha">Senha</label>
           <input id="inSenha" type="password" autocomplete="current-password" placeholder="sua senha"></div>
         <button class="btn primary wide" id="entrarBtn">Entrar</button>
+        <div class="hint-demo" id="modoHint">Verificando conexão com o banco…</div>
         <div class="hint-demo" id="demoHint"></div>
       </div>
 
@@ -651,7 +649,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <button class="tab" data-scr="financeiro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
         Financeiro</button>
-      <div class="navfoot"><span id="dispLabel"></span></div>
+      <div class="navfoot"><span id="dispLabel"></span> · <span class="pill" id="modoBadge">—</span></div>
     </div>
   </nav>
 </div>
@@ -691,6 +689,315 @@ const USUARIOS_SEED = [
 ];
 let usuario = null;
 const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
+
+/* =====================================================================
+   NUVEM — camada de dados
+   O app fala com o PostgREST do Supabase por fetch puro. Sem biblioteca:
+   nada para baixar, nada para quebrar, e funciona igual nos três
+   aparelhos. A chave publicável abaixo é pública por natureza — quem
+   protege os dados é o RLS do banco, não o segredo dela.
+   Sem rede (ou dentro de visualizador que bloqueia chamada externa) o
+   app cai em MODO DEMO e grava no próprio navegador, como antes.
+   ===================================================================== */
+const BACKEND = {
+  url: "https://oqncwkwduiniiubklhwk.supabase.co",
+  key: "sb_publishable_IbplZEQzGEJOqnuGfoyFuA_iQsaahtz"
+};
+let MODO = "demo";              // "demo" | "nuvem"
+let nuvemTestada = false;
+
+const PERFIL_DB2APP = {administrador:"Administrador", dentista:"Dentista",
+  secretaria:"Secretaria", financeiro:"Financeiro", estoque:"Estoque"};
+const PERFIL_APP2DB = Object.fromEntries(Object.entries(PERFIL_DB2APP).map(([a,b])=>[b,a]));
+const SEXO_DB2APP = {feminino:"Feminino", masculino:"Masculino", outro:"Outro", nao_informado:""};
+const SEXO_APP2DB = {Feminino:"feminino", Masculino:"masculino", Outro:"outro"};
+const CPLX_DB2APP = {baixa:"Baixa", media:"Média", alta:"Alta"};
+const CPLX_APP2DB = {"Baixa":"baixa","Média":"media","Media":"media","Alta":"alta"};
+
+/* uuid do banco <-> id curto que a interface já usa */
+const UID = {mat:{}, matRev:{}, pac:{}, pacRev:{}, atd:{}, agd:{}};
+
+const DB = {
+  tok:null, ref:null, clinica:null, meuId:null, pausado:false,
+
+  guardarSessao(){
+    try{ sessionStorage.setItem("md-sessao", JSON.stringify({tok:DB.tok, ref:DB.ref})); }catch(e){}
+  },
+  lerSessao(){
+    try{ const s=JSON.parse(sessionStorage.getItem("md-sessao")||"null");
+      if(s){ DB.tok=s.tok; DB.ref=s.ref; return true; } }catch(e){}
+    return false;
+  },
+  limparSessao(){ DB.tok=DB.ref=DB.clinica=DB.meuId=null;
+    try{ sessionStorage.removeItem("md-sessao"); }catch(e){} },
+
+  /* chamada ao PostgREST. Devolve o corpo já em objeto; em erro, lança
+     Error com a mensagem do banco — é ela que diz se foi RLS, restrição
+     ou dado inválido, e sem isso depurar vira adivinhação. */
+  async rest(metodo, caminho, corpo, prefer){
+    const h = {apikey:BACKEND.key, "Content-Type":"application/json"};
+    if(DB.tok) h.Authorization = "Bearer "+DB.tok;
+    if(prefer) h.Prefer = prefer;
+    const r = await fetch(BACKEND.url+"/rest/v1/"+caminho,
+      {method:metodo, headers:h, body:corpo?JSON.stringify(corpo):undefined});
+    const txt = await r.text();
+    let dados=null; try{ dados = txt ? JSON.parse(txt) : null; }catch(e){ dados=txt; }
+    if(!r.ok){
+      const msg = (dados && (dados.message||dados.hint)) || ("HTTP "+r.status);
+      const err = new Error(msg); err.status=r.status; err.detalhe=dados; throw err;
+    }
+    return dados;
+  },
+
+  /* Três situações diferentes, e confundi-las é caro:
+       · servidor responde            -> nuvem
+       · servidor fora do ar / pausado -> nuvem, mas avisando (plano gratuito
+         do Supabase pausa o projeto depois de uma semana sem uso)
+       · nem alcança                  -> demo, e aí NÃO se digita dado real
+     Cair em demo em silêncio seria o pior: alguém registraria um atendimento
+     de verdade num arquivo que ninguém mais vê. */
+  async alcancavel(){
+    if(nuvemTestada) return MODO==="nuvem";
+    nuvemTestada = true;
+    const corta = new AbortController();
+    const t = setTimeout(()=>corta.abort(), 8000);
+    try{
+      const r = await fetch(BACKEND.url+"/rest/v1/janelas_publicas?select=id&limit=1",
+        {headers:{apikey:BACKEND.key}, signal:corta.signal});
+      MODO = "nuvem";
+      DB.pausado = r.status >= 500;
+    }catch(e){ MODO = "demo"; DB.pausado = false; }
+    finally{ clearTimeout(t); }
+    return MODO==="nuvem";
+  },
+
+  async login(email, senha){
+    const r = await fetch(BACKEND.url+"/auth/v1/token?grant_type=password",
+      {method:"POST", headers:{apikey:BACKEND.key,"Content-Type":"application/json"},
+       body:JSON.stringify({email, password:senha})});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error_description || d.msg || d.error || "Não foi possível entrar.");
+    DB.tok = d.access_token; DB.ref = d.refresh_token; DB.guardarSessao();
+    return await DB.quemSou();
+  },
+
+  async renovar(){
+    if(!DB.ref) return false;
+    const r = await fetch(BACKEND.url+"/auth/v1/token?grant_type=refresh_token",
+      {method:"POST", headers:{apikey:BACKEND.key,"Content-Type":"application/json"},
+       body:JSON.stringify({refresh_token:DB.ref})});
+    if(!r.ok){ DB.limparSessao(); return false; }
+    const d = await r.json();
+    DB.tok=d.access_token; DB.ref=d.refresh_token; DB.guardarSessao();
+    return true;
+  },
+
+  /* quem entrou, qual perfil, qual clínica — tudo da tabela usuarios, que
+     é o que o banco usa para decidir o que esta pessoa pode ler */
+  async quemSou(){
+    let eu;
+    try{
+      eu = await DB.rest("GET","usuarios?select=id,nome,perfil,ativo,clinica_id,cro");
+    }catch(e){
+      if(e.status===401 && await DB.renovar())
+        eu = await DB.rest("GET","usuarios?select=id,nome,perfil,ativo,clinica_id,cro");
+      else throw e;
+    }
+    const sub = DB.sub();
+    const meu = eu.find(u=>u.id===sub) || eu[0];
+    if(!meu) throw new Error("Sua conta existe no login mas não está na tabela usuarios. "+
+      "Um administrador precisa vincular o acesso ao perfil.");
+    if(!meu.ativo) throw new Error("Este acesso está desativado. Fale com o administrador.");
+    DB.clinica = meu.clinica_id; DB.meuId = meu.id;
+    S.usuarios = eu.map(u=>({id:u.id, nome:u.nome, email:"", perfil:PERFIL_DB2APP[u.perfil],
+      ativo:u.ativo, nuvem:true}));
+    return {id:meu.id, nome:meu.nome, email:"", perfil:PERFIL_DB2APP[meu.perfil], ativo:true, nuvem:true};
+  },
+
+  /* o "sub" do JWT é o id do usuário no auth; leitura local, sem validar
+     assinatura — quem valida é o banco, aqui só queremos saber quem é */
+  sub(){
+    try{ const p=JSON.parse(atob(DB.tok.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); return p.sub; }
+    catch(e){ return null; }
+  },
+
+  /* ---------------- leitura ---------------- */
+  async carregarTudo(){
+    const [mats, proc, kits, est, pacs, atds] = await Promise.all([
+      DB.rest("GET","materiais?select=id,nome,categoria,unidade,minimo,termos_voz&ativo=is.true&order=nome"),
+      DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz&ativo=is.true"),
+      DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade"),
+      DB.rest("GET","estoque?select=material_id,saldo"),
+      DB.rest("GET","pacientes?select=id,nome,nascimento,sexo,cpf,telefone,email,pacientes_clinico(observacao)&order=nome"),
+      DB.rest("GET","atendimentos?select=id,paciente_id,procedimento,regiao,complexidade,duracao_min,realizado_em,"+
+        "atendimento_notas(nota),atendimento_materiais(material_id,quantidade)&order=realizado_em.desc&limit=400")
+    ]);
+    DB.mapearMateriais(mats);
+    DB.mapearKits(proc, kits);
+    S.estoque = est.map(e=>({id:UID.matRev[e.material_id], qtd:Number(e.saldo)}))
+                   .filter(e=>e.id!==undefined);
+    S.pacientes = pacs.map(p=>{
+      const curto = "p_"+p.id.slice(0,8);
+      UID.pac[curto]=p.id; UID.pacRev[p.id]=curto;
+      const cl = Array.isArray(p.pacientes_clinico) ? p.pacientes_clinico[0] : p.pacientes_clinico;
+      return {id:curto, nome:p.nome, nasc:p.nascimento||"", sexo:SEXO_DB2APP[p.sexo]||"",
+        cpf:p.cpf?fmtCpf(p.cpf):"", tel:p.telefone||"", email:p.email||"",
+        obs:(cl&&cl.observacao)||""};
+    });
+    S.atendimentos = atds.map(a=>{
+      const curto = "a_"+a.id.slice(0,8); UID.atd[curto]=a.id;
+      const nota = Array.isArray(a.atendimento_notas)?a.atendimento_notas[0]:a.atendimento_notas;
+      return {id:curto, pac:UID.pacRev[a.paciente_id]||"", data:(a.realizado_em||"").slice(0,10),
+        proc:a.procedimento, regiao:a.regiao||"—", cplx:CPLX_DB2APP[a.complexidade]||"Média",
+        dur:a.duracao_min,
+        mats:(a.atendimento_materiais||[]).map(m=>({id:UID.matRev[m.material_id], q:Number(m.quantidade)}))
+             .filter(m=>m.id!==undefined),
+        obs:(nota&&nota.nota)||""};
+    });
+    await DB.carregarAgenda();
+  },
+
+  mapearMateriais(mats){
+    mats.forEach(m=>{
+      let c = CATALOGO.find(x=>norm(x.nome)===norm(m.nome));
+      if(!c){
+        c = {id:"m_"+m.id.slice(0,8), nome:m.nome, un:m.unidade, min:Number(m.minimo),
+             sug:Math.max(1,Math.round(Number(m.minimo)*2)), cat:m.categoria,
+             termos:m.termos_voz||[]};
+        CATALOGO.push(c);
+      }else{
+        c.min = Number(m.minimo); c.un = m.unidade; c.cat = m.categoria;
+        if(m.termos_voz && m.termos_voz.length) c.termos = m.termos_voz;
+      }
+      UID.mat[c.id]=m.id; UID.matRev[m.id]=c.id;
+    });
+  },
+
+  /* os kits do banco mandam: se a clínica ajustar o kit padrão lá, o
+     ditado passa a sugerir o novo conjunto sem republicar o app */
+  mapearKits(proc, kits){
+    proc.forEach(p=>{
+      const alvo = PROCEDIMENTOS.find(x=>norm(x.nome)===norm(p.nome));
+      const itens = kits.filter(k=>k.procedimento_id===p.id)
+        .map(k=>[UID.matRev[k.material_id], Number(k.quantidade)])
+        .filter(k=>k[0]!==undefined);
+      if(alvo){ alvo.dur=p.duracao_min; if(itens.length) alvo.kit=itens; }
+      else if(itens.length || p.nome){
+        PROCEDIMENTOS.push({nome:p.nome, re:new RegExp(norm(p.nome).slice(0,18),"i"),
+          dur:p.duracao_min, kit:itens});
+      }
+    });
+  },
+
+  diaISO(d){ const z=n=>String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); },
+
+  async carregarAgenda(){
+    const ini = new Date(hoje); ini.setHours(0,0,0,0);
+    const fim = new Date(ini);  fim.setDate(fim.getDate()+1);
+    const rows = await DB.rest("GET","agendamentos?select=id,inicio,duracao_min,procedimento,status,"+
+      "pacientes(nome)&inicio=gte."+encodeURIComponent(ini.toISOString())+
+      "&inicio=lt."+encodeURIComponent(fim.toISOString())+"&status=not.in.(cancelado,faltou)&order=inicio");
+    S.agenda = rows.map(a=>{
+      const d = new Date(a.inicio); const z=n=>String(n).padStart(2,"0");
+      const curto = "g_"+a.id.slice(0,8); UID.agd[curto]=a.id;
+      const pn = Array.isArray(a.pacientes)?a.pacientes[0]:a.pacientes;
+      return {id:curto, h:z(d.getHours())+":"+z(d.getMinutes()), dur:a.duracao_min,
+        pac:(pn&&pn.nome)||"(sem paciente)", proc:a.procedimento||"—",
+        urgente:(a.status==="encaixe"||a.status==="emergencia")};
+    });
+  },
+
+  async recarregarEstoque(){
+    const est = await DB.rest("GET","estoque?select=material_id,saldo");
+    S.estoque = est.map(e=>({id:UID.matRev[e.material_id], qtd:Number(e.saldo)}))
+                   .filter(e=>e.id!==undefined);
+  },
+
+  /* ---------------- escrita ---------------- */
+  async gravarPaciente(p){
+    const corpo = {nome:p.nome, nascimento:p.nasc||null, sexo:SEXO_APP2DB[p.sexo]||null,
+      cpf:(p.cpf||"").replace(/\D/g,"")||null, telefone:p.tel||null, email:p.email||null};
+    if(UID.pac[p.id]){
+      await DB.rest("PATCH","pacientes?id=eq."+UID.pac[p.id], corpo);
+    }else{
+      corpo.clinica_id = DB.clinica;
+      const r = await DB.rest("POST","pacientes", corpo, "return=representation");
+      UID.pac[p.id]=r[0].id; UID.pacRev[r[0].id]=p.id;
+    }
+    return UID.pac[p.id];
+  },
+
+  async gravarClinico(p){
+    await DB.rest("POST","pacientes_clinico",
+      {paciente_id:UID.pac[p.id], observacao:p.obs||null, atualizado_em:new Date().toISOString()},
+      "resolution=merge-duplicates");
+  },
+
+  async gravarAtendimento(a, pac){
+    const pid = UID.pac[pac.id] || await DB.gravarPaciente(pac);
+    const corpo = {paciente_id:pid, procedimento:a.proc, regiao:a.regiao||null,
+      complexidade:CPLX_APP2DB[a.cplx]||"media", duracao_min:a.dur};
+    let aid = UID.atd[a.id];
+    if(aid){
+      corpo.editado_por = DB.meuId; corpo.editado_em = new Date().toISOString();
+      await DB.rest("PATCH","atendimentos?id=eq."+aid, corpo);
+      await DB.rest("DELETE","atendimento_materiais?atendimento_id=eq."+aid);
+    }else{
+      corpo.clinica_id = DB.clinica; corpo.dentista_id = DB.meuId; corpo.criado_por = DB.meuId;
+      corpo.realizado_em = new Date().toISOString();
+      const r = await DB.rest("POST","atendimentos", corpo, "return=representation");
+      aid = r[0].id; UID.atd[a.id]=aid;
+    }
+    if(a.obs) await DB.rest("POST","atendimento_notas",
+      {atendimento_id:aid, nota:a.obs, atualizado_em:new Date().toISOString()},
+      "resolution=merge-duplicates");
+    const linhas = (a.mats||[]).filter(m=>UID.mat[m.id] && m.q>0)
+      .map(m=>({atendimento_id:aid, material_id:UID.mat[m.id], quantidade:m.q}));
+    if(linhas.length) await DB.rest("POST","atendimento_materiais", linhas);
+    await DB.recarregarEstoque();
+    return aid;
+  },
+
+  /* saldo nunca é escrito à mão: entra movimento e o gatilho recalcula.
+     É o que permite auditar depois de onde veio cada unidade. */
+  async movimentarEstoque(localId, delta, tipo, obs){
+    const mid = UID.mat[localId];
+    if(!mid) throw new Error("Material sem correspondência no banco.");
+    await DB.rest("POST","estoque_movimentos",
+      {material_id:mid, tipo:tipo||(delta>0?"entrada":"ajuste"), quantidade:delta,
+       observacao:obs||null, criado_por:DB.meuId});
+    await DB.recarregarEstoque();
+  },
+
+  async gravarAgendamento({minuto, dur, pacienteNome, proc, status}){
+    const d = new Date(hoje); d.setHours(Math.floor(minuto/60), minuto%60, 0, 0);
+    let pid = null;
+    const p = S.pacientes.find(x=>norm(x.nome)===norm(pacienteNome||""));
+    if(p) pid = UID.pac[p.id] || null;
+    await DB.rest("POST","agendamentos",
+      {clinica_id:DB.clinica, paciente_id:pid, inicio:d.toISOString(), duracao_min:dur||30,
+       procedimento:proc||null, status:status||"encaixe", criado_por:DB.meuId});
+    await DB.carregarAgenda();
+  },
+
+  async alternarUsuario(u){
+    await DB.rest("PATCH","usuarios?id=eq."+u.id, {ativo:u.ativo});
+  }
+};
+
+/* Erro de gravação não pode passar em silêncio: o número na tela deixaria
+   de ser o número do banco e ninguém perceberia. Avisa e recarrega. */
+async function naNuvem(fn, oqueFalhou){
+  if(MODO!=="nuvem") return true;
+  try{ await fn(); return true; }
+  catch(e){
+    toast("Não salvou no banco ("+oqueFalhou+"): "+e.message);
+    try{ await DB.carregarTudo(); renderAll(); }catch(_){}
+    return false;
+  }
+}
+
 
 /* ===================== catálogo =====================*/
 const CATALOGO = [
@@ -865,7 +1172,16 @@ function migrar(){
     ["sexo","cpf","tel","email"].forEach(k=>{ if(p[k]===undefined) p[k]=""; });
   });
 }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+const FILA_KEY="md-fila-acessos";
+function salvarFila(){ try{ localStorage.setItem(FILA_KEY, JSON.stringify(S.solicitacoes||[])); }catch(e){} }
+function carregarFila(){
+  let achou=false;
+  try{ const r=localStorage.getItem(FILA_KEY); if(r){ S.solicitacoes=JSON.parse(r); achou=true; } }catch(e){}
+  // ligado ao banco, pedido de exemplo só confundiria o administrador
+  if(!achou && MODO==="nuvem") S.solicitacoes=[];
+}
+function save(){ if(MODO==="nuvem") return;
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 load(); migrar();
 
 const catById=id=>CATALOGO.find(c=>c.id===id);
@@ -1447,15 +1763,20 @@ $("#saveAtend").addEventListener("click", async ()=>{
       cplx:ficha.cplx, dur:ficha.dur, mats:ficha.mats.slice(), obs:ficha.obs||a.obs||"",
       editadoPor:usuario.nome,
       editadoEm:hoje.toLocaleDateString("pt-BR")+" "+hoje.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})});
-    save(); sairDaEdicao(); renderAll();
+    save();
+    const ok = await naNuvem(()=>DB.gravarAtendimento(a, pac), "atendimento");
+    sairDaEdicao(); renderAll();
+    if(!ok) return;
     const m = criticos.length ? "Alterações salvas. Atenção: "+criticos[0]+" abaixo do mínimo." : "Alterações salvas e estoque reajustado.";
     toast(m); await falar(m); return;
   }
   const criticos=ajustaEstoque([], ficha.mats);
-  S.atendimentos.push({id:"a"+Date.now(), pac:pac.id, data:ISO(hoje), proc:ficha.proc.trim(),
+  const novo={id:"a"+Date.now(), pac:pac.id, data:ISO(hoje), proc:ficha.proc.trim(),
     regiao:ficha.regiao.trim()||"—", cplx:ficha.cplx, dur:ficha.dur, mats:ficha.mats.slice(),
-    obs:ficha.obs||"", criadoPor:usuario.nome});
+    obs:ficha.obs||"", criadoPor:usuario.nome};
+  S.atendimentos.push(novo);
   save();
+  if(!await naNuvem(()=>DB.gravarAtendimento(novo, pac), "atendimento")) return;
   ficha=fichaVazia(); $("#inFala").value="";
   $("#transcript").innerHTML='<span style="color:var(--ink-3)">Registrado. Pronto para o próximo atendimento.</span>';
   renderAll(); esconderDialogo();
@@ -1616,7 +1937,15 @@ function editarPaciente(id){
     p.nome=nome; p.nasc=nasc; p.sexo=$("#edSexo").value; p.cpf=fmtCpf(cpf);
     p.tel=fmtTel($("#edTel").value); p.email=email;
     if(clinico) p.obs=$("#edObs").value.trim();
-    save(); renderAll(); toast("Ficha do paciente atualizada.");
+    save();
+    (async ()=>{
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarPaciente(p);
+        if(clinico) await DB.gravarClinico(p);
+      }, "ficha do paciente");
+      renderAll();
+      if(ok) toast("Ficha do paciente atualizada.");
+    })();
   });
 }
 function editarAtendimento(aid){
@@ -1670,7 +1999,13 @@ function renderEstoque(){
     b.innerHTML=`<div class="main"><b>${c.nome}</b><small>${c.cat} · mínimo sugerido: ${c.min} ${c.un}</small></div>
       <div class="end"><span class="pill accent">+ incluir</span></div>`;
     b.addEventListener("click", ()=>{ if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
-      S.estoque.push({id:c.id, qtd:c.sug}); save(); renderAll(); toast(c.nome+" incluído com "+c.sug+" "+c.un+"."); });
+      S.estoque.push({id:c.id, qtd:c.sug}); save();
+      (async ()=>{
+        const ok = await naNuvem(()=>DB.movimentarEstoque(c.id, c.sug, "entrada", "entrada inicial"),
+                                 "entrada de estoque");
+        renderAll();
+        if(ok) toast(c.nome+" incluído com "+c.sug+" "+c.un+".");
+      })(); });
     cl.appendChild(b);
   });
   $("#addMat").innerHTML='<option value="">+ adicionar material do estoque…</option>'+
@@ -1680,8 +2015,15 @@ $("#stockList").addEventListener("click", ev=>{
   const b=ev.target.closest("button[data-s]"); if(!b) return;
   if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
   const e=stockById(b.dataset.id);
-  e.qtd = b.dataset.s==="inc" ? e.qtd+1 : Math.max(0,e.qtd-1);
+  const sobe = b.dataset.s==="inc";
+  if(!sobe && e.qtd<=0) return;
+  e.qtd = sobe ? e.qtd+1 : Math.max(0,e.qtd-1);
   save(); renderEstoque();
+  (async ()=>{
+    await naNuvem(()=>DB.movimentarEstoque(e.id, sobe?1:-1, sobe?"entrada":"ajuste",
+      sobe?"entrada manual":"baixa manual"), "movimento de estoque");
+    renderEstoque();
+  })();
 });
 
 const H_INI=8, H_FIM=18;
@@ -1718,7 +2060,14 @@ function renderAgenda(){
         <div class="free ${pick?"pick":""}">${pick?"Sugerido para encaixe · toque para confirmar":"Livre"}</div></div>`;
       if(pick) row.querySelector(".free").addEventListener("click", ()=>{
         S.agenda.push({h:hhmm(t), dur:30, pac:"Maria Fernandes", proc:"Reavaliação pós-operatória (encaixe)", urgente:true});
-        encaixes=[]; save(); renderAgenda(); toast("Encaixe confirmado às "+hhmm(t)+".");
+        encaixes=[]; save(); renderAgenda();
+        (async ()=>{
+          const ok = await naNuvem(()=>DB.gravarAgendamento({minuto:t, dur:30,
+            pacienteNome:"Maria Fernandes", proc:"Reavaliação pós-operatória (encaixe)",
+            status:"encaixe"}), "encaixe na agenda");
+          renderAgenda();
+          if(ok) toast("Encaixe confirmado às "+hhmm(t)+".");
+        })();
       });
     }
     list.appendChild(row);
@@ -1789,20 +2138,33 @@ $("#solList").addEventListener("click", ev=>{
   if(ap){
     const s=S.solicitacoes.find(x=>x.id===ap.dataset.ap);
     s.status="aprovada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
-    S.usuarios.push({id:"u"+Date.now(), nome:s.nome, email:s.email, perfil:s.perfil, senha:s.senha,
-      ativo:true, aprovadoPor:usuario.nome});
-    save(); renderAcessos(); toast(s.nome+" aprovado como "+PERFIS[s.perfil].rotulo+".");
+    if(MODO!=="nuvem"){
+      S.usuarios.push({id:"u"+Date.now(), nome:s.nome, email:s.email, perfil:s.perfil, senha:s.senha,
+        ativo:true, aprovadoPor:usuario.nome});
+      save();
+    }
+    salvarFila(); renderAcessos();
+    if(MODO==="nuvem"){
+      // Criar login é operação administrativa do banco: exige chave de
+      // serviço, que não pode viver dentro de uma página. O app registra a
+      // aprovação; a conta nasce no painel, e a pessoa define a própria senha.
+      toast("Aprovado. Crie o login de "+s.nome+" no painel do Supabase — "+
+            "o passo a passo está no quadro ao lado.");
+    }else{
+      toast(s.nome+" aprovado como "+PERFIS[s.perfil].rotulo+".");
+    }
   }
   if(rec){
     const s=S.solicitacoes.find(x=>x.id===rec.dataset.rec);
     s.status="recusada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
-    save(); renderAcessos(); toast("Solicitação de "+s.nome+" recusada.");
+    save(); salvarFila(); renderAcessos(); toast("Solicitação de "+s.nome+" recusada.");
   }
 });
 $("#userList").addEventListener("click", ev=>{
   const b=ev.target.closest("button[data-tog]"); if(!b) return;
   const u=S.usuarios.find(x=>x.id===b.dataset.tog);
   u.ativo=!u.ativo; save(); renderAcessos();
+  if(u.nuvem) naNuvem(()=>DB.alternarUsuario(u), "acesso do usuário").then(renderAcessos);
   toast(u.nome+(u.ativo?" reativado.":" desativado — não consegue mais entrar."));
 });
 $("#acessosBtn").addEventListener("click", ()=>{
@@ -1821,12 +2183,67 @@ $$(".aba button").forEach(b=>b.addEventListener("click", ()=>{
   $$(".painel").forEach(p=>p.classList.remove("on"));
   $("#pn-"+b.dataset.painel).classList.add("on");
 }));
+/* O usuário precisa saber, a cada login, se está mexendo no banco da
+   clínica ou numa demonstração. Confundir os dois é o pior erro possível
+   aqui: alguém anota um atendimento real achando que gravou. */
+function pintarModo(){
+  const h=$("#modoHint"), d=$("#demoHint");
+  if(!nuvemTestada){ h.innerHTML="Verificando conexão com o banco…"; return; }
+  if(MODO==="nuvem"){
+    h.innerHTML = DB.pausado
+      ? "<b>O banco não respondeu</b><br>No plano gratuito o projeto entra em pausa depois de cerca de "+
+        "uma semana sem uso. Abra o painel do Supabase e clique em <b>Restore project</b> — "+
+        "costuma levar poucos minutos. Nada foi perdido."
+      : "<b>Banco da clínica conectado</b><br>Entre com o e-mail e a senha do seu acesso. "+
+        "Tudo que você registrar fica gravado na nuvem.";
+    if(d) d.hidden=true;
+  }else{
+    h.innerHTML="<b>Modo demonstração</b><br>Esta cópia não alcança o banco e grava só neste navegador. "+
+      "Use o endereço publicado da clínica para trabalhar de verdade.";
+    if(d){
+      d.hidden=false;
+      d.innerHTML = "<b>Acessos de demonstração</b><br>"+
+        USUARIOS_SEED.map(u=>`${u.email} · senha <b>${u.senha}</b> — ${PERFIS[u.perfil].rotulo}`).join("<br>");
+    }
+  }
+  const sel=$("#modoBadge");
+  if(sel){ sel.textContent = MODO==="nuvem" ? "nuvem" : "demo";
+    sel.className = "pill "+(MODO==="nuvem"?"ok":"warn"); }
+}
 $("#demoHint").innerHTML = "<b>Acessos de demonstração</b><br>"+
   USUARIOS_SEED.map(u=>`${u.email} · senha <b>${u.senha}</b> — ${PERFIS[u.perfil].rotulo}`).join("<br>");
 
-function entrar(){
-  const ident=norm($("#inUser").value.trim()), senha=$("#inSenha").value;
+function entrarNoApp(){
+  $("#loginScreen").hidden=true; $("#appRoot").hidden=false;
+  aplicarPermissoes(); renderAll();
+}
+async function entrar(){
+  const bruto=$("#inUser").value.trim(), ident=norm(bruto), senha=$("#inSenha").value;
   if(!ident){ toast("Informe usuário ou e-mail."); $("#inUser").focus(); return; }
+
+  await DB.alcancavel();
+  pintarModo();
+
+  if(MODO==="nuvem"){
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(bruto)){
+      toast("No banco o login é o e-mail completo."); $("#inUser").focus(); return; }
+    const btn=$("#entrarBtn"); btn.disabled=true; btn.textContent="Entrando…";
+    try{
+      usuario = await DB.login(bruto, senha);
+      await DB.carregarTudo();
+      carregarFila();
+      entrarNoApp();
+      toast("Conectado ao banco da clínica — "+PERFIS[usuario.perfil].rotulo+".");
+    }catch(e){
+      usuario=null; DB.limparSessao();
+      const m=String(e.message||"");
+      toast(/invalid|credential|grant/i.test(m) ? "E-mail ou senha incorretos." : m);
+      $("#inSenha").select();
+    }finally{ btn.disabled=false; btn.textContent="Entrar"; }
+    return;
+  }
+
+  // modo demo: usuários fictícios dentro do próprio arquivo
   const u=S.usuarios.find(x=>norm(x.email)===ident || norm(x.nome)===ident ||
     norm(x.email).split("@")[0]===ident || norm(x.perfil)===ident);
   if(!u){ toast("Usuário não encontrado."); return; }
@@ -1834,20 +2251,28 @@ function entrar(){
   if(u.senha!==senha){ toast("Senha incorreta."); $("#inSenha").select(); return; }
   usuario=u;
   try{ sessionStorage.setItem("md-user", u.id); }catch(e){}
-  $("#loginScreen").hidden=true; $("#appRoot").hidden=false;
-  aplicarPermissoes(); renderAll();
+  entrarNoApp();
 }
 $("#entrarBtn").addEventListener("click", entrar);
 $("#inSenha").addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
 $("#inUser").addEventListener("keydown", e=>{ if(e.key==="Enter") $("#inSenha").focus(); });
 
-$("#recBtn").addEventListener("click", ()=>{
+$("#recBtn").addEventListener("click", async ()=>{
   const em=$("#inRecEmail").value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ toast("Informe um e-mail válido."); return; }
+  await DB.alcancavel();
+  if(MODO==="nuvem"){
+    // dispara de verdade; o Supabase é que decide se existe conta
+    try{
+      await fetch(BACKEND.url+"/auth/v1/recover",
+        {method:"POST", headers:{apikey:BACKEND.key,"Content-Type":"application/json"},
+         body:JSON.stringify({email:em})});
+    }catch(e){}
+  }
   // Resposta deliberadamente igual exista ou não a conta: dizer "e-mail não
   // cadastrado" entrega ao curioso quem trabalha na clínica.
   $("#recMsg").innerHTML='<div class="ok-msg">Se houver conta com esse e-mail, o link de redefinição chega em alguns minutos. '+
-    'Confira o spam.<br><b>No protótipo nada é enviado</b> — o envio real depende do servidor.</div>';
+    'Confira o spam.'+(MODO==="nuvem"?'':'<br><b>Fora do banco nada é enviado</b> — o envio real depende do servidor.')+'</div>';
 });
 $("#novoBtn").addEventListener("click", ()=>{
   const nome=$("#inNovoNome").value.trim(), em=$("#inNovoEmail").value.trim(),
@@ -1858,8 +2283,9 @@ $("#novoBtn").addEventListener("click", ()=>{
   if(S.usuarios.some(u=>norm(u.email)===norm(em)) || S.solicitacoes.some(s=>norm(s.email)===norm(em) && s.status==="pendente")){
     toast("Já existe conta ou pedido com esse e-mail."); return;
   }
-  S.solicitacoes.push({id:"s"+Date.now(), nome, email:em, perfil, senha, em:ISO(hoje), status:"pendente"});
-  save();
+  S.solicitacoes.push({id:"s"+Date.now(), nome, email:em, perfil,
+    senha: MODO==="nuvem" ? "" : senha, em:ISO(hoje), status:"pendente"});
+  save(); salvarFila();
   $("#novoMsg").innerHTML='<div class="ok-msg">Pedido registrado. O acesso só funciona depois que o administrador aprovar — '+
     'ele já vê a solicitação no painel dele.</div>';
   ["inNovoNome","inNovoEmail","inNovoSenha"].forEach(i=>document.getElementById(i).value="");
@@ -1868,6 +2294,13 @@ $("#sairBtn").addEventListener("click", ()=>{
   pararAssistente(); pararEscuta(); if(TTS) TTS.cancel();
   usuario=null; pacAberto=null; sairDaEdicao();
   try{ sessionStorage.removeItem("md-user"); }catch(e){}
+  if(MODO==="nuvem"){
+    const t=DB.tok;
+    DB.limparSessao();
+    if(t) fetch(BACKEND.url+"/auth/v1/logout",
+      {method:"POST", headers:{apikey:BACKEND.key, Authorization:"Bearer "+t}}).catch(()=>{});
+    S=JSON.parse(JSON.stringify(SEED)); migrar();   // não deixa dado da clínica na tela de login
+  }
   $("#appRoot").hidden=true; $("#loginScreen").hidden=false;
   $("#inSenha").value=""; $("#inUser").value="";
 });
@@ -1913,12 +2346,32 @@ function renderAll(){
   if(pode("admin")) renderAcessos();
 }
 $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
-try{
-  const uid=sessionStorage.getItem("md-user");
-  const u=uid && S.usuarios.find(x=>x.id===uid && x.ativo);
-  if(u){ usuario=u; $("#loginScreen").hidden=true; $("#appRoot").hidden=false; aplicarPermissoes(); }
-}catch(e){}
-renderAll();
+/* Abertura: primeiro descobre se há banco alcançável, depois tenta
+   retomar a sessão. Enquanto não souber, não mostra credencial de demo
+   nem promete nuvem. */
+(async function abrir(){
+  await DB.alcancavel();
+  pintarModo();
+  if(MODO==="nuvem"){
+    if(DB.lerSessao()){
+      try{
+        usuario = await DB.quemSou();
+        await DB.carregarTudo();
+        carregarFila();
+        entrarNoApp();
+        return;
+      }catch(e){ DB.limparSessao(); usuario=null; }
+    }
+    renderAll();
+    return;
+  }
+  try{
+    const uid=sessionStorage.getItem("md-user");
+    const u=uid && S.usuarios.find(x=>x.id===uid && x.ativo);
+    if(u){ usuario=u; $("#loginScreen").hidden=true; $("#appRoot").hidden=false; aplicarPermissoes(); }
+  }catch(e){}
+  renderAll();
+})();
 (function(){
   const motivo=motivoSemVoz();
   if(motivo){ $("#voiceState").textContent="Escreva o comando (ditado bloqueado aqui)";
@@ -1927,5 +2380,4 @@ renderAll();
 })();
 </script>
 
-</body>
 </html>
