@@ -2359,8 +2359,19 @@ const CONDICOES = [
 const corCondicao = c => (CONDICOES.find(x=>x[0]===c)||[,,"var(--surface)"])[2];
 const rotuloCondicao = c => (CONDICOES.find(x=>x[0]===c)||[,c])[1];
 
-const FACES_POSTERIOR = [["oclusal","O"],["vestibular","V"],["lingual","L"],["mesial","M"],["distal","D"]];
-const FACES_ANTERIOR  = [["incisal","I"],["vestibular","V"],["palatina","P"],["mesial","M"],["distal","D"]];
+/* A face voltada para dentro muda de nome conforme a arcada: em cima é
+   PALATINA (encosta no palato), embaixo é LINGUAL (encosta na língua).
+   Chamar de palatina um dente inferior é erro que qualquer dentista vê
+   no primeiro olhar. A face de mastigação também muda: incisal nos
+   dentes da frente, oclusal nos de trás. */
+const facesDe = fdi => {
+  const q = Math.floor(fdi/10), p = fdi%10;
+  const superior = (q===1||q===2||q===5||q===6);
+  const dentro = superior ? ["palatina","P"] : ["lingual","L"];
+  return ehAnterior(p)
+    ? [["incisal","I"], ["vestibular","V"], dentro, ["mesial","M"], ["distal","D"]]
+    : [["oclusal","O"], ["vestibular","V"], dentro, ["mesial","M"], ["distal","D"]];
+};
 const ehAnterior = pos => pos <= 3;
 
 function idadeAnos(nasc){
@@ -2406,12 +2417,12 @@ function dentesEsperados(idade, modo){
 /* Os centros das duas elipses ficam do lado de DENTRO: o arco superior
    tem centro abaixo dele e o inferior acima. É isso que aproxima as duas
    arcadas da linha média sem que elas se cruzem. */
-const ARCO = {cx:390, rx:360, ry:215, supY:348, infY:222, a0:22, a1:158};
-function posArco(i, n, superior, escala, g0, g1){
+const ARCO = {cx:400, rx:378, ry:224, supY:352, infY:224, a0:17, a1:163};
+function posArco(i, n, superior, escala, g0, g1, t_){
   const k = escala || 1;
   const rx = ARCO.rx*k, ry = ARCO.ry*k;
   const cy = superior ? ARCO.supY : ARCO.infY;
-  const t = n===1 ? 0.5 : i/(n-1);
+  const t = t_ !== undefined ? t_ : (n===1 ? 0.5 : i/(n-1));
   const grau = (g0===undefined?ARCO.a0:g0) + ((g1===undefined?ARCO.a1:g1)-(g0===undefined?ARCO.a0:g0))*t;
   const ang = grau*Math.PI/180;
   const x = ARCO.cx - rx*Math.cos(ang);
@@ -2421,59 +2432,189 @@ function posArco(i, n, superior, escala, g0, g1){
   return {x, y, nx, ny};
 }
 
+/* ---------- odontograma anatômico ----------
+   Cada dente é desenhado com a forma do seu tipo, visto por oclusal:
+   incisivo estreito no sentido vestíbulo-lingual, canino com a ponta da
+   cúspide, pré-molar oval com duas cúspides, molar quase quadrado com o
+   sulco em cruz. E cada dente é GIRADO para acompanhar a curva do arco,
+   com a face vestibular sempre para fora — é assim que a boca é, e é o
+   que faz o dentista achar o 36 sem traduzir o desenho.
+
+   O contorno é uma superelipse: r(θ) = 1/((|cosθ/a|^n + |senθ/b|^n)^(1/n)).
+   n=2 dá elipse, n≈3 dá quadrado arredondado. Com três números por tipo
+   de dente sai a silhueta inteira, sem precisar de malha nem de arquivo
+   externo — o que importa num app que tem de abrir rápido na cadeira.
+
+   As cinco faces continuam clicáveis: o miolo é a oclusal (ou incisal) e
+   o anel ao redor é dividido em quatro setores — vestibular, lingual,
+   mesial e distal. Forma anatômica por fora, odontograma clássico por
+   dentro. */
+
+/* Largura mésio-distal média, em milímetros. Serve para duas coisas:
+   desenhar molar maior que incisivo (o incisivo inferior tem quase
+   metade da largura do primeiro molar inferior), e repartir o arco em
+   fatias proporcionais — espaçar por ângulo igual amontoava os molares,
+   que é justamente onde o dentista mais anota. */
+const LARG_SUP = {1:8.5, 2:6.5, 3:7.8, 4:7.0, 5:6.7, 6:10.3, 7:9.5, 8:8.5};
+const LARG_INF = {1:5.3, 2:5.9, 3:6.9, 4:7.0, 5:7.1, 6:11.0, 7:10.5, 8:10.0};
+const LARG_DEC_SUP = {1:6.5, 2:5.1, 3:7.0, 4:7.3, 5:8.2};
+const LARG_DEC_INF = {1:4.2, 2:4.1, 3:5.0, 4:7.7, 5:9.9};
+function larguraDente(fdi){
+  const q = Math.floor(fdi/10), p = fdi%10;
+  if(q===1||q===2) return LARG_SUP[p];
+  if(q===3||q===4) return LARG_INF[p];
+  if(q===5||q===6) return LARG_DEC_SUP[p];
+  return LARG_DEC_INF[p];
+}
+// 8 mm é a referência; o limite evita que o siso suma ou o molar estoure
+const escalaDente = fdi => Math.max(0.72, Math.min(1.3, larguraDente(fdi)/8));
+
+function perfilDente(fdi){
+  const p = fdi % 10, dec = Math.floor(fdi/10) >= 5;
+  if(dec){
+    if(p <= 2) return {a:.46, b:.31, n:2.3, tipo:"incisivo"};
+    if(p === 3) return {a:.38, b:.38, n:2.0, tipo:"canino"};
+    return            {a:.47, b:.45, n:2.8, tipo:"molar"};
+  }
+  if(p === 1) return {a:.52, b:.30, n:2.4, tipo:"incisivo"};
+  if(p === 2) return {a:.44, b:.29, n:2.4, tipo:"incisivo"};
+  if(p === 3) return {a:.41, b:.41, n:2.0, tipo:"canino"};
+  if(p <= 5)  return {a:.41, b:.47, n:2.5, tipo:"premolar"};
+  if(p === 6) return {a:.56, b:.52, n:3.0, tipo:"molar"};
+  if(p === 7) return {a:.53, b:.50, n:3.0, tipo:"molar"};
+  return            {a:.47, b:.46, n:2.9, tipo:"molar"};   // siso, menor
+}
+
+/* raio do contorno no ângulo θ (radianos), em unidades do tamanho L */
+function raioPerfil(pf, th){
+  const ca = Math.abs(Math.cos(th)/pf.a), sb = Math.abs(Math.sin(th)/pf.b);
+  let r = 1 / Math.pow(Math.pow(ca, pf.n) + Math.pow(sb, pf.n), 1/pf.n);
+  // canino: a cúspide vestibular avança um pouco — é o que dá a ponta
+  if(pf.tipo === "canino") r *= 1 + 0.26*Math.pow(Math.max(0, Math.sin(th)), 3);
+  // incisivo: a face lingual é mais estreita que a vestibular
+  if(pf.tipo === "incisivo") r *= 1 - 0.14*Math.max(0, -Math.sin(th));
+  return r;
+}
+
+/* um setor do anel entre o contorno externo e o miolo */
+function setorAnel(cx, cy, L, pf, g0, g1, kIn){
+  const passo = 6, fora = [], dentro = [];
+  for(let g = g0; g <= g1 + 0.01; g += passo){
+    const th = g * Math.PI/180;
+    const r = raioPerfil(pf, th) * L;
+    fora.push([cx + r*Math.cos(th), cy - r*Math.sin(th)]);
+    dentro.push([cx + r*kIn*Math.cos(th), cy - r*kIn*Math.sin(th)]);
+  }
+  dentro.reverse();
+  return [...fora, ...dentro].map(([a,b])=>a.toFixed(1)+","+b.toFixed(1)).join(" ");
+}
+
+function miolo(cx, cy, L, pf, kIn){
+  const pts = [];
+  for(let g = 0; g < 360; g += 6){
+    const th = g * Math.PI/180;
+    const r = raioPerfil(pf, th) * L * kIn;
+    pts.push((cx + r*Math.cos(th)).toFixed(1)+","+(cy - r*Math.sin(th)).toFixed(1));
+  }
+  return pts.join(" ");
+}
+
+function contorno(cx, cy, L, pf, k){
+  const pts = [];
+  for(let g = 0; g < 360; g += 6){
+    const th = g * Math.PI/180;
+    const r = raioPerfil(pf, th) * L * (k||1);
+    pts.push((cx + r*Math.cos(th)).toFixed(1)+","+(cy - r*Math.sin(th)).toFixed(1));
+  }
+  return pts.join(" ");
+}
+
+/* cúspides e sulcos: decoração, não alvo de clique. É o que faz o molar
+   parecer um molar em vez de um círculo. */
+function relevo(cx, cy, L, pf, traco){
+  const r = L*0.5;
+  const linha = (x1,y1,x2,y2) => `<line x1="${(cx+x1).toFixed(1)}" y1="${(cy+y1).toFixed(1)}"
+    x2="${(cx+x2).toFixed(1)}" y2="${(cy+y2).toFixed(1)}" stroke="${traco}" stroke-width=".8"
+    opacity=".65" pointer-events="none"/>`;
+  const ponto = (x,y) => `<circle cx="${(cx+x).toFixed(1)}" cy="${(cy+y).toFixed(1)}" r="1.5"
+    fill="${traco}" opacity=".6" pointer-events="none"/>`;
+  if(pf.tipo === "incisivo") return linha(-r*.52, 0, r*.52, 0);            // borda incisal
+  if(pf.tipo === "canino")   return ponto(0, -r*.18);                      // ponta da cúspide
+  if(pf.tipo === "premolar") return linha(-r*.34, 0, r*.34, 0) +           // sulco central
+                                    ponto(0, -r*.3) + ponto(0, r*.3);      // 2 cúspides
+  return linha(-r*.38, 0, r*.38, 0) + linha(0, -r*.34, 0, r*.34) +         // sulco em cruz
+         ponto(-r*.26,-r*.24) + ponto(r*.26,-r*.24) +
+         ponto(-r*.26, r*.24) + ponto(r*.26, r*.24);                       // 4 cúspides
+}
+
 function svgDente(fdi, x, y, estados, esperado, nx, ny){
   const q = Math.floor(fdi/10), p = fdi%10;
-  const anterior = ehAnterior(p);
-  const faces = anterior ? FACES_ANTERIOR : FACES_POSTERIOR;
-  const L = 30, h = L/2, t = L/3;        // tamanho do dente e da borda
-  const g = [];
+  const faces = facesDe(fdi);
+  const pf = perfilDente(fdi);
+  const L = 31 * escalaDente(fdi), kIn = 0.46;
   const cor = f => {
     const e = estados[fdi] && estados[fdi][f];
     return e ? corCondicao(e.condicao) : (esperado ? "var(--surface)" : "transparent");
   };
   const traco = esperado ? "var(--line-2)" : "var(--line)";
-  // centro (oclusal ou incisal)
-  const centro = faces[0][0];
+  const g = [];
+
+  // o dente acompanha a curva: a vestibular aponta para fora do arco
+  const ang = (nx===undefined || ny===undefined)
+    ? ((q<=2||(q>=5&&q<=6)) ? 0 : 180)
+    : Math.atan2(ny, nx)*180/Math.PI + 90;
+
   if(odonto.selecionado===fdi)
-    g.push(`<rect x="${x-h-4}" y="${y-h-4}" width="${L+8}" height="${L+8}" rx="4"
-      fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6" pointer-events="none"/>`);
-  g.push(`<rect x="${x-t/2}" y="${y-t/2}" width="${t}" height="${t}" fill="${cor(centro)}"
-      stroke="${traco}" stroke-width="1" data-f="${fdi}:${centro}" class="face"/>`);
-  // vestibular (cima), lingual/palatina (baixo), mesial e distal (lados)
+    g.push(`<circle cx="${x}" cy="${y}" r="${L*0.68}" fill="var(--accent-soft)"
+      stroke="var(--accent)" stroke-width="1.6" pointer-events="none"/>`);
+
+  // Alvo de toque ATRÁS das faces. Na frente, ele roubava o clique e a
+  // face escolhida virava sempre "dente inteiro" — justamente o contrário
+  // do motivo de existir um odontograma por faces. Atrás, pega só o que
+  // sobra na borda, que é o que ajuda no celular.
+  g.push(`<circle cx="${x}" cy="${y}" r="${L*0.62}" fill="transparent"
+      data-dente="${fdi}" class="alvo"/>`);
+
   const vest = faces[1][0], ling = faces[2][0], mes = faces[3][0], dis = faces[4][0];
-  // em quadrantes do lado esquerdo do paciente (2 e 3, 6 e 7) mesial/distal invertem
+  // nos quadrantes do lado esquerdo do paciente, mesial e distal trocam de lado
   const dirInvertida = (q===2||q===3||q===6||q===7);
-  const esq = dirInvertida ? mes : dis, dir = dirInvertida ? dis : mes;
-  g.push(`<polygon points="${x-h},${y-h} ${x+h},${y-h} ${x+t/2},${y-t/2} ${x-t/2},${y-t/2}"
-      fill="${cor(vest)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${vest}" class="face"/>`);
-  g.push(`<polygon points="${x-h},${y+h} ${x+h},${y+h} ${x+t/2},${y+t/2} ${x-t/2},${y+t/2}"
-      fill="${cor(ling)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${ling}" class="face"/>`);
-  g.push(`<polygon points="${x-h},${y-h} ${x-h},${y+h} ${x-t/2},${y+t/2} ${x-t/2},${y-t/2}"
-      fill="${cor(esq)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${esq}" class="face"/>`);
-  g.push(`<polygon points="${x+h},${y-h} ${x+h},${y+h} ${x+t/2},${y+t/2} ${x+t/2},${y-t/2}"
-      fill="${cor(dir)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${dir}" class="face"/>`);
-  // dente inteiro marcado (ausente, extraído, implante…) ganha o X ou o selo
+  const ladoEsq = dirInvertida ? mes : dis, ladoDir = dirInvertida ? dis : mes;
+
+  const face = (nome, g0, g1) =>
+    `<polygon points="${setorAnel(x, y, L, pf, g0, g1, kIn)}" fill="${cor(nome)}"
+      stroke="${traco}" stroke-width=".9" stroke-linejoin="round"
+      data-f="${fdi}:${nome}" class="face"/>`;
+
+  // 45°–135° é o setor vestibular; os demais seguem no sentido horário
+  g.push(face(vest,     45, 135));
+  g.push(face(ladoEsq, 135, 225));
+  g.push(face(ling,    225, 315));
+  g.push(face(ladoDir, -45,  45));
+  g.push(`<polygon points="${miolo(x, y, L, pf, kIn)}" fill="${cor(faces[0][0])}"
+      stroke="${traco}" stroke-width=".9" data-f="${fdi}:${faces[0][0]}" class="face"/>`);
+  g.push(relevo(x, y, L, pf, "var(--ink-3)"));
+
+  // dente inteiro marcado (ausente, extraído, implante…)
   const inteiro = estados[fdi] && estados[fdi]["todo"];
   if(inteiro){
-    const c = inteiro.condicao;
+    const c = inteiro.condicao, r = L*0.56;
     if(c==="ausente" || c==="extraido"){
-      g.push(`<path d="M${x-h},${y-h} L${x+h},${y+h} M${x+h},${y-h} L${x-h},${y+h}"
+      g.push(`<path d="M${x-r},${y-r} L${x+r},${y+r} M${x+r},${y-r} L${x-r},${y+r}"
         stroke="var(--crit)" stroke-width="2.4" fill="none" pointer-events="none"/>`);
     }else{
-      g.push(`<circle cx="${x}" cy="${y}" r="${h+3}" fill="none"
-        stroke="${corCondicao(c)}" stroke-width="2.6" pointer-events="none"/>`);
+      g.push(`<polygon points="${contorno(x, y, L*1.16, pf, 1)}" fill="none"
+        stroke="${corCondicao(c)}" stroke-width="2.4" stroke-linejoin="round"
+        pointer-events="none"/>`);
     }
   }
-  // o número sai na direção de fora do arco: assim ele nunca cobre o
-  // dente vizinho, que é o que acontecia quando era sempre em cima
-  const d = h + 13;
-  const rx2 = (nx===undefined ? 0 : nx)*d, ry2 = (ny===undefined ? (q<=2||q>=5&&q<=6 ? -1 : 1) : ny)*d;
-  g.push(`<text x="${x+rx2}" y="${y+ry2+4}" class="numdente" text-anchor="middle"
-      opacity="${esperado?1:.35}">${fdi}</text>`);
-  // alvo invisível maior, para o toque no celular
-  g.push(`<rect x="${x-h}" y="${y-h}" width="${L}" height="${L}" fill="transparent"
-      data-dente="${fdi}" class="alvo"/>`);
-  return `<g>${g.join("")}</g>`;
+  // o número fica FORA do grupo girado, senão giraria junto e viraria de
+  // cabeça para baixo nos molares inferiores
+  const d = L*0.62 + 13;
+  const rx2 = (nx===undefined ? 0 : nx)*d, ry2 = (ny===undefined ? (q<=2||(q>=5&&q<=6) ? -1 : 1) : ny)*d;
+  const num = `<text x="${(x+rx2).toFixed(1)}" y="${(y+ry2+4).toFixed(1)}" class="numdente"
+      text-anchor="middle" opacity="${esperado?1:.35}">${fdi}</text>`;
+
+  return `<g transform="rotate(${ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${g.join("")}</g>${num}`;
 }
 
 let odonto = {estados:{}, historico:[], denticao:null, selecionado:null};
@@ -2509,15 +2650,23 @@ function desenharOdontograma(pac){
     const perm = lista.filter(d=>Math.floor(d/10)<=4);
     const dec  = lista.filter(d=>Math.floor(d/10)>=5);
     let out="";
+    // cada dente ocupa uma fatia do arco proporcional à própria largura
+    const fatias = lista => {
+      const w = lista.map(larguraDente), soma = w.reduce((a,b)=>a+b,0);
+      let acum = 0;
+      return w.map(x=>{ const meio = (acum + x/2)/soma; acum += x; return meio; });
+    };
     const base = perm.length ? perm : dec;
-    base.forEach((d,i)=>{ const p=posArco(i, base.length, superior);
+    const tb = fatias(base);
+    base.forEach((d,i)=>{ const p=posArco(i, base.length, superior, 1, undefined, undefined, tb[i]);
       out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), p.nx, p.ny); });
     if(perm.length && dec.length){
       // arco interno, menor: os decíduos que ainda não caíram ficam por
       // dentro da arcada permanente, como na boca
       // arco interno mais fechado (40°–140°), senão os molares decíduos
       // cairiam do outro lado da linha média
-      dec.forEach((d,i)=>{ const p=posArco(i, dec.length, superior, 0.56, 40, 140);
+      const td = fatias(dec);
+      dec.forEach((d,i)=>{ const p=posArco(i, dec.length, superior, 0.56, 40, 140, td[i]);
         out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), -p.nx, -p.ny); });
     }
     return out;
@@ -2540,14 +2689,14 @@ function desenharOdontograma(pac){
         <span class="pill neutral">${esperados.size} dentes esperados para a idade</span>
       </div>
       <div class="arcada">
-        <svg viewBox="0 0 780 512" id="svgArcada" role="img" aria-label="Arcada dentária">
-          <text x="390" y="26" class="rotArco" text-anchor="middle">SUPERIOR</text>
+        <svg viewBox="0 0 800 524" id="svgArcada" role="img" aria-label="Arcada dentária">
+          <text x="400" y="26" class="rotArco" text-anchor="middle">SUPERIOR</text>
           ${faixa(supO, true)}
-          <line x1="30" y1="285" x2="750" y2="285" stroke="var(--line)" stroke-dasharray="4 5"/>
-          <text x="34" y="281" class="rotArco" text-anchor="start">direita do paciente</text>
-          <text x="746" y="281" class="rotArco" text-anchor="end">esquerda</text>
+          <line x1="26" y1="289" x2="774" y2="289" stroke="var(--line)" stroke-dasharray="4 5"/>
+          <text x="30" y="285" class="rotArco" text-anchor="start">direita do paciente</text>
+          <text x="770" y="285" class="rotArco" text-anchor="end">esquerda</text>
           ${faixa(infO, false)}
-          <text x="390" y="504" class="rotArco" text-anchor="middle">INFERIOR</text>
+          <text x="400" y="516" class="rotArco" text-anchor="middle">INFERIOR</text>
         </svg>
       </div>
       <div class="legenda">
@@ -2563,7 +2712,7 @@ function painelDente(pacId, fdi){
   const q = Math.floor(fdi/10), p = fdi%10;
   const dec = q>=5;
   const nome = (dec ? NOME_DENTE_DEC : NOME_DENTE)[p];
-  const faces = ehAnterior(p) ? FACES_ANTERIOR : FACES_POSTERIOR;
+  const faces = facesDe(fdi);
   const est = odonto.estados[fdi] || {};
   const hist = odonto.historico.filter(h=>h.fdi===fdi)
     .sort((a,b)=>(b.registrado_em||"")<(a.registrado_em||"")?-1:1);
