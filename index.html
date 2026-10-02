@@ -623,6 +623,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
                 <b>“pode parar”</b> encerra</span></label>
             <label class="tog"><input type="checkbox" id="vozChk" checked>
               <span>Charles <b>responde em voz</b> e cobra o que falta</span></label>
+            <div id="vozBox"></div>
           </div>
           <button class="btn ghost wide" id="diagBtn" style="font-size:12.5px;padding:9px 12px">O ditado não funcionou? Descobrir por quê</button>
           <div id="diagBox" hidden></div>
@@ -1653,13 +1654,113 @@ function setVoice(state, titulo, ajuda){
   if(titulo) $("#voiceState").textContent=titulo;
   if(ajuda) $("#voiceHelp").textContent=ajuda;
 }
-let vozPt=null;
+/* ---------- escolha da voz do Charles ----------
+   Charles é homem, então a voz é masculina. Mas a lista de vozes vem do
+   APARELHO, não do app: um navegador sem voz masculina em português do
+   Brasil instalada não tem como inventar uma. Então aqui a gente:
+     1. procura a melhor voz masculina pt-BR disponível;
+     2. deixa escolher à mão quando houver mais de uma;
+     3. e diz claramente quando não houver nenhuma, em vez de usar uma
+        voz feminina em silêncio como se fosse o esperado.
+
+   Não baixamos o tom de uma voz feminina para "fingir" voz de homem:
+   sai um timbre artificial que soa pior do que assumir a limitação. */
+
+// nomes conhecidos de vozes masculinas em pt-BR (Windows, Android, Apple)
+const VOZ_MASC = /\b(daniel|antonio|antônio|fabio|fábio|julio|júlio|nicolau|donato|valerio|valério|humberto|felipe|ricardo|joaquim|heitor|thiago|tiago|marcos|paulo|eduardo|bruno|rafael|lucas|gabriel)\b/i;
+// e femininas, para descartar
+const VOZ_FEM  = /\b(luciana|francisca|maria|camila|leticia|letícia|yara|brenda|elza|giovanna|manuela|thalita|vitoria|vitória|ines|inês|joana|catarina|fernanda|helena|julia|júlia|ana|bia)\b/i;
+
+/* "female" contém "male": comparar sem cuidado faz a voz feminina passar
+   por masculina. Removemos "female" antes de procurar "male". */
+function marcaDeGenero(txt){
+  const t = (txt||"").toLowerCase();
+  const semFem = t.replace(/female/g, "§");
+  if(/\bmale\b|_male|-male|#male|male_/.test(semFem)) return "m";
+  if(/female|feminin|\bf\b_|woman/.test(t)) return "f";
+  return null;
+}
+
+function pontuarVoz(v){
+  const nome = v.name || "", uri = v.voiceURI || "";
+  const alvo = nome + " " + uri;
+  let p = 0;
+  if(/pt[-_]?BR/i.test(v.lang)) p += 100; else if(/^pt/i.test(v.lang)) p += 40;
+  const g = marcaDeGenero(alvo);
+  if(g === "m") p += 60;
+  if(g === "f") p -= 60;
+  if(VOZ_MASC.test(nome)) p += 70;
+  if(VOZ_FEM.test(nome))  p -= 70;
+  if(/natural|neural|enhanced|premium/i.test(nome)) p += 15;  // timbre melhor
+  if(v.localService) p += 5;                                   // não depende de rede
+  return p;
+}
+
+function vozesPt(){
+  if(!TTS) return [];
+  return TTS.getVoices().filter(v=>/^pt/i.test(v.lang))
+    .sort((a,b)=>pontuarVoz(b)-pontuarVoz(a));
+}
+function ehMasculina(v){
+  if(!v) return false;
+  const g = marcaDeGenero((v.name||"")+" "+(v.voiceURI||""));
+  if(g) return g === "m";
+  if(VOZ_MASC.test(v.name||"")) return true;
+  if(VOZ_FEM.test(v.name||""))  return false;
+  return false;   // sem evidência, não afirmamos que é masculina
+}
+
+let vozPt = null, vozEscolhida = null;
+try{ vozEscolhida = localStorage.getItem("md-voz") || null; }catch(e){}
+
 function escolherVoz(){
   if(!TTS) return;
-  const vs=TTS.getVoices().filter(v=>/pt[-_]?BR/i.test(v.lang));
-  vozPt = vs.find(v=>/google|luciana|francisca|natural/i.test(v.name)) || vs[0] || null;
+  const vs = vozesPt();
+  // sem voz em português, o seletor ainda precisa aparecer — é ele que
+  // explica por que o Charles está mudo
+  vozPt = vs.length ? ((vozEscolhida && vs.find(v=>v.voiceURI===vozEscolhida)) || vs[0]) : null;
+  renderSeletorVoz();
 }
 if(TTS){ escolherVoz(); TTS.onvoiceschanged = escolherVoz; }
+
+function renderSeletorVoz(){
+  const box = $("#vozBox"); if(!box) return;
+  const vs = vozesPt();
+  if(!vs.length){
+    box.innerHTML = '<div class="stage" style="margin:0">Este aparelho não tem nenhuma voz '+
+      'em português instalada, então o Charles responde só por escrito.</div>';
+    return;
+  }
+  const masc = vs.filter(ehMasculina);
+  const aviso = masc.length ? "" :
+    '<div class="stage" style="margin:6px 0 0;border-color:var(--warn);color:var(--warn)">'+
+    '<b>Nenhuma voz masculina em português foi encontrada neste aparelho.</b> '+
+    'O Charles está usando a voz disponível. Para instalar uma: no Windows, '+
+    'Configurações → Hora e idioma → Fala → Adicionar vozes (procure "Daniel" ou "Antônio"); '+
+    'no Android, Configurações → Acessibilidade → Saída de texto para voz → Google → Instalar dados de voz.</div>';
+  box.innerHTML = `
+    <div class="field" style="margin-top:2px">
+      <label for="vozSel">Voz do Charles</label>
+      <select id="vozSel">
+        ${vs.map(v=>`<option value="${v.voiceURI}" ${v===vozPt?"selected":""}>
+          ${v.name}${ehMasculina(v)?" · masculina":""} (${v.lang})</option>`).join("")}
+      </select>
+    </div>
+    <button class="btn ghost wide" id="vozTestar" style="font-size:12.5px;padding:8px 12px">Ouvir o Charles</button>
+    ${aviso}`;
+  $("#vozSel").addEventListener("change", e=>{
+    vozEscolhida = e.target.value;
+    try{ localStorage.setItem("md-voz", vozEscolhida); }catch(err){}
+    vozPt = vs.find(v=>v.voiceURI===vozEscolhida) || vozPt;
+    toast("Voz alterada para "+(vozPt?vozPt.name:"padrão")+".");
+  });
+  $("#vozTestar").addEventListener("click", ()=>{
+    const antes = $("#vozChk").checked;
+    $("#vozChk").checked = true;
+    falar("Pronto, doutor. Sou o Charles. Pode ditar o atendimento quando quiser.")
+      .then(()=>{ $("#vozChk").checked = antes; });
+  });
+}
 
 function falar(texto){
   return new Promise(resolve=>{
@@ -1670,7 +1771,13 @@ function falar(texto){
       if(modo==="ditado"||modo==="resposta"||modo==="wake") pausarEscuta();
       falando=true; setVoice("speaking", null, null);
       const u=new SpeechSynthesisUtterance(texto);
-      u.lang="pt-BR"; if(vozPt) u.voice=vozPt; u.rate=1.06; u.pitch=1;
+      u.lang = (vozPt && vozPt.lang) || "pt-BR";
+      if(vozPt) u.voice = vozPt;
+      // tom levemente abaixo do padrão e ritmo um pouco mais calmo: é o
+      // que faz a voz masculina soar adulta em vez de apressada. Não
+      // mexemos no tom de voz feminina — forçar grave sai artificial.
+      u.rate = 1.0;
+      u.pitch = ehMasculina(vozPt) ? 0.92 : 1;
       const fim=()=>{ falando=false; retomarApos=eraModo; resolve(); };
       u.onend=fim; u.onerror=fim;
       TTS.cancel(); TTS.speak(u);
@@ -2024,7 +2131,14 @@ async function diagnosticar(){
   else { add("no","Endereço sem HTTPS","Só https ou localhost liberam microfone."); bloqueio=bloqueio||"http"; }
   if(window.self!==window.top){ add("no","Rodando dentro de outra página","Abra em aba própria."); bloqueio=bloqueio||"iframe"; }
   else add("ok","Página em aba própria","");
-  if(TTS) add("ok","Navegador fala","Resposta em voz disponível.");
+  if(TTS){
+    const vs = vozesPt();
+    if(!vs.length) add("warn","Nenhuma voz em português","O Charles responderá só por escrito.");
+    else if(ehMasculina(vozPt)) add("ok","Voz do Charles","Masculina: "+vozPt.name);
+    else add("warn","Voz do Charles não é masculina",
+      "Em uso: "+(vozPt?vozPt.name:"padrão")+". Este aparelho não tem voz masculina "+
+      "em português instalada — dá para instalar nas configurações do sistema.");
+  }
   else add("warn","Sem síntese de voz","O Charles responderá só por escrito.");
   try{
     if(navigator.permissions && navigator.permissions.query){
