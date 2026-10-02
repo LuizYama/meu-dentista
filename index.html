@@ -77,6 +77,33 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:
 a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:4px}
 
+/* ---------- mini agenda da lateral ---------- */
+.mini-agenda{display:none}
+.cor-opt{width:26px;height:26px;border-radius:7px;border:2px solid transparent;flex:none}
+.cor-opt.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface) inset}
+
+@media (min-width:720px){
+  .mini-agenda{display:block;margin-top:14px;padding-top:11px;border-top:1px solid var(--line)}
+  .mini-cab{display:flex;align-items:baseline;gap:6px;padding:0 4px 6px;
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);font-weight:700}
+  .mini-cab b{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--ink-2)}
+  .mini-ev{display:flex;align-items:center;gap:6px;width:100%;text-align:left;
+    padding:5px;border-radius:7px;font-size:11px;line-height:1.25;color:var(--ink-2)}
+  .mini-ev:hover{background:var(--surface-2)}
+  .mini-ev.passou{opacity:.45}
+  .mini-ev i{width:6px;height:6px;border-radius:50%;flex:none}
+  .mini-ev .hh{flex:none;font-size:10.5px;color:var(--ink-3)}
+  .mini-ev .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mini-vazio{font-size:10.5px;color:var(--ink-3);padding:4px 5px}
+  .mini-abrir{width:100%;text-align:left;padding:5px;margin-top:3px;font-size:10.5px;
+    font-weight:600;color:var(--accent);border-radius:7px}
+  .mini-abrir:hover{background:var(--accent-soft)}
+}
+@media (min-width:1100px){
+  .mini-cab,.mini-ev,.mini-vazio,.mini-abrir{padding-left:9px;padding-right:9px}
+  .mini-ev{font-size:11.5px}
+}
+
 /* ---------- agenda ---------- */
 .cal-topo{display:flex;align-items:center;gap:9px}
 .cal-topo b{flex:1;font-family:var(--f-display);font-size:16px;font-weight:700}
@@ -548,7 +575,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     </div>
     <div class="userchip" id="userChip" hidden>
       <b id="userNome">—</b><span id="userPerfil"></span>
-      <button id="acessosBtn" title="Solicitações de acesso" aria-label="Solicitações de acesso" hidden>◔</button>
+      <button id="acessosBtn" title="Configurações" aria-label="Configurações" hidden>⚙</button>
       <button id="sairBtn" title="Sair" aria-label="Sair">⏻</button>
     </div>
     <button class="iconbtn" id="themeBtn" aria-label="Alternar tema">◐</button>
@@ -708,12 +735,10 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     <!-- ===== ACESSOS (admin) ===== -->
     <section class="screen" id="scr-acessos">
       <button class="backlink" id="voltarAcessos">← Voltar</button>
-      <div class="sec-h"><h2>Solicitações de acesso</h2><span class="hint" id="solCount"></span></div>
-      <div class="list" id="solList"></div>
-      <div class="sec-h"><h2>Usuários ativos</h2></div>
-      <div class="list" id="userList"></div>
-      <div class="stage">Toda aprovação, recusa e desativação fica registrada com autor e data. No banco real esse
-        registro é uma tabela de auditoria que ninguém consegue apagar pela aplicação.</div>
+      <div class="sec-h"><h2>Configurações</h2><span class="hint" id="solCount"></span></div>
+      <div id="configBox"></div>
+      <div class="stage">Toda alteração de equipe, sala e dados da unidade fica na trilha de
+        auditoria, com autor e data, e ninguém apaga essa trilha pela aplicação.</div>
     </section>
   </main>
 
@@ -734,6 +759,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <button class="tab" data-scr="financeiro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
         Financeiro</button>
+      <div class="mini-agenda" id="miniAgenda" hidden></div>
       <div class="navfoot"><span id="dispLabel"></span> · <span class="pill" id="modoBadge">—</span></div>
     </div>
   </nav>
@@ -3684,6 +3710,7 @@ async function carregarAgenda(){
   }
   agenda.carregando = false;
   renderAgenda();
+  renderMiniAgenda();
 }
 
 const eventosDoDia = iso => agenda.eventos
@@ -4050,6 +4077,545 @@ async function concluirRemarcacao(minuto){
   }
 }
 
+
+/* ===================== configurações =====================
+   Unidade, salas e equipe num lugar só, do administrador.
+
+   Criar o LOGIN de alguém não acontece aqui: exige a chave de serviço do
+   Supabase, que passa por cima de todo o RLS e por isso não pode viver
+   dentro de uma página. A tela chama a função `criar-acesso`, que roda
+   no servidor do Supabase, confere que quem pediu é administrador, e
+   cria a conta na clínica DELE — nunca numa clínica informada pelo
+   navegador, senão bastaria mandar outro id para invadir outra. */
+
+const TIPOS_SALA = [
+  ["clinica","Consultório"], ["cirurgia","Sala cirúrgica"], ["raio_x","Radiologia"],
+  ["esterilizacao","Esterilização"], ["outro","Outro"]
+];
+const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB",
+             "PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const CORES_EQUIPE = ["#0E7183","#8A6BBF","#1C7048","#A8601A","#A82A22","#2B6CA8","#7E9A6B","#C2679A"];
+
+let cfg = {aba:"unidade", clinica:null, salas:[], equipe:[], emails:{}, carregando:false};
+
+const CFG = {
+  async carregar(){
+    if(MODO!=="nuvem"){
+      cfg.clinica = cfg.clinica || {id:"c1", nome:"Clínica Exemplo", cnpj:"", telefone:"",
+        cidade:"São Paulo", uf:"SP", hora_abertura:"08:00", hora_fechamento:"19:00"};
+      cfg.salas  = cfg.salas.length ? cfg.salas : [{id:"s1", nome:"Consultório 1", tipo:"clinica", ativa:true, ordem:1}];
+      // preserva o que já foi editado: no modo demo os campos de CRO,
+      // telefone e especialidade só existem aqui, e recarregar do zero
+      // apagaria o que o usuário acabou de digitar
+      cfg.equipe = (S.usuarios||[]).map(u=>{
+        const antigo = cfg.equipe.find(x=>x.id===u.id) || {};
+        return {cro:null, telefone:null, especialidade:null, cor:null, ...antigo,
+                id:u.id, nome:u.nome, perfil:u.perfil.toLowerCase(), ativo:u.ativo};
+      });
+      cfg.emails = Object.fromEntries((S.usuarios||[]).map(u=>[u.id, u.email]));
+      return;
+    }
+    const [cl, sl, eq] = await Promise.all([
+      DB.rest("GET","clinicas?select=id,nome,razao_social,cnpj,telefone,email,cep,logradouro,"+
+        "numero,complemento,bairro,cidade,uf,cro_clinica,hora_abertura,hora_fechamento&limit=1"),
+      DB.rest("GET","salas?select=id,nome,descricao,tipo,cor,ativa,ordem&order=ordem"),
+      DB.rest("GET","vw_equipe?select=id,nome,perfil,cro,telefone,especialidade,cor,ativo,criado_em&order=nome")
+    ]);
+    cfg.clinica = cl[0] || null;
+    cfg.salas = sl;
+    cfg.equipe = eq;
+    // o e-mail vem de auth.users por função, uma chamada por pessoa;
+    // é pouca gente, e evita expor a tabela de autenticação inteira
+    if(pode("admin")){
+      const pares = await Promise.all(eq.map(async u=>{
+        try{ return [u.id, await DB.rest("POST","rpc/email_do_usuario",{p_id:u.id})]; }
+        catch(e){ return [u.id, null]; }
+      }));
+      cfg.emails = Object.fromEntries(pares);
+    }
+  },
+  async salvarClinica(d){
+    if(MODO!=="nuvem"){ Object.assign(cfg.clinica, d); save(); return; }
+    await DB.rest("PATCH","clinicas?id=eq."+cfg.clinica.id, {...d, atualizado_em:new Date().toISOString()});
+  },
+  async salvarSala(id, d){
+    if(MODO!=="nuvem"){
+      if(id){ Object.assign(cfg.salas.find(s=>s.id===id), d); }
+      else cfg.salas.push({id:"s"+Date.now(), ativa:true, ...d});
+      save(); return;
+    }
+    if(id) await DB.rest("PATCH","salas?id=eq."+id, d);
+    else   await DB.rest("POST","salas", {...d, clinica_id:DB.clinica});
+  },
+  async salvarUsuario(id, d){
+    if(MODO!=="nuvem"){
+      const u=cfg.equipe.find(x=>x.id===id); if(u) Object.assign(u, d);
+      const su=(S.usuarios||[]).find(x=>x.id===id);
+      if(su){ if(d.nome) su.nome=d.nome; if(d.ativo!==undefined) su.ativo=d.ativo;
+              if(d.perfil) su.perfil=PERFIL_DB2APP[d.perfil]; }
+      save(); return;
+    }
+    await DB.rest("PATCH","usuarios?id=eq."+id, d);
+  },
+  /* chama a função no servidor; a chave de serviço nunca passa por aqui */
+  async criarAcesso(d){
+    if(MODO!=="nuvem") throw new Error("Criar acesso exige o banco na nuvem — esta cópia é de demonstração.");
+    const r = await fetch(BACKEND.url+"/functions/v1/criar-acesso", {
+      method:"POST",
+      headers:{apikey:BACKEND.key, Authorization:"Bearer "+DB.tok, "Content-Type":"application/json"},
+      body: JSON.stringify({...d, redirect: location.origin + location.pathname})
+    });
+    const resp = await r.json().catch(()=>({}));
+    if(!r.ok){
+      if(r.status===404) throw new Error(
+        "A função 'criar-acesso' ainda não foi publicada no Supabase. "+
+        "Enquanto isso, crie o login em Authentication → Users e vincule o perfil em usuarios.");
+      // o invólucro do Supabase recusa antes do nosso código rodar, e a
+      // mensagem dele vem em inglês; traduzimos o caso que o usuário vê
+      if(r.status===401 || resp.code==="MISSING_CREDENTIALS")
+        throw new Error("Sua sessão expirou. Saia e entre de novo para convidar alguém.");
+      throw new Error(resp.erro || resp.message || ("HTTP "+r.status));
+    }
+    return resp;
+  }
+};
+
+async function abrirConfig(aba){
+  cfg.aba = aba || cfg.aba;
+  $$(".screen").forEach(s=>s.classList.remove("on"));
+  $("#scr-acessos").classList.add("on");
+  $$(".tab").forEach(x=>x.removeAttribute("aria-current"));
+  if(!cfg.clinica || !cfg.equipe.length){
+    cfg.carregando = true; renderConfig();
+    try{ await CFG.carregar(); }catch(e){ toast("Não consegui ler as configurações: "+e.message); }
+    cfg.carregando = false;
+  }
+  renderConfig();
+  window.scrollTo({top:0});
+}
+
+function renderConfig(){
+  const box = $("#configBox"); if(!box) return;
+  const pend = (S.solicitacoes||[]).filter(s=>s.status==="pendente");
+  const abas = [["unidade","Unidade"],["salas","Salas"],["equipe","Equipe"],
+                ["pedidos","Pedidos"+(pend.length?" ("+pend.length+")":"")]];
+  box.innerHTML = `
+    <div class="aba" role="tablist" style="margin-bottom:12px">
+      ${abas.map(([k,r])=>`<button role="tab" aria-selected="${k===cfg.aba}" data-cfg="${k}">${r}</button>`).join("")}
+    </div>
+    <div id="cfgCorpo">${cfg.carregando ? '<div class="empty">carregando…</div>' : corpoConfig()}</div>`;
+  box.querySelectorAll("button[data-cfg]").forEach(b=>b.addEventListener("click", ()=>{
+    cfg.aba = b.dataset.cfg; renderConfig();
+  }));
+  ligarConfig();
+}
+
+function corpoConfig(){
+  if(cfg.aba==="unidade") return htmlUnidade();
+  if(cfg.aba==="salas")   return htmlSalas();
+  if(cfg.aba==="equipe")  return htmlEquipe();
+  return htmlPedidos();
+}
+
+/* ---------- unidade ---------- */
+function htmlUnidade(){
+  const c = cfg.clinica;
+  if(!c) return '<div class="empty">Clínica não carregada.</div>';
+  const v = k => (c[k]||"").toString().replace(/"/g,"&quot;");
+  return `<div class="card">
+    <div class="eyebrow">Dados da unidade</div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:10px">
+      <div class="field"><label for="cNome">Nome fantasia</label>
+        <input id="cNome" value="${v("nome")}" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="cRazao">Razão social</label>
+          <input id="cRazao" value="${v("razao_social")}" autocomplete="off"></div>
+        <div class="field"><label for="cCnpj">CNPJ</label>
+          <input id="cCnpj" value="${v("cnpj")}" class="mono" autocomplete="off"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="cTel">Telefone</label>
+          <input id="cTel" value="${v("telefone")}" autocomplete="off"></div>
+        <div class="field"><label for="cEmail">E-mail</label>
+          <input id="cEmail" type="email" value="${v("email")}" autocomplete="off"></div>
+      </div>
+      <div class="field"><label for="cCro">CRO da clínica</label>
+        <input id="cCro" value="${v("cro_clinica")}" autocomplete="off"></div>
+      <div class="eyebrow" style="margin-top:4px">Endereço</div>
+      <div class="grid2">
+        <div class="field"><label for="cCep">CEP</label>
+          <input id="cCep" value="${v("cep")}" class="mono" autocomplete="off"></div>
+        <div class="field"><label for="cNum">Número</label>
+          <input id="cNum" value="${v("numero")}" autocomplete="off"></div>
+      </div>
+      <div class="field"><label for="cLog">Logradouro</label>
+        <input id="cLog" value="${v("logradouro")}" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="cComp">Complemento</label>
+          <input id="cComp" value="${v("complemento")}" autocomplete="off"></div>
+        <div class="field"><label for="cBairro">Bairro</label>
+          <input id="cBairro" value="${v("bairro")}" autocomplete="off"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="cCidade">Cidade</label>
+          <input id="cCidade" value="${v("cidade")}" autocomplete="off"></div>
+        <div class="field"><label for="cUf">UF</label>
+          <select id="cUf"><option value=""></option>
+            ${UFS.map(u=>`<option ${u===c.uf?"selected":""}>${u}</option>`).join("")}</select></div>
+      </div>
+      <div class="eyebrow" style="margin-top:4px">Expediente</div>
+      <div class="grid2">
+        <div class="field"><label for="cAbre">Abre às</label>
+          <input id="cAbre" type="time" value="${(c.hora_abertura||"08:00").slice(0,5)}"></div>
+        <div class="field"><label for="cFecha">Fecha às</label>
+          <input id="cFecha" type="time" value="${(c.hora_fechamento||"19:00").slice(0,5)}"></div>
+      </div>
+      <button class="btn primary wide" id="cSalvar">Salvar dados da unidade</button>
+      <div class="stage" style="margin:0">Uma segunda unidade (outro endereço) é mudança de
+        arquitetura, não botão de tela: cada pessoa passaria a pertencer a mais de uma clínica.
+        Dá para fazer quando o segundo endereço existir de verdade.</div>
+    </div></div>`;
+}
+
+/* ---------- salas ---------- */
+let salaEdit = null;
+function htmlSalas(){
+  const lista = cfg.salas.map(s=>`
+    <div class="item">
+      <div class="av" style="${s.cor?`background:${s.cor};color:#fff`:""}">${(s.nome||"?").slice(0,2)}</div>
+      <div class="main"><b>${s.nome}</b>
+        <small>${(TIPOS_SALA.find(t=>t[0]===s.tipo)||[,"—"])[1]}${s.descricao?" · "+s.descricao:""} · ordem ${s.ordem}</small></div>
+      <div class="end">
+        <span class="pill ${s.ativa?"ok":"neutral"}">${s.ativa?"ativa":"inativa"}</span>
+        <button class="minibtn" data-sala="${s.id}">editar</button>
+      </div>
+    </div>`).join("") || '<div class="empty">Nenhuma sala cadastrada.</div>';
+
+  const e = salaEdit;
+  const form = e===null ? "" : `
+    <div class="card" style="margin-bottom:10px">
+      <div class="eyebrow">${e.id?"Editar sala":"Nova sala"}</div>
+      <div style="display:flex;flex-direction:column;gap:11px;margin-top:9px">
+        <div class="field"><label for="sNome">Nome</label>
+          <input id="sNome" value="${(e.nome||"").replace(/"/g,"&quot;")}" placeholder="Consultório 2" autocomplete="off"></div>
+        <div class="grid2">
+          <div class="field"><label for="sTipo">Tipo</label>
+            <select id="sTipo">${TIPOS_SALA.map(([v,r])=>`<option value="${v}" ${v===e.tipo?"selected":""}>${r}</option>`).join("")}</select></div>
+          <div class="field"><label for="sOrdem">Ordem na agenda</label>
+            <input id="sOrdem" type="number" min="1" class="mono" value="${e.ordem||cfg.salas.length+1}"></div>
+        </div>
+        <div class="field"><label for="sDesc">Descrição</label>
+          <input id="sDesc" value="${(e.descricao||"").replace(/"/g,"&quot;")}" placeholder="cadeira 2, fundos" autocomplete="off"></div>
+        <div class="field"><label>Cor na agenda</label>
+          <div class="row" id="sCores">${CORES_EQUIPE.map(c=>
+            `<button class="cor-opt${c===e.cor?" sel":""}" data-cor="${c}" style="background:${c}" aria-label="cor"></button>`).join("")}</div></div>
+        ${e.id?`<label class="tog"><input type="checkbox" id="sAtiva" ${e.ativa?"checked":""}>
+          <span>Sala <b>ativa</b> — sala inativa some da agenda, mas o histórico fica</span></label>`:""}
+        <div class="row">
+          <button class="btn primary" style="flex:1" id="sSalvar">Salvar sala</button>
+          <button class="btn" id="sCancelar">Cancelar</button>
+        </div>
+      </div></div>`;
+
+  return `${form}
+    ${salaEdit===null?'<button class="btn primary wide" id="novaSala" style="margin-bottom:10px">+ Nova sala</button>':""}
+    <div class="list">${lista}</div>
+    <div class="stage">A agenda recusa duas reservas na mesma sala no mesmo horário — é trava do
+      banco, não da tela. Com mais de uma sala, dois dentistas atendem ao mesmo tempo sem conflito.</div>`;
+}
+
+/* ---------- equipe ---------- */
+let equipeEdit = null, convidando = false;
+function htmlEquipe(){
+  const lista = cfg.equipe.map(u=>{
+    const rot = PERFIS[PERFIL_DB2APP[u.perfil]] ? PERFIS[PERFIL_DB2APP[u.perfil]].rotulo : u.perfil;
+    const eu = u.id === (DB.meuId || (usuario&&usuario.id));
+    return `<div class="item">
+      <div class="av" style="${u.cor?`background:${u.cor};color:#fff`:""}">${u.nome.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
+      <div class="main"><b>${u.nome}${eu?" <span class='pill neutral'>você</span>":""}</b>
+        <small>${rot}${u.especialidade?" · "+u.especialidade:""}${u.cro?" · "+u.cro:""}</small>
+        <small>${cfg.emails[u.id]||"e-mail não disponível"}${u.telefone?" · "+u.telefone:""}</small></div>
+      <div class="end">
+        <span class="pill ${u.ativo?"ok":"neutral"}">${u.ativo?"ativo":"inativo"}</span>
+        <button class="minibtn" data-eq="${u.id}">editar</button>
+      </div></div>`;
+  }).join("") || '<div class="empty">Nenhuma pessoa cadastrada.</div>';
+
+  let form = "";
+  if(convidando){
+    form = `<div class="card" style="margin-bottom:10px">
+      <div class="eyebrow">Novo acesso</div>
+      <div style="display:flex;flex-direction:column;gap:11px;margin-top:9px">
+        <div class="field"><label for="nvNome">Nome completo</label>
+          <input id="nvNome" placeholder="Nome e sobrenome" autocomplete="off"></div>
+        <div class="field"><label for="nvEmail">E-mail</label>
+          <input id="nvEmail" type="email" placeholder="nome@clinica.com.br" autocomplete="off"></div>
+        <div class="grid2">
+          <div class="field"><label for="nvPerfil">Perfil</label>
+            <select id="nvPerfil">${Object.entries(PERFIS).map(([k,p])=>
+              `<option value="${PERFIL_APP2DB[k]}">${p.rotulo} — ${p.desc}</option>`).join("")}</select></div>
+          <div class="field"><label for="nvCro">CRO (se dentista)</label>
+            <input id="nvCro" placeholder="CRO-SP 00000" autocomplete="off"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="nvTel">Telefone</label><input id="nvTel" autocomplete="off"></div>
+          <div class="field"><label for="nvEsp">Especialidade</label><input id="nvEsp" autocomplete="off"></div>
+        </div>
+        <div class="row">
+          <button class="btn primary" style="flex:1" id="nvEnviar">Enviar convite</button>
+          <button class="btn" id="nvCancelar">Cancelar</button>
+        </div>
+        <div class="stage" style="margin:0"><b>Ninguém define a senha de outra pessoa.</b>
+          A pessoa recebe um link por e-mail e escolhe a própria — nem você chega a conhecê-la.</div>
+      </div></div>`;
+  }else if(equipeEdit){
+    const u = equipeEdit;
+    const eu = u.id === (DB.meuId || (usuario&&usuario.id));
+    form = `<div class="card" style="margin-bottom:10px">
+      <div class="eyebrow">Editar ${u.nome}</div>
+      <div style="display:flex;flex-direction:column;gap:11px;margin-top:9px">
+        <div class="field"><label for="eqNome">Nome</label>
+          <input id="eqNome" value="${u.nome.replace(/"/g,"&quot;")}" autocomplete="off"></div>
+        <div class="grid2">
+          <div class="field"><label for="eqPerfil">Perfil</label>
+            <select id="eqPerfil">${Object.entries(PERFIS).map(([k,p])=>
+              `<option value="${PERFIL_APP2DB[k]}" ${PERFIL_APP2DB[k]===u.perfil?"selected":""}>${p.rotulo}</option>`).join("")}</select></div>
+          <div class="field"><label for="eqCro">CRO</label>
+            <input id="eqCro" value="${(u.cro||"").replace(/"/g,"&quot;")}" autocomplete="off"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="eqTel">Telefone</label>
+            <input id="eqTel" value="${(u.telefone||"").replace(/"/g,"&quot;")}" autocomplete="off"></div>
+          <div class="field"><label for="eqEsp">Especialidade</label>
+            <input id="eqEsp" value="${(u.especialidade||"").replace(/"/g,"&quot;")}" autocomplete="off"></div>
+        </div>
+        <div class="field"><label>Cor na agenda</label>
+          <div class="row" id="eqCores">${CORES_EQUIPE.map(c=>
+            `<button class="cor-opt${c===u.cor?" sel":""}" data-cor="${c}" style="background:${c}" aria-label="cor"></button>`).join("")}</div></div>
+        ${eu ? '<div class="stage" style="margin:0">Você não pode desativar a própria conta por aqui.</div>'
+             : `<label class="tog"><input type="checkbox" id="eqAtivo" ${u.ativo?"checked":""}>
+                 <span>Acesso <b>ativo</b> — desativado não entra, mas o histórico dele fica</span></label>`}
+        <div class="row">
+          <button class="btn primary" style="flex:1" id="eqSalvar">Salvar</button>
+          <button class="btn" id="eqCancelar">Cancelar</button>
+        </div>
+        <div class="stage" style="margin:0">Ninguém é apagado: o prontuário precisa saber quem
+          registrou cada atendimento. Quem sai é desativado.</div>
+      </div></div>`;
+  }
+
+  return `${form}
+    ${(!convidando && !equipeEdit)?'<button class="btn primary wide" id="novoAcesso" style="margin-bottom:10px">+ Novo acesso</button>':""}
+    <div class="list">${lista}</div>`;
+}
+
+/* ---------- pedidos de acesso ---------- */
+function htmlPedidos(){
+  const pend = (S.solicitacoes||[]).filter(s=>s.status==="pendente");
+  if(!pend.length) return '<div class="empty">Nenhum pedido aguardando aprovação.</div>';
+  return `<div class="list">${pend.map(s=>`
+    <div class="item"><div class="av">${s.nome.slice(0,1)}</div>
+      <div class="main"><b>${s.nome}</b>
+        <small>${s.email} · quer entrar como ${PERFIS[s.perfil].rotulo} · pedido em ${fmtData(s.em)}</small>
+        <div class="rowbtns">
+          <button class="minibtn" data-ap="${s.id}">Aprovar e convidar</button>
+          <button class="minibtn" data-rec="${s.id}" style="color:var(--crit)">Recusar</button>
+        </div></div></div>`).join("")}</div>
+    <div class="stage">Aprovar aqui envia o convite por e-mail e já cria o perfil. A senha é
+      escolhida pela própria pessoa.</div>`;
+}
+
+/* ---------- ligações ---------- */
+function ligarConfig(){
+  // unidade
+  const cs = $("#cSalvar");
+  if(cs) cs.addEventListener("click", async ()=>{
+    const abre=$("#cAbre").value, fecha=$("#cFecha").value;
+    if(abre >= fecha){ toast("O horário de fechar precisa ser depois do de abrir."); return; }
+    const d = {nome:$("#cNome").value.trim(), razao_social:$("#cRazao").value.trim()||null,
+      cnpj:$("#cCnpj").value.replace(/\D/g,"")||null, telefone:$("#cTel").value.trim()||null,
+      email:$("#cEmail").value.trim()||null, cro_clinica:$("#cCro").value.trim()||null,
+      cep:$("#cCep").value.replace(/\D/g,"")||null, logradouro:$("#cLog").value.trim()||null,
+      numero:$("#cNum").value.trim()||null, complemento:$("#cComp").value.trim()||null,
+      bairro:$("#cBairro").value.trim()||null, cidade:$("#cCidade").value.trim()||null,
+      uf:$("#cUf").value||null, hora_abertura:abre, hora_fechamento:fecha};
+    if(!d.nome){ toast("A unidade precisa de um nome."); return; }
+    cs.disabled=true; cs.textContent="Salvando…";
+    try{
+      await CFG.salvarClinica(d);
+      Object.assign(cfg.clinica, d);
+      $("#clinicLabel").textContent = d.nome;
+      toast("Dados da unidade salvos.");
+    }catch(e){ toast("Não salvou: "+e.message); }
+    finally{ cs.disabled=false; cs.textContent="Salvar dados da unidade"; }
+  });
+
+  // salas
+  const ns = $("#novaSala");
+  if(ns) ns.addEventListener("click", ()=>{ salaEdit={nome:"",tipo:"clinica",ativa:true}; renderConfig(); });
+  $$("#cfgCorpo button[data-sala]").forEach(b=>b.addEventListener("click", ()=>{
+    salaEdit = {...cfg.salas.find(s=>s.id===b.dataset.sala)}; renderConfig();
+  }));
+  const sc = $("#sCancelar");
+  if(sc) sc.addEventListener("click", ()=>{ salaEdit=null; renderConfig(); });
+  $$("#sCores .cor-opt").forEach(b=>b.addEventListener("click", ()=>{
+    salaEdit.cor = salaEdit.cor===b.dataset.cor ? null : b.dataset.cor; renderConfig();
+  }));
+  const ss = $("#sSalvar");
+  if(ss) ss.addEventListener("click", async ()=>{
+    const nome = $("#sNome").value.trim();
+    if(!nome){ toast("A sala precisa de um nome."); $("#sNome").focus(); return; }
+    if(cfg.salas.some(s=>norm(s.nome)===norm(nome) && s.id!==salaEdit.id)){
+      toast("Já existe uma sala com esse nome."); return; }
+    const d = {nome, tipo:$("#sTipo").value, ordem:+$("#sOrdem").value||1,
+      descricao:$("#sDesc").value.trim()||null, cor:salaEdit.cor||null};
+    if($("#sAtiva")) d.ativa = $("#sAtiva").checked;
+    ss.disabled=true;
+    try{
+      await CFG.salvarSala(salaEdit.id, d);
+      salaEdit=null;
+      agenda.salas=[];                      // a agenda relê as salas
+      await CFG.carregar(); renderConfig();
+      toast("Sala salva.");
+    }catch(e){ toast("Não salvou: "+e.message); ss.disabled=false; }
+  });
+
+  // equipe
+  const na = $("#novoAcesso");
+  if(na) na.addEventListener("click", ()=>{ convidando=true; equipeEdit=null; renderConfig(); });
+  const nc = $("#nvCancelar");
+  if(nc) nc.addEventListener("click", ()=>{ convidando=false; renderConfig(); });
+  $$("#cfgCorpo button[data-eq]").forEach(b=>b.addEventListener("click", ()=>{
+    equipeEdit = {...cfg.equipe.find(u=>u.id===b.dataset.eq)}; convidando=false; renderConfig();
+  }));
+  const ec = $("#eqCancelar");
+  if(ec) ec.addEventListener("click", ()=>{ equipeEdit=null; renderConfig(); });
+  $$("#eqCores .cor-opt").forEach(b=>b.addEventListener("click", ()=>{
+    equipeEdit.cor = equipeEdit.cor===b.dataset.cor ? null : b.dataset.cor; renderConfig();
+  }));
+  const es = $("#eqSalvar");
+  if(es) es.addEventListener("click", async ()=>{
+    const d = {nome:$("#eqNome").value.trim(), perfil:$("#eqPerfil").value,
+      cro:$("#eqCro").value.trim()||null, telefone:$("#eqTel").value.trim()||null,
+      especialidade:$("#eqEsp").value.trim()||null, cor:equipeEdit.cor||null};
+    if(d.nome.split(" ").filter(Boolean).length<2){ toast("Informe nome e sobrenome."); return; }
+    if($("#eqAtivo")) d.ativo = $("#eqAtivo").checked;
+    es.disabled=true;
+    try{
+      await CFG.salvarUsuario(equipeEdit.id, d);
+      equipeEdit=null;
+      await CFG.carregar();
+      if(MODO==="nuvem"){ try{ await DB.quemSou(); }catch(e){} }
+      renderConfig(); renderAll();
+      toast("Perfil salvo.");
+    }catch(e){
+      // a trava do último administrador chega por aqui, e a mensagem do
+      // banco já explica o que fazer
+      toast(e.message); es.disabled=false;
+    }
+  });
+
+  const ne = $("#nvEnviar");
+  if(ne) ne.addEventListener("click", async ()=>{
+    const d = {nome:$("#nvNome").value.trim(), email:$("#nvEmail").value.trim(),
+      perfil:$("#nvPerfil").value, cro:$("#nvCro").value.trim()||null,
+      telefone:$("#nvTel").value.trim()||null, especialidade:$("#nvEsp").value.trim()||null};
+    if(d.nome.split(" ").filter(Boolean).length<2){ toast("Informe nome e sobrenome."); $("#nvNome").focus(); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ toast("E-mail inválido."); $("#nvEmail").focus(); return; }
+    ne.disabled=true; ne.textContent="Enviando…";
+    try{
+      const r = await CFG.criarAcesso(d);
+      convidando=false;
+      await CFG.carregar(); renderConfig();
+      toast(r.mensagem || "Convite enviado.");
+    }catch(e){ toast(e.message); ne.disabled=false; ne.textContent="Enviar convite"; }
+  });
+
+  // pedidos
+  $$("#cfgCorpo button[data-ap]").forEach(b=>b.addEventListener("click", async ()=>{
+    const s = S.solicitacoes.find(x=>x.id===b.dataset.ap); if(!s) return;
+    b.disabled=true;
+    try{
+      if(MODO==="nuvem"){
+        await CFG.criarAcesso({nome:s.nome, email:s.email, perfil:PERFIL_APP2DB[s.perfil]});
+        await CFG.carregar();
+      }else{
+        S.usuarios.push({id:"u"+Date.now(), nome:s.nome, email:s.email, perfil:s.perfil,
+          senha:s.senha, ativo:true});
+        save();
+      }
+      s.status="aprovada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
+      salvarFila(); renderConfig();
+      toast(s.nome+" aprovado — convite enviado.");
+    }catch(e){ toast("Não deu para aprovar: "+e.message); b.disabled=false; }
+  }));
+  $$("#cfgCorpo button[data-rec]").forEach(b=>b.addEventListener("click", ()=>{
+    const s = S.solicitacoes.find(x=>x.id===b.dataset.rec); if(!s) return;
+    s.status="recusada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
+    salvarFila(); renderConfig(); toast("Pedido de "+s.nome+" recusado.");
+  }));
+}
+
+/* ===================== mini agenda na lateral =====================
+   Atalho, não substituto: mostra o que é de HOJE, de quem está logado,
+   na sala escolhida. Dentista vê os próprios horários; quem coordena
+   (administrador, secretária, financeiro) vê os de todo mundo — é essa a
+   diferença entre atender e organizar o dia. */
+function renderMiniAgenda(){
+  const box = $("#miniAgenda"); if(!box) return;
+  if(!usuario || !pode("agenda") && !PERFIS[usuario.perfil].telas.includes("agenda")){
+    box.hidden = true; return;
+  }
+  const iso = diaISO(hoje);
+  const meu = DB.meuId || usuario.id;
+  const soMeus = usuario.perfil === "Dentista";
+  let evs = agenda.eventos
+    .filter(e => diaISO(new Date(e.inicio)) === iso)
+    .filter(e => OCUPA.includes(e.status))
+    .filter(e => !agenda.sala || !e.sala_id || e.sala_id === agenda.sala)
+    .filter(e => !soMeus || e.dentista_id === meu)
+    .sort((a,b)=> a.inicio < b.inicio ? -1 : 1);
+
+  const agora = minDe(new Date());
+  const proximos = evs.filter(e => minDe(new Date(e.fim)) >= agora);
+  const mostrar = (proximos.length ? proximos : evs).slice(0,5);
+
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="mini-cab">
+      <span>Hoje</span>
+      <b>${evs.length}</b>
+    </div>
+    ${mostrar.length ? mostrar.map(e=>{
+      const s = sitDe(e.status);
+      const d = new Date(e.inicio); const z=n=>String(n).padStart(2,"0");
+      const passou = minDe(new Date(e.fim)) < agora;
+      return `<button class="mini-ev${passou?" passou":""}" data-ev="${e.id}"
+          title="${(e.paciente||e.titulo||s.rot)} · ${s.rot}">
+        <i style="background:${s.texto}"></i>
+        <span class="hh mono">${z(d.getHours())}:${z(d.getMinutes())}</span>
+        <span class="nm">${e.paciente || e.titulo || s.rot}</span>
+      </button>`;
+    }).join("") : '<div class="mini-vazio">nada marcado</div>'}
+    ${evs.length > mostrar.length ? `<div class="mini-vazio">+${evs.length-mostrar.length} mais cedo</div>` : ""}
+    <button class="mini-abrir" id="miniAbrir">ver agenda</button>`;
+
+  box.querySelectorAll(".mini-ev").forEach(b=>b.addEventListener("click", ()=>{
+    agenda.ano=hoje.getFullYear(); agenda.mes=hoje.getMonth(); agenda.dia=iso;
+    document.querySelector(".tab[data-scr='agenda']").click();
+    renderAgenda();
+    setTimeout(()=>{
+      const alvo = document.querySelector(`.slot2[data-ev="${b.dataset.ev}"]`);
+      if(alvo) alvo.scrollIntoView({behavior:"smooth", block:"center"});
+    }, 160);
+  }));
+  const ab = $("#miniAbrir");
+  if(ab) ab.addEventListener("click", ()=>{
+    agenda.ano=hoje.getFullYear(); agenda.mes=hoje.getMonth(); agenda.dia=iso;
+    document.querySelector(".tab[data-scr='agenda']").click();
+  });
+}
+
 function renderFinanceiro(){
   const atd=S.atendimentos.slice().sort((a,b)=>a.data<b.data?1:-1);
   $("#finTiles").innerHTML=`
@@ -4065,73 +4631,21 @@ function renderFinanceiro(){
   }).join("") || '<div class="empty">Nenhum atendimento no período.</div>';
 }
 
-/* ===================== acessos (admin) =====================*/
+/* ===================== acessos (admin) =====================
+   A tela virou Configurações (unidade, salas, equipe, pedidos); aqui
+   fica só o que amarra o botão do topo a ela. */
 function renderAcessos(){
-  const pend=S.solicitacoes.filter(s=>s.status==="pendente");
-  $("#solCount").textContent = pend.length ? pend.length+" pendente(s)" : "nenhuma pendente";
-  $("#acessosBtn").hidden = !pode("admin");
-  $("#acessosBtn").textContent = pend.length ? "●" : "◔";
-  $("#acessosBtn").style.color = pend.length ? "var(--crit)" : "";
-  const sl=$("#solList"); sl.innerHTML="";
-  if(!pend.length) sl.innerHTML='<div class="empty">Nenhuma solicitação aguardando aprovação.</div>';
-  pend.forEach(s=>{
-    const el=document.createElement("div"); el.className="item";
-    el.innerHTML=`<div class="av">${s.nome.slice(0,1)}</div>
-      <div class="main"><b>${s.nome}</b><small>${s.email} · quer entrar como ${PERFIS[s.perfil].rotulo} · pedido em ${fmtData(s.em)}</small>
-      <div class="rowbtns"><button class="minibtn" data-ap="${s.id}">Aprovar</button>
-      <button class="minibtn" data-rec="${s.id}" style="color:var(--crit)">Recusar</button></div></div>`;
-    sl.appendChild(el);
-  });
-  const ul=$("#userList"); ul.innerHTML="";
-  S.usuarios.forEach(u=>{
-    const el=document.createElement("div"); el.className="item";
-    el.innerHTML=`<div class="av">${u.nome.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
-      <div class="main"><b>${u.nome}</b><small>${u.email} · ${PERFIS[u.perfil].rotulo}${u.aprovadoPor?" · aprovado por "+u.aprovadoPor:""}</small></div>
-      <div class="end"><span class="pill ${u.ativo?"ok":"neutral"}">${u.ativo?"ativo":"inativo"}</span>
-      ${u.id!==usuario.id?`<button class="minibtn" data-tog="${u.id}">${u.ativo?"desativar":"reativar"}</button>`:""}</div>`;
-    ul.appendChild(el);
-  });
+  const pend = (S.solicitacoes||[]).filter(s=>s.status==="pendente");
+  const bt = $("#acessosBtn");
+  bt.hidden = !pode("admin");
+  bt.textContent = pend.length ? "●" : "⚙";
+  bt.title = pend.length ? pend.length+" pedido(s) de acesso" : "Configurações";
+  bt.style.color = pend.length ? "var(--crit)" : "";
+  const c = $("#solCount");
+  if(c) c.textContent = pend.length ? pend.length+" pedido(s) pendente(s)" : "";
+  if($("#scr-acessos").classList.contains("on")) renderConfig();
 }
-$("#solList").addEventListener("click", ev=>{
-  const ap=ev.target.closest("button[data-ap]"), rec=ev.target.closest("button[data-rec]");
-  if(ap){
-    const s=S.solicitacoes.find(x=>x.id===ap.dataset.ap);
-    s.status="aprovada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
-    if(MODO!=="nuvem"){
-      S.usuarios.push({id:"u"+Date.now(), nome:s.nome, email:s.email, perfil:s.perfil, senha:s.senha,
-        ativo:true, aprovadoPor:usuario.nome});
-      save();
-    }
-    salvarFila(); renderAcessos();
-    if(MODO==="nuvem"){
-      // Criar login é operação administrativa do banco: exige chave de
-      // serviço, que não pode viver dentro de uma página. O app registra a
-      // aprovação; a conta nasce no painel, e a pessoa define a própria senha.
-      toast("Aprovado. Crie o login de "+s.nome+" no painel do Supabase — "+
-            "o passo a passo está no quadro ao lado.");
-    }else{
-      toast(s.nome+" aprovado como "+PERFIS[s.perfil].rotulo+".");
-    }
-  }
-  if(rec){
-    const s=S.solicitacoes.find(x=>x.id===rec.dataset.rec);
-    s.status="recusada"; s.decididoPor=usuario.nome; s.decididoEm=ISO(hoje);
-    save(); salvarFila(); renderAcessos(); toast("Solicitação de "+s.nome+" recusada.");
-  }
-});
-$("#userList").addEventListener("click", ev=>{
-  const b=ev.target.closest("button[data-tog]"); if(!b) return;
-  const u=S.usuarios.find(x=>x.id===b.dataset.tog);
-  u.ativo=!u.ativo; save(); renderAcessos();
-  if(u.nuvem) naNuvem(()=>DB.alternarUsuario(u), "acesso do usuário").then(renderAcessos);
-  toast(u.nome+(u.ativo?" reativado.":" desativado — não consegue mais entrar."));
-});
-$("#acessosBtn").addEventListener("click", ()=>{
-  $$(".screen").forEach(s=>s.classList.remove("on"));
-  $("#scr-acessos").classList.add("on");
-  $$(".tab").forEach(x=>x.removeAttribute("aria-current"));
-  renderAcessos(); window.scrollTo({top:0});
-});
+$("#acessosBtn").addEventListener("click", ()=>abrirConfig());
 $("#voltarAcessos").addEventListener("click", ()=>{
   const t=$$(".tab").find(x=>!x.hidden); if(t) t.click();
 });
@@ -4175,6 +4689,9 @@ $("#demoHint").innerHTML = "<b>Acessos de demonstração</b><br>"+
 function entrarNoApp(){
   $("#loginScreen").hidden=true; $("#appRoot").hidden=false;
   aplicarPermissoes(); renderAll();
+  // a mini agenda da lateral precisa dos compromissos de hoje já no
+  // primeiro segundo; sem isso o atalho abre vazio e parece quebrado
+  carregarAgenda();
 }
 async function entrar(){
   const bruto=$("#inUser").value.trim(), ident=norm(bruto), senha=$("#inSenha").value;
@@ -4317,6 +4834,7 @@ function renderAll(){
   $("#procList").innerHTML=PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
   renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderFinanceiro();
   if(agenda.eventos.length || agenda.salas.length) renderAgenda();
+  renderMiniAgenda();
   if(pode("admin")) renderAcessos();
 }
 $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
