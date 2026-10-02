@@ -77,6 +77,56 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:
 a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:4px}
 
+/* ---------- agenda ---------- */
+.cal-topo{display:flex;align-items:center;gap:9px}
+.cal-topo b{flex:1;font-family:var(--f-display);font-size:16px;font-weight:700}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px;box-shadow:var(--shadow-sm)}
+.cal-cab{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px}
+.cal-cab span{text-align:center;font-size:10px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);padding:4px 0}
+.cal-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dia{position:relative;aspect-ratio:1.25;max-height:88px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:2px;min-height:40px}
+.dia:hover{border-color:var(--accent)}
+.dia.fora{border:none;background:transparent;pointer-events:none}
+.dia.fds{background:var(--surface-2)}
+.dia.hoje{border-color:var(--accent);border-width:2px}
+.dia.sel{background:var(--accent);border-color:transparent}
+.dia.sel .n{color:var(--accent-ink)}
+.dia .n{font-family:var(--f-mono);font-size:13px;font-weight:600;line-height:1}
+.dia .pts{display:flex;gap:2px;height:5px}
+.dia .pts i{width:5px;height:5px;border-radius:50%;display:block}
+.dia .qt{position:absolute;top:2px;right:4px;font-size:9px;color:var(--ink-3);font-family:var(--f-mono)}
+.dia.sel .qt{color:var(--accent-ink);opacity:.75}
+.dia-grade{display:flex;flex-direction:column;gap:4px}
+.slot2{display:flex;gap:10px;align-items:stretch;cursor:pointer}
+.slot2 .h{width:48px;flex:none;font-size:11.5px;color:var(--ink-3);padding-top:11px}
+.slot2 .corpo{flex:1;min-width:0;background:var(--c);border:1px solid var(--line);
+  border-left:3px solid var(--ct);border-radius:var(--r-sm);padding:8px 11px;display:flex;align-items:center}
+.slot2:hover .corpo{border-color:var(--accent)}
+.slot2 .t{min-width:0}
+.slot2 .t b{display:block;font-size:13.5px;color:var(--ct)}
+.slot2 .t small{display:block;font-size:11px;color:var(--ink-3);line-height:1.4}
+.slot2 .t small.quem{color:var(--ink-2)}
+.slot2 .t small.quem.outro{color:var(--warn);font-weight:600}
+
+/* ---------- odontograma ---------- */
+.arcada{margin-top:10px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:var(--r);padding:6px;overflow-x:auto}
+.arcada svg{width:100%;min-width:620px;height:auto;display:block}
+.numdente{font-family:var(--f-mono);font-size:13px;font-weight:600;fill:var(--ink-2)}
+.rotArco{font-size:11px;fill:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+.face{cursor:pointer;transition:opacity .12s}
+.face:hover{opacity:.62}
+.alvo{cursor:pointer}
+.legenda{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:9px;font-size:10.5px;color:var(--ink-2)}
+.legenda span{display:inline-flex;align-items:center;gap:4px}
+.legenda i{width:9px;height:9px;border-radius:2px;border:1px solid var(--line-2);flex:none}
+.dente-painel{margin-top:12px;background:var(--surface-2);border:1px solid var(--line-2);
+  border-radius:var(--r);padding:13px;display:flex;flex-direction:column;gap:10px}
+
 /* ---------- exames ---------- */
 .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:9px}
 .exame{display:flex;flex-direction:column;gap:0;text-align:left;background:var(--surface);
@@ -639,18 +689,10 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 
     <!-- ===== AGENDA ===== -->
     <section class="screen" id="scr-agenda">
-      <div class="banner" id="urgBanner" hidden>
-        <div>🚨</div><div><b>Emergência sinalizada</b><p id="urgText"></p></div>
-      </div>
-      <div class="sec-h"><h2 id="agendaDay">Agenda</h2><span class="hint" id="agendaFree"></span></div>
-      <div class="row">
-        <button class="btn" id="encaixeBtn">Sugerir encaixe</button>
-        <button class="btn" id="urgBtn">Simular dor intensa</button>
-      </div>
-      <div class="list" id="agendaList" style="gap:6px"></div>
-      <div class="stage"><b>Etapa 2 — WhatsApp:</b> acompanhamento automático após o atendimento; resposta fora do padrão
-        devolve os 3 horários livres mais próximos, e dor intensa dispara alerta imediato.
-        <b>Etapa 3:</b> financeiro, cartão e confirmação automática.</div>
+      <div id="agendaBox"><div class="empty">carregando a agenda…</div></div>
+      <div class="stage"><b>Etapa 2 — WhatsApp:</b> acompanhamento automático após o atendimento;
+        resposta fora do padrão devolve os 3 horários livres mais próximos, e dor intensa
+        dispara alerta imediato. <b>Etapa 3:</b> financeiro, cartão e confirmação automática.</div>
     </section>
 
     <!-- ===== FINANCEIRO ===== -->
@@ -919,7 +961,6 @@ const DB = {
              .filter(m=>m.id!==undefined),
         obs:(nota&&nota.nota)||""};
     });
-    await DB.carregarAgenda();
     await DB.carregarLotes();
   },
 
@@ -959,22 +1000,6 @@ const DB = {
 
   diaISO(d){ const z=n=>String(n).padStart(2,"0");
     return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); },
-
-  async carregarAgenda(){
-    const ini = new Date(hoje); ini.setHours(0,0,0,0);
-    const fim = new Date(ini);  fim.setDate(fim.getDate()+1);
-    const rows = await DB.rest("GET","agendamentos?select=id,inicio,duracao_min,procedimento,status,"+
-      "pacientes(nome)&inicio=gte."+encodeURIComponent(ini.toISOString())+
-      "&inicio=lt."+encodeURIComponent(fim.toISOString())+"&status=not.in.(cancelado,faltou)&order=inicio");
-    S.agenda = rows.map(a=>{
-      const d = new Date(a.inicio); const z=n=>String(n).padStart(2,"0");
-      const curto = "g_"+a.id.slice(0,8); UID.agd[curto]=a.id;
-      const pn = Array.isArray(a.pacientes)?a.pacientes[0]:a.pacientes;
-      return {id:curto, h:z(d.getHours())+":"+z(d.getMinutes()), dur:a.duracao_min,
-        pac:(pn&&pn.nome)||"(sem paciente)", proc:a.procedimento||"—",
-        urgente:(a.status==="encaixe"||a.status==="emergencia")};
-    });
-  },
 
   async recarregarEstoque(){
     const est = await DB.rest("GET","estoque?select=material_id,saldo");
@@ -1047,7 +1072,6 @@ const DB = {
     await DB.rest("POST","agendamentos",
       {clinica_id:DB.clinica, paciente_id:pid, inicio:d.toISOString(), duracao_min:dur||30,
        procedimento:proc||null, status:status||"encaixe", criado_por:DB.meuId});
-    await DB.carregarAgenda();
   },
 
 
@@ -1299,11 +1323,7 @@ const SEED = {
      mats:[["par_pro",1],["teflon",1],["carbono",1]].map(([id,q])=>({id,q})),
      obs:"Parafuso do pilar esquerdo reapertado a 15 N·cm"}
   ],
-  agenda:[
-    {h:"08:00", dur:60, pac:"Jorge Nakamura", proc:"Manutenção de overdenture"},
-    {h:"10:00", dur:90, pac:"Sandra Toledo", proc:"Prova do protocolo superior"},
-    {h:"14:00", dur:60, pac:"Roberto Lima", proc:"Segunda fase cirúrgica (reabertura)"}
-  ]
+  agendaMes: []
 };
 
 
@@ -1332,7 +1352,9 @@ window.addEventListener("orientationchange", ()=>setTimeout(classificarAparelho,
 classificarAparelho();
 
 /* ===================== estado =====================*/
-const KEY="meu-dentista-v9";
+// a chave sobe de versão junto com o formato do estado: sobra de versão
+// antiga no navegador abria a tela com dado no formato errado
+const KEY="meu-dentista-v13";
 let S;
 function load(){
   try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}
@@ -1342,6 +1364,31 @@ function migrar(){
   if(!S.usuarios) S.usuarios = JSON.parse(JSON.stringify(USUARIOS_SEED));
   if(!S.solicitacoes) S.solicitacoes = [];
   if(!S.lotes) S.lotes = JSON.parse(JSON.stringify(SEED.lotes||[]));
+  // array vazio é VERDADEIRO em JavaScript: sem checar o tamanho, o
+  // seed nunca rodava e o calendário abria vazio
+  if(!S.agendaMes || !S.agendaMes.length){
+    // agenda de demonstração ancorada em HOJE, senão o calendário abre vazio
+    const z=n=>String(n).padStart(2,"0");
+    const dia = d => { const x=new Date(); x.setDate(x.getDate()+d);
+      return x.getFullYear()+"-"+z(x.getMonth()+1)+"-"+z(x.getDate()); };
+    const faz = (d,h,m,dur,status,pac,proc,dent,titulo)=>{
+      const ini=new Date(dia(d)+"T00:00:00"); ini.setHours(h,m,0,0);
+      return {id:"g"+d+h+m, sala_id:"s1", sala:"Consultório 1",
+        inicio:ini.toISOString(), fim:new Date(ini.getTime()+dur*60000).toISOString(),
+        duracao_min:dur, status, procedimento:proc||null, titulo:titulo||null,
+        dentista_id:dent, dentista:(USUARIOS_SEED.find(u=>u.id===dent)||{}).nome||null,
+        paciente_id:null, paciente:pac||null};
+    };
+    S.agendaMes = [
+      faz(0, 8,0,60,"confirmado","Jorge Nakamura","Manutenção de overdenture","u1"),
+      faz(0,10,0,90,"agendado","Sandra Toledo","Prova do protocolo superior","u1"),
+      faz(0,14,0,60,"bloqueado",null,null,"u5","Cirurgia longa — sala reservada"),
+      faz(0,16,0,30,"atendido","Roberto Lima","Reavaliação","u1"),
+      faz(1, 9,0,60,"agendado","Ana Clara Souza","Moldagem","u1"),
+      faz(1,11,0,30,"cancelado","Jorge Nakamura","Retorno","u1"),
+      faz(3,14,0,120,"bloqueado",null,null,"u1","Reunião de equipe")
+    ];
+  }
   if(!S.sugeridos) S.sugeridos = null;
   if(!S.validade){
     // no modo demo o alerta de validade é calculado aqui; na nuvem vem
@@ -1983,6 +2030,564 @@ $("#diagBtn").addEventListener("click", diagnosticar);
 
 
 
+
+/* ===================== anamnese =====================
+   Versionada, nunca sobrescrita: prontuário tem valor legal e prazo de
+   guarda. Se o paciente disser hoje que não é alérgico e houver registro
+   anterior de alergia, os dois ficam. Corrigir significa criar a versão
+   seguinte — e é o banco que recusa UPDATE, não a tela. */
+const ANAM_BANDEIRAS = [
+  ["bifosfonato",       "Usa ou usou bifosfonato",      "risco de osteonecrose dos maxilares"],
+  ["anticoagulante",    "Usa anticoagulante",           "risco hemorrágico na cirurgia"],
+  ["diabetes",          "Diabetes",                     "cicatrização e osseointegração"],
+  ["alteracao_cardiaca","Alteração cardíaca",           "avaliar profilaxia antibiótica"],
+  ["gestante",          "Gestante",                     "evitar radiografia e adiar eletivo"],
+  ["fumante",           "Fumante",                      "maior taxa de falha do implante"]
+];
+const ANAM_TEXTOS = [
+  ["alergias",         "Alergias",              "medicamentos, látex, anestésicos…"],
+  ["medicacoes_uso",   "Medicações em uso",     "nome e dose, se souber"],
+  ["doencas_cronicas", "Doenças crônicas",      "hipertensão, osteoporose, autoimunes…"],
+  ["cirurgias_previas","Cirurgias prévias",     "e como foi a recuperação"]
+];
+
+const ANAM = {
+  async carregar(pacLocal){
+    if(MODO!=="nuvem") return (S.anamneses||{})[pacLocal] || null;
+    const pid = UID.pac[pacLocal]; if(!pid) return null;
+    const r = await DB.rest("GET","anamneses?select=id,versao,alergias,medicacoes_uso,doencas_cronicas,"+
+      "cirurgias_previas,fumante,gestante,anticoagulante,bifosfonato,diabetes,alteracao_cardiaca,"+
+      "observacoes,preenchida_em&paciente_id=eq."+pid+"&order=versao.desc&limit=1");
+    return r[0] || null;
+  },
+  async salvar(pacLocal, d){
+    if(MODO!=="nuvem"){
+      (S.anamneses=S.anamneses||{})[pacLocal] = {...d, versao:((S.anamneses[pacLocal]||{}).versao||0)+1,
+        preenchida_em:new Date().toISOString()};
+      save(); return;
+    }
+    const pid = UID.pac[pacLocal]; if(!pid) throw new Error("Paciente ainda não gravado no banco.");
+    // versao sai nula de propósito: quem numera é o gatilho, senão duas
+    // telas abertas gerariam a mesma versão
+    await DB.rest("POST","anamneses", {...d, paciente_id:pid, preenchida_por:DB.meuId});
+  },
+  /* as bandeiras que o dentista precisa ver ANTES de operar */
+  alertas(a){
+    if(!a) return [];
+    const out = ANAM_BANDEIRAS.filter(([k])=>a[k]).map(([k,rot,porque])=>rot+" — "+porque);
+    if((a.alergias||"").trim()) out.unshift("Alergias: "+a.alergias.trim());
+    return out;
+  }
+};
+
+let anamVigente = null, anamEditando = false;
+
+function htmlAlertasAnam(){
+  const al = ANAM.alertas(anamVigente);
+  if(!al.length) return "";
+  return `<div class="banner" style="margin-top:10px">
+    <div>⚠️</div><div style="flex:1">
+      <b style="color:var(--crit)">Antes de qualquer procedimento</b>
+      <ul style="margin:5px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6">
+        ${al.map(x=>`<li>${x}</li>`).join("")}
+      </ul></div></div>`;
+}
+
+function htmlAnamnese(){
+  if(!pode("verClinico")) return "";
+  const a = anamVigente;
+  if(!anamEditando){
+    return `<div class="card" style="margin-top:10px">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <div class="eyebrow" style="flex:1">Anamnese</div>
+        ${a?`<span class="hint" style="font-size:11px;color:var(--ink-3)">versão ${a.versao} · ${fmtData((a.preenchida_em||"").slice(0,10))}</span>`:""}
+      </div>
+      ${a ? `
+        <div class="row" style="margin-top:8px">
+          ${ANAM_BANDEIRAS.filter(([k])=>a[k]).map(([k,rot])=>`<span class="pill crit">${rot}</span>`).join("")
+            || '<span class="pill ok">nenhuma bandeira clínica</span>'}
+        </div>
+        <dl class="dados">
+          ${ANAM_TEXTOS.map(([k,rot])=>`<div><dt>${rot}</dt><dd>${a[k]||'<span style="color:var(--ink-3)">não informado</span>'}</dd></div>`).join("")}
+          ${a.observacoes?`<div><dt>Avaliação</dt><dd style="white-space:pre-wrap">${a.observacoes}</dd></div>`:""}
+        </dl>`
+      : '<div class="empty" style="margin-top:8px">Nenhuma anamnese preenchida.</div>'}
+      ${pode("prontuario")?`<div class="rowbtns">
+        <button class="minibtn" id="anamEditar">${a?"Nova versão":"Preencher anamnese"}</button>
+      </div>`:""}
+    </div>`;
+  }
+  const v = a || {};
+  return `<div class="card" style="margin-top:10px">
+    <div class="eyebrow">Anamnese ${a?`— nova versão (a ${a.versao} continua guardada)`:""}</div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:10px">
+      <div class="stage" style="margin:0">Cada preenchimento cria uma versão. Nada é apagado:
+        a resposta de hoje não substitui a de um ano atrás.</div>
+      <div class="toggles">
+        ${ANAM_BANDEIRAS.map(([k,rot,porque])=>`
+          <label class="tog"><input type="checkbox" id="an_${k}" ${v[k]?"checked":""}>
+            <span><b>${rot}</b><br><small style="color:var(--ink-3)">${porque}</small></span></label>`).join("")}
+      </div>
+      ${ANAM_TEXTOS.map(([k,rot,ph])=>`
+        <div class="field"><label for="an_${k}">${rot}</label>
+          <input id="an_${k}" placeholder="${ph}" value="${(v[k]||"").replace(/"/g,"&quot;")}" autocomplete="off"></div>`).join("")}
+      <div class="field"><label for="an_observacoes">Avaliação do dentista</label>
+        <textarea id="an_observacoes" class="rasc" style="min-height:120px"
+          placeholder="Queixa principal, história da doença atual, exame clínico, hipótese diagnóstica, plano de tratamento…">${v.observacoes||""}</textarea></div>
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="anamSalvar">Salvar anamnese</button>
+        <button class="btn" id="anamCancelar">Cancelar</button>
+      </div>
+    </div></div>`;
+}
+
+function ligarAnamnese(pacId){
+  const be = $("#anamEditar");
+  if(be) be.addEventListener("click", ()=>{ anamEditando=true; abrirPaciente(pacId); });
+  const bc = $("#anamCancelar");
+  if(bc) bc.addEventListener("click", ()=>{ anamEditando=false; abrirPaciente(pacId); });
+  const bs = $("#anamSalvar");
+  if(!bs) return;
+  bs.addEventListener("click", async ()=>{
+    const d = {observacoes: $("#an_observacoes").value.trim() || null};
+    ANAM_BANDEIRAS.forEach(([k])=> d[k] = $("#an_"+k).checked);
+    ANAM_TEXTOS.forEach(([k])=> d[k] = $("#an_"+k).value.trim() || null);
+    bs.disabled=true; bs.textContent="Salvando…";
+    try{
+      await ANAM.salvar(pacId, d);
+      anamVigente = await ANAM.carregar(pacId);
+      anamEditando = false;
+      abrirPaciente(pacId);
+      toast("Anamnese salva" + (anamVigente?.versao ? " (versão "+anamVigente.versao+")" : "") + ".");
+      const al = ANAM.alertas(anamVigente);
+      if(al.length && vozLigada()) falar("Atenção: "+al.length+" bandeira clínica registrada.");
+    }catch(e){
+      toast("Não salvou a anamnese: "+e.message);
+      bs.disabled=false; bs.textContent="Salvar anamnese";
+    }
+  });
+}
+
+/* ===================== odontograma =====================
+   Numeração FDI (ISO 3950), que é o padrão internacional: dois dígitos,
+   quadrante + posição. A dentição mostrada vem da IDADE do paciente —
+   decídua, mista ou permanente — com as idades médias de erupção e
+   esfoliação. O dentista pode trocar à mão quando o caso fugir da média,
+   que é o normal em cadeira.
+
+   O dente é desenhado como a cruz de cinco faces do odontograma clássico
+   (centro = oclusal/incisal, e as quatro faces ao redor), mas os dentes
+   ficam dispostos em ARCO, como a boca é. */
+
+/* idades médias em ANOS. Fontes clássicas de odontopediatria; são médias,
+   e por isso existe o botão de trocar a dentição à mão. */
+const ERUPCAO_DECIDUA   = {1:0.7, 2:1.0, 3:1.6, 4:1.3, 5:2.3};
+const ESFOLIACAO_DECIDUA= {1:7,   2:8,   3:11,  4:10,  5:11};
+const ERUPCAO_PERMANENTE= {1:7, 2:8, 3:11, 4:10, 5:11, 6:6, 7:12, 8:19};
+
+const NOME_DENTE = {
+  1:"incisivo central", 2:"incisivo lateral", 3:"canino",
+  4:"primeiro pré-molar", 5:"segundo pré-molar",
+  6:"primeiro molar", 7:"segundo molar", 8:"terceiro molar (siso)"
+};
+const NOME_DENTE_DEC = {
+  1:"incisivo central", 2:"incisivo lateral", 3:"canino",
+  4:"primeiro molar", 5:"segundo molar"
+};
+const QUADRANTE = {1:"superior direito",2:"superior esquerdo",3:"inferior esquerdo",4:"inferior direito",
+                   5:"superior direito",6:"superior esquerdo",7:"inferior esquerdo",8:"inferior direito"};
+
+const CONDICOES = [
+  ["higido","Hígido","var(--surface)"],
+  ["carie","Cárie","var(--crit)"],
+  ["restauracao","Restauração","var(--accent)"],
+  ["coroa","Coroa","var(--warn)"],
+  ["protese","Prótese","#8A6BBF"],
+  ["implante","Implante","var(--ok)"],
+  ["endodontia","Endodontia","#C2679A"],
+  ["ausente","Ausente","var(--ink-3)"],
+  ["extraido","Extraído","var(--ink-3)"],
+  ["extracao_indicada","Extração indicada","#E06C4F"],
+  ["fratura","Fratura","#B5651D"],
+  ["mobilidade","Mobilidade","#A08A2B"],
+  ["retracao_gengival","Retração gengival","#7E9A6B"],
+  ["bolsa_periodontal","Bolsa periodontal","#6B8FA3"],
+  ["sangramento","Sangramento","#C0392B"],
+  ["calculo","Cálculo","#8C7B6B"],
+  ["outro","Outro","var(--ink-2)"]
+];
+const corCondicao = c => (CONDICOES.find(x=>x[0]===c)||[,,"var(--surface)"])[2];
+const rotuloCondicao = c => (CONDICOES.find(x=>x[0]===c)||[,c])[1];
+
+const FACES_POSTERIOR = [["oclusal","O"],["vestibular","V"],["lingual","L"],["mesial","M"],["distal","D"]];
+const FACES_ANTERIOR  = [["incisal","I"],["vestibular","V"],["palatina","P"],["mesial","M"],["distal","D"]];
+const ehAnterior = pos => pos <= 3;
+
+function idadeAnos(nasc){
+  if(!nasc) return null;
+  const d = new Date(nasc), h = new Date();
+  let a = h.getFullYear()-d.getFullYear();
+  const m = h.getMonth()-d.getMonth();
+  if(m<0 || (m===0 && h.getDate()<d.getDate())) a--;
+  return a + ((h - new Date(h.getFullYear(), d.getMonth(), d.getDate()))/31557600000 % 1);
+}
+function denticaoSugerida(idade){
+  if(idade===null) return "permanente";
+  if(idade < 6)  return "decidua";
+  if(idade < 12) return "mista";
+  return "permanente";
+}
+/* Quais dentes estão em boca nesta idade, pela média de erupção e
+   esfoliação. É o que dá "quantidade adequada para a idade". */
+function dentesEsperados(idade, modo){
+  const out=[];
+  const add=(q,p)=>out.push(q*10+p);
+  const temPerm = (p)=> idade===null || idade >= ERUPCAO_PERMANENTE[p];
+  const temDec  = (p)=> idade!==null && idade >= ERUPCAO_DECIDUA[p] && idade < ESFOLIACAO_DECIDUA[p];
+  if(modo==="decidua"){
+    [5,6,7,8].forEach(q=>[1,2,3,4,5].forEach(p=>{ if(idade===null||temDec(p)||idade>=3) add(q,p); }));
+  }else if(modo==="permanente"){
+    [1,2,3,4].forEach(q=>[1,2,3,4,5,6,7,8].forEach(p=>add(q,p)));
+  }else{ // mista: o que já irrompeu de permanente + o que ainda resta de decíduo
+    [1,2,3,4].forEach(q=>[1,2,3,4,5,6,7,8].forEach(p=>{ if(temPerm(p)) add(q,p); }));
+    [5,6,7,8].forEach(q=>[1,2,3,4,5].forEach(p=>{ if(temDec(p)) add(q,p); }));
+  }
+  return out;
+}
+
+/* ---------- desenho ---------- */
+/* Os dentes vão num arco elíptico — superior e inferior — porque é assim
+   que a boca é, e porque o dentista acha o 36 no lugar onde o 36 está.
+   Cada dente é a cruz de cinco faces do odontograma clássico. */
+/* A arcada não é meio círculo: se fosse, os sisos encostariam no lado
+   oposto e as duas arcadas fechariam um anel. O arco vai de 22° a 158°,
+   que deixa os molares para trás, como na boca, e separa superior de
+   inferior. */
+/* Os centros das duas elipses ficam do lado de DENTRO: o arco superior
+   tem centro abaixo dele e o inferior acima. É isso que aproxima as duas
+   arcadas da linha média sem que elas se cruzem. */
+const ARCO = {cx:390, rx:360, ry:215, supY:348, infY:222, a0:22, a1:158};
+function posArco(i, n, superior, escala, g0, g1){
+  const k = escala || 1;
+  const rx = ARCO.rx*k, ry = ARCO.ry*k;
+  const cy = superior ? ARCO.supY : ARCO.infY;
+  const t = n===1 ? 0.5 : i/(n-1);
+  const grau = (g0===undefined?ARCO.a0:g0) + ((g1===undefined?ARCO.a1:g1)-(g0===undefined?ARCO.a0:g0))*t;
+  const ang = grau*Math.PI/180;
+  const x = ARCO.cx - rx*Math.cos(ang);
+  const y = superior ? cy - ry*Math.sin(ang) : cy + ry*Math.sin(ang);
+  // direção para fora do arco, onde o número do dente fica sem colidir
+  const nx = -Math.cos(ang), ny = (superior ? -1 : 1)*Math.sin(ang);
+  return {x, y, nx, ny};
+}
+
+function svgDente(fdi, x, y, estados, esperado, nx, ny){
+  const q = Math.floor(fdi/10), p = fdi%10;
+  const anterior = ehAnterior(p);
+  const faces = anterior ? FACES_ANTERIOR : FACES_POSTERIOR;
+  const L = 30, h = L/2, t = L/3;        // tamanho do dente e da borda
+  const g = [];
+  const cor = f => {
+    const e = estados[fdi] && estados[fdi][f];
+    return e ? corCondicao(e.condicao) : (esperado ? "var(--surface)" : "transparent");
+  };
+  const traco = esperado ? "var(--line-2)" : "var(--line)";
+  // centro (oclusal ou incisal)
+  const centro = faces[0][0];
+  if(odonto.selecionado===fdi)
+    g.push(`<rect x="${x-h-4}" y="${y-h-4}" width="${L+8}" height="${L+8}" rx="4"
+      fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6" pointer-events="none"/>`);
+  g.push(`<rect x="${x-t/2}" y="${y-t/2}" width="${t}" height="${t}" fill="${cor(centro)}"
+      stroke="${traco}" stroke-width="1" data-f="${fdi}:${centro}" class="face"/>`);
+  // vestibular (cima), lingual/palatina (baixo), mesial e distal (lados)
+  const vest = faces[1][0], ling = faces[2][0], mes = faces[3][0], dis = faces[4][0];
+  // em quadrantes do lado esquerdo do paciente (2 e 3, 6 e 7) mesial/distal invertem
+  const dirInvertida = (q===2||q===3||q===6||q===7);
+  const esq = dirInvertida ? mes : dis, dir = dirInvertida ? dis : mes;
+  g.push(`<polygon points="${x-h},${y-h} ${x+h},${y-h} ${x+t/2},${y-t/2} ${x-t/2},${y-t/2}"
+      fill="${cor(vest)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${vest}" class="face"/>`);
+  g.push(`<polygon points="${x-h},${y+h} ${x+h},${y+h} ${x+t/2},${y+t/2} ${x-t/2},${y+t/2}"
+      fill="${cor(ling)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${ling}" class="face"/>`);
+  g.push(`<polygon points="${x-h},${y-h} ${x-h},${y+h} ${x-t/2},${y+t/2} ${x-t/2},${y-t/2}"
+      fill="${cor(esq)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${esq}" class="face"/>`);
+  g.push(`<polygon points="${x+h},${y-h} ${x+h},${y+h} ${x+t/2},${y+t/2} ${x+t/2},${y-t/2}"
+      fill="${cor(dir)}" stroke="${traco}" stroke-width="1" data-f="${fdi}:${dir}" class="face"/>`);
+  // dente inteiro marcado (ausente, extraído, implante…) ganha o X ou o selo
+  const inteiro = estados[fdi] && estados[fdi]["todo"];
+  if(inteiro){
+    const c = inteiro.condicao;
+    if(c==="ausente" || c==="extraido"){
+      g.push(`<path d="M${x-h},${y-h} L${x+h},${y+h} M${x+h},${y-h} L${x-h},${y+h}"
+        stroke="var(--crit)" stroke-width="2.4" fill="none" pointer-events="none"/>`);
+    }else{
+      g.push(`<circle cx="${x}" cy="${y}" r="${h+3}" fill="none"
+        stroke="${corCondicao(c)}" stroke-width="2.6" pointer-events="none"/>`);
+    }
+  }
+  // o número sai na direção de fora do arco: assim ele nunca cobre o
+  // dente vizinho, que é o que acontecia quando era sempre em cima
+  const d = h + 13;
+  const rx2 = (nx===undefined ? 0 : nx)*d, ry2 = (ny===undefined ? (q<=2||q>=5&&q<=6 ? -1 : 1) : ny)*d;
+  g.push(`<text x="${x+rx2}" y="${y+ry2+4}" class="numdente" text-anchor="middle"
+      opacity="${esperado?1:.35}">${fdi}</text>`);
+  // alvo invisível maior, para o toque no celular
+  g.push(`<rect x="${x-h}" y="${y-h}" width="${L}" height="${L}" fill="transparent"
+      data-dente="${fdi}" class="alvo"/>`);
+  return `<g>${g.join("")}</g>`;
+}
+
+let odonto = {estados:{}, historico:[], denticao:null, selecionado:null};
+
+function desenharOdontograma(pac){
+  const idade = idadeAnos(pac.nasc);
+  const modo = odonto.denticao || denticaoSugerida(idade);
+  const esperados = new Set(dentesEsperados(idade, modo));
+  // mostramos os esperados em cheio e os demais apagados, para o dentista
+  // conseguir anotar um dente fora da média sem trocar o modo
+  const todos = modo==="decidua"
+    ? [55,54,53,52,51,61,62,63,64,65, 85,84,83,82,81,71,72,73,74,75]
+    : modo==="mista"
+      ? [...[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],
+         ...[55,54,53,52,51,61,62,63,64,65],
+         ...[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],
+         ...[85,84,83,82,81,71,72,73,74,75]]
+      : [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
+         48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+
+  const sup = todos.filter(d=>{const q=Math.floor(d/10); return q===1||q===2||q===5||q===6;});
+  const inf = todos.filter(d=>{const q=Math.floor(d/10); return q===3||q===4||q===7||q===8;});
+  const ordenar = (arr, superior) => {
+    // da direita do paciente para a esquerda
+    const dir = arr.filter(d=>[1,4,5,8].includes(Math.floor(d/10))).sort((a,b)=>b%10-a%10);
+    const esq = arr.filter(d=>[2,3,6,7].includes(Math.floor(d/10))).sort((a,b)=>a%10-b%10);
+    return [...dir, ...esq];
+  };
+  const supO = ordenar(sup, true), infO = ordenar(inf, false);
+
+  // decíduos vão numa fileira interna quando a dentição é mista
+  const faixa = (lista, superior) => {
+    const perm = lista.filter(d=>Math.floor(d/10)<=4);
+    const dec  = lista.filter(d=>Math.floor(d/10)>=5);
+    let out="";
+    const base = perm.length ? perm : dec;
+    base.forEach((d,i)=>{ const p=posArco(i, base.length, superior);
+      out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), p.nx, p.ny); });
+    if(perm.length && dec.length){
+      // arco interno, menor: os decíduos que ainda não caíram ficam por
+      // dentro da arcada permanente, como na boca
+      // arco interno mais fechado (40°–140°), senão os molares decíduos
+      // cairiam do outro lado da linha média
+      dec.forEach((d,i)=>{ const p=posArco(i, dec.length, superior, 0.56, 40, 140);
+        out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), -p.nx, -p.ny); });
+    }
+    return out;
+  };
+
+  const rotuloIdade = idade===null ? "idade não informada"
+    : idade<1 ? Math.round(idade*12)+" meses" : Math.floor(idade)+" anos";
+  const rotuloModo = {decidua:"decídua (20 dentes)", mista:"mista", permanente:"permanente (32 dentes)"}[modo];
+
+  return `
+    <div class="card" style="margin-top:10px">
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <div class="eyebrow" style="flex:1">Odontograma · padrão FDI</div>
+        <span class="hint" style="font-size:11px;color:var(--ink-3)">${rotuloIdade} · dentição ${rotuloModo}</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        ${["decidua","mista","permanente"].map(m=>
+          `<button class="minibtn" data-dent="${m}" ${m===modo?'style="background:var(--accent-soft);color:var(--accent);border-color:var(--accent)"':""}>
+            ${{decidua:"Decídua",mista:"Mista",permanente:"Permanente"}[m]}</button>`).join("")}
+        <span class="pill neutral">${esperados.size} dentes esperados para a idade</span>
+      </div>
+      <div class="arcada">
+        <svg viewBox="0 0 780 512" id="svgArcada" role="img" aria-label="Arcada dentária">
+          <text x="390" y="26" class="rotArco" text-anchor="middle">SUPERIOR</text>
+          ${faixa(supO, true)}
+          <line x1="30" y1="285" x2="750" y2="285" stroke="var(--line)" stroke-dasharray="4 5"/>
+          <text x="34" y="281" class="rotArco" text-anchor="start">direita do paciente</text>
+          <text x="746" y="281" class="rotArco" text-anchor="end">esquerda</text>
+          ${faixa(infO, false)}
+          <text x="390" y="504" class="rotArco" text-anchor="middle">INFERIOR</text>
+        </svg>
+      </div>
+      <div class="legenda">
+        ${CONDICOES.filter(c=>c[0]!=="higido"&&c[0]!=="outro").map(([k,rot,cor])=>
+          `<span><i style="background:${cor}"></i>${rot}</span>`).join("")}
+      </div>
+      <div id="dentePainel"></div>
+    </div>`;
+}
+
+/* ---------- painel do dente ---------- */
+function painelDente(pacId, fdi){
+  const q = Math.floor(fdi/10), p = fdi%10;
+  const dec = q>=5;
+  const nome = (dec ? NOME_DENTE_DEC : NOME_DENTE)[p];
+  const faces = ehAnterior(p) ? FACES_ANTERIOR : FACES_POSTERIOR;
+  const est = odonto.estados[fdi] || {};
+  const hist = odonto.historico.filter(h=>h.fdi===fdi)
+    .sort((a,b)=>(b.registrado_em||"")<(a.registrado_em||"")?-1:1);
+
+  return `<div class="dente-painel">
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <b style="font-size:15px">Dente ${fdi}</b>
+      <span class="hint" style="flex:1;font-size:11.5px;color:var(--ink-3)">
+        ${nome}${dec?" decíduo":""} · ${QUADRANTE[q]}</span>
+      <button class="minibtn" id="fecharDente">fechar</button>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label for="dFace">Face</label>
+        <select id="dFace">
+          <option value="todo">Dente inteiro</option>
+          ${faces.map(([v,s])=>`<option value="${v}">${v.charAt(0).toUpperCase()+v.slice(1)} (${s})</option>`).join("")}
+        </select></div>
+      <div class="field"><label for="dCond">Condição</label>
+        <select id="dCond">${CONDICOES.map(([v,r])=>`<option value="${v}">${r}</option>`).join("")}</select></div>
+    </div>
+    <div class="field"><label for="dNota">Observação</label>
+      <input id="dNota" placeholder="o que foi visto ou feito" autocomplete="off"></div>
+    <button class="btn primary wide" id="dSalvar">Registrar no dente ${fdi}</button>
+
+    ${Object.keys(est).length?`
+      <div class="eyebrow" style="margin-top:12px">Situação atual</div>
+      <div class="list" style="gap:5px;margin-top:5px">
+        ${Object.entries(est).map(([f,e])=>`
+          <div style="display:flex;gap:9px;align-items:center;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)">
+            <i style="width:11px;height:11px;border-radius:3px;background:${corCondicao(e.condicao)};flex:none"></i>
+            <span style="flex:1"><b>${f==="todo"?"dente inteiro":f}</b> · ${rotuloCondicao(e.condicao)}
+              ${e.nota?`<br><small style="color:var(--ink-3)">${e.nota}</small>`:""}</span>
+            <button class="minibtn" data-anular="${e.id}">anular</button>
+          </div>`).join("")}
+      </div>`:""}
+
+    ${hist.length>1?`
+      <div class="eyebrow" style="margin-top:12px">Histórico deste dente</div>
+      <div style="font-size:11.5px;color:var(--ink-3);line-height:1.7;margin-top:4px">
+        ${hist.map(h=>`<div>${fmtData((h.registrado_em||"").slice(0,10))} · ${h.face} · ${rotuloCondicao(h.condicao)}
+          ${h.anulado_em?' <span style="color:var(--crit)">(anulado)</span>':""}</div>`).join("")}
+      </div>`:""}
+  </div>`;
+}
+
+const ODONTO = {
+  async carregar(pacLocal){
+    if(MODO!=="nuvem"){
+      const todos = ((S.dentes||{})[pacLocal] || []);
+      return {vigente: todos.filter(d=>!d.anulado_em), historico: todos};
+    }
+    const pid = UID.pac[pacLocal]; if(!pid) return {vigente:[], historico:[]};
+    const [vig, hist] = await Promise.all([
+      DB.rest("GET","vw_odontograma?select=id,fdi,face,condicao,nota,registrado_em&paciente_id=eq."+pid),
+      DB.rest("GET","dentes_estado?select=id,fdi,face,condicao,nota,registrado_em,anulado_em"+
+        "&paciente_id=eq."+pid+"&order=registrado_em.desc&limit=400")
+    ]);
+    return {vigente: vig, historico: hist};
+  },
+  async anotar(pacLocal, d){
+    if(MODO!=="nuvem"){
+      const arr = ((S.dentes=S.dentes||{})[pacLocal] = (S.dentes[pacLocal]||[]));
+      arr.push({id:"d"+Date.now()+Math.random().toString(36).slice(2,6), ...d,
+                registrado_em:new Date().toISOString()});
+      save(); return;
+    }
+    const pid = UID.pac[pacLocal]; if(!pid) throw new Error("Paciente ainda não gravado no banco.");
+    await DB.rest("POST","dentes_estado", {...d, paciente_id:pid, registrado_por:DB.meuId});
+  },
+  async anular(pacLocal, id){
+    if(MODO!=="nuvem"){
+      const arr = (S.dentes||{})[pacLocal]||[];
+      const x = arr.find(a=>a.id===id); if(x) x.anulado_em = new Date().toISOString();
+      save(); return;
+    }
+    await DB.rest("PATCH","dentes_estado?id=eq."+id,
+      {anulado_em:new Date().toISOString(), anulado_por:DB.meuId});
+  }
+};
+
+function indexarEstados(vigente){
+  const m = {};
+  vigente.forEach(e=>{ (m[e.fdi]=m[e.fdi]||{})[e.face]=e; });
+  return m;
+}
+
+async function carregarOdontograma(pacId){
+  if(!pode("verClinico")){ odonto={estados:{},historico:[],denticao:odonto.denticao,selecionado:null}; return; }
+  try{
+    const r = await ODONTO.carregar(pacId);
+    odonto.estados = indexarEstados(r.vigente);
+    odonto.historico = r.historico;
+  }catch(e){
+    odonto.estados={}; odonto.historico=[];
+    toast("Não consegui ler o odontograma: "+e.message);
+  }
+}
+
+function ligarOdontograma(pacId){
+  const pac = pacById(pacId); if(!pac) return;
+  const alvo = $("#odontoBox"); if(!alvo) return;
+
+  alvo.querySelectorAll("button[data-dent]").forEach(b=>b.addEventListener("click", ()=>{
+    odonto.denticao = b.dataset.dent; odonto.selecionado=null; redesenharOdonto(pacId);
+  }));
+
+  const svg = $("#svgArcada");
+  if(svg) svg.addEventListener("click", ev=>{
+    const alvoDente = ev.target.closest("[data-dente], [data-f]");
+    if(!alvoDente) return;
+    const fdi = alvoDente.dataset.dente
+      ? +alvoDente.dataset.dente
+      : +alvoDente.dataset.f.split(":")[0];
+    const face = alvoDente.dataset.f ? alvoDente.dataset.f.split(":")[1] : null;
+    odonto.selecionado = fdi;
+    $("#dentePainel").innerHTML = painelDente(pacId, fdi);
+    if(face){ const s=$("#dFace"); if(s && [...s.options].some(o=>o.value===face)) s.value=face; }
+    ligarPainelDente(pacId, fdi);
+    $("#dentePainel").scrollIntoView({behavior:"smooth", block:"nearest"});
+  });
+
+  if(odonto.selecionado){
+    $("#dentePainel").innerHTML = painelDente(pacId, odonto.selecionado);
+    ligarPainelDente(pacId, odonto.selecionado);
+  }
+}
+
+function ligarPainelDente(pacId, fdi){
+  const bf = $("#fecharDente");
+  if(bf) bf.addEventListener("click", ()=>{ odonto.selecionado=null; $("#dentePainel").innerHTML=""; });
+
+  const bs = $("#dSalvar");
+  if(bs) bs.addEventListener("click", async ()=>{
+    if(!pode("prontuario")){ toast("Seu perfil não anota prontuário."); return; }
+    const d = {fdi, face:$("#dFace").value, condicao:$("#dCond").value,
+               nota:$("#dNota").value.trim() || null};
+    bs.disabled=true;
+    try{
+      await ODONTO.anotar(pacId, d);
+      await carregarOdontograma(pacId);
+      redesenharOdonto(pacId);
+      toast("Dente "+fdi+": "+rotuloCondicao(d.condicao)+" registrado.");
+    }catch(e){ toast("Não registrou: "+e.message); bs.disabled=false; }
+  });
+
+  $("#dentePainel").querySelectorAll("button[data-anular]").forEach(b=>
+    b.addEventListener("click", async ()=>{
+      if(!confirm("Anular este lançamento? Ele sai da situação atual mas continua no histórico.")) return;
+      try{
+        await ODONTO.anular(pacId, b.dataset.anular);
+        await carregarOdontograma(pacId);
+        redesenharOdonto(pacId);
+        toast("Lançamento anulado — continua no histórico.");
+      }catch(e){ toast("Não anulou: "+e.message); }
+    }));
+}
+
+function redesenharOdonto(pacId){
+  const pac = pacById(pacId); if(!pac) return;
+  const box = $("#odontoBox"); if(!box) return;
+  box.innerHTML = desenharOdontograma(pac);
+  ligarOdontograma(pacId);
+}
+
 /* ===================== exames e mídias =====================
    O arquivo nunca entra no banco: o Postgres guarda tipo, data, laudo e
    o caminho; o binário vai para o bucket. Uma tomografia tem de 500 MB a
@@ -2385,8 +2990,24 @@ function idadeDe(iso){
   if((hoje.getMonth()+1)*100+hoje.getDate() < m*100+d) a--;
   return a;
 }
+/* carrega o que a ficha precisa e redesenha; chamado quando o paciente
+   muda, não a cada redesenho, senão cada clique vira uma ida ao banco */
+let pacCarregado = null;
+async function carregarFichaClinica(id){
+  if(pacCarregado===id) return;
+  pacCarregado = id;
+  odonto = {estados:{}, historico:[], denticao:null, selecionado:null};
+  anamVigente = null; anamEditando = false;
+  if(pode("verClinico")){
+    try{ anamVigente = await ANAM.carregar(id); }catch(e){ anamVigente=null; }
+    await carregarOdontograma(id);
+  }
+  if(pacAberto===id) abrirPaciente(id);
+}
+
 function abrirPaciente(id){
   pacAberto=id;
+  carregarFichaClinica(id);
   const p=pacById(id);
   const hist=S.atendimentos.filter(a=>a.pac===id).sort((a,b)=>a.data<b.data?1:-1);
   const clinico=pode("verClinico"), editaPront=pode("prontuario"), editaCad=pode("cadastro");
@@ -2420,6 +3041,9 @@ function abrirPaciente(id){
       <p style="margin:6px 0 0;font-size:13px;color:var(--ink-2)">${p.obs||vazio}</p>
       <div class="row" style="margin-top:10px"><span class="pill neutral">${hist.reduce((s,a)=>s+a.dur,0)} min em cadeira</span></div>
     </div>`:""}
+    ${htmlAlertasAnam()}
+    ${htmlAnamnese()}
+    ${pode("verClinico")?'<div id="odontoBox"></div>':""}
     <div class="sec-h" style="margin-top:14px"><h2>Exames e imagens</h2>
       <span class="hint">raio-X, tomografia, fotos e vídeos</span></div>
     <div id="examesLista"><div class="empty">carregando…</div></div>
@@ -2436,10 +3060,12 @@ function abrirPaciente(id){
           ${editaPront?`<div class="rowbtns"><button class="minibtn" data-edit="${a.id}">Editar atendimento</button></div>`:""}
         </div></div>`).join("") || '<div class="empty">Sem atendimentos registrados.</div>'}</div>`;
   const vp=$("#voltarPac"); vp.hidden = lado;      // no desktop a lista já está do lado
-  vp.addEventListener("click", ()=>{ pacAberto=null; renderPacientes(); });
+  vp.addEventListener("click", ()=>{ pacAberto=null; pacCarregado=null; renderPacientes(); });
   if(lado) renderListaPacientes();
   const bp=$("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
   d.querySelectorAll("button[data-edit]").forEach(b=>b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
+  ligarAnamnese(id);
+  if(pode("verClinico")) redesenharOdonto(id);
   ligarEnvioExame(id);
   $("#examesLista").addEventListener("click", ev=>{
     const b=ev.target.closest("button[data-ver]"); if(b) abrirExame(b.dataset.ver);
@@ -2904,71 +3530,526 @@ $("#stockList").addEventListener("click", ev=>{
   })();
 });
 
-const H_INI=8, H_FIM=18;
-const hhmm=t=>String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
-let encaixes=[];
-function livres(){
-  const oc=[]; S.agenda.forEach(a=>{ const [h,m]=a.h.split(":").map(Number); const i=h*60+m; oc.push([i,i+a.dur]); });
-  const out=[];
-  for(let t=H_INI*60;t<H_FIM*60;t+=30) if(!oc.some(([a,b])=>t<b && t+30>a)) out.push(t);
-  return out;
-}
-function proximos(n){
-  const agora=hoje.getHours()*60+hoje.getMinutes(), todas=livres();
-  const daqui=todas.filter(t=>t>=Math.max(agora,H_INI*60));
-  return {lista:[...daqui, ...todas.filter(t=>!daqui.includes(t))].slice(0,n), hoje:daqui.length};
-}
-function renderAgenda(){
-  const l=livres();
-  $("#agendaDay").textContent="Agenda · "+hoje.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
-  $("#agendaFree").textContent=l.length+" janelas de 30 min livres";
-  const list=$("#agendaList"); list.innerHTML="";
-  const marcados=S.agenda.slice().sort((a,b)=>a.h<b.h?-1:1);
-  for(let t=H_INI*60;t<H_FIM*60;t+=30){
-    const ap=marcados.find(a=>a.h===hhmm(t));
-    const dentro=marcados.some(a=>{ const [h,m]=a.h.split(":").map(Number); const i=h*60+m; return t>i && t<i+a.dur; });
-    if(dentro) continue;
-    const row=document.createElement("div"); row.className="slot";
-    if(ap){
-      row.innerHTML=`<div class="t">${ap.h}</div><div class="body"><div class="appt ${ap.urgente?"urgent":""}">
-        <b>${ap.pac}</b><small>${ap.proc} · ${ap.dur} min</small></div></div>`;
-    }else{
-      const pick=encaixes.includes(t);
-      row.innerHTML=`<div class="t">${hhmm(t)}</div><div class="body">
-        <div class="free ${pick?"pick":""}">${pick?"Sugerido para encaixe · toque para confirmar":"Livre"}</div></div>`;
-      if(pick) row.querySelector(".free").addEventListener("click", ()=>{
-        S.agenda.push({h:hhmm(t), dur:30, pac:"Maria Fernandes", proc:"Reavaliação pós-operatória (encaixe)", urgente:true});
-        encaixes=[]; save(); renderAgenda();
-        (async ()=>{
-          const ok = await naNuvem(()=>DB.gravarAgendamento({minuto:t, dur:30,
-            pacienteNome:"Maria Fernandes", proc:"Reavaliação pós-operatória (encaixe)",
-            status:"encaixe"}), "encaixe na agenda");
-          renderAgenda();
-          if(ok) toast("Encaixe confirmado às "+hhmm(t)+".");
-        })();
+/* ===================== agenda =====================
+   Calendário mensal; o dia abre o painel de horários.
+
+   A regra que importa é do BANCO, não da tela: duas reservas não ocupam
+   a mesma sala no mesmo intervalo. Quando o banco recusa, perguntamos a
+   ele QUEM está com o horário e mostramos o nome — recusar sem dizer
+   quem bloqueou obriga a pessoa a sair perguntando pelo corredor.
+
+   Cores, como o cliente pediu:
+     branco   livre
+     amarelo  bloqueado, aguardando confirmação
+     verde    atendido
+     vermelho cancelado
+   Acrescentei o petróleo para "agendado/confirmado com paciente", que é
+   o estado mais comum do dia e não estava na lista.                    */
+
+const H_INI = 7, H_FIM = 20, PASSO = 30;
+const DIAS_SEM = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho",
+               "agosto","setembro","outubro","novembro","dezembro"];
+
+const SIT = {
+  livre:      {cor:"var(--surface)",  texto:"var(--ink-3)", rot:"Livre"},
+  bloqueado:  {cor:"var(--warn-soft)",texto:"var(--warn)",  rot:"Bloqueado"},
+  agendado:   {cor:"var(--accent-soft)",texto:"var(--accent)",rot:"Agendado"},
+  confirmado: {cor:"var(--accent-soft)",texto:"var(--accent)",rot:"Confirmado"},
+  atendido:   {cor:"var(--ok-soft)",  texto:"var(--ok)",    rot:"Atendido"},
+  cancelado:  {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Cancelado"},
+  faltou:     {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Faltou"},
+  encaixe:    {cor:"var(--accent-soft)",texto:"var(--accent)",rot:"Encaixe"},
+  emergencia: {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Emergência"}
+};
+const sitDe = s => SIT[s] || SIT.agendado;
+const OCUPA = ["bloqueado","agendado","confirmado","atendido","encaixe","emergencia"];
+
+const hhmm = t => String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+const minDe = d => d.getHours()*60 + d.getMinutes();
+const diaISO = d => { const z=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate()); };
+
+let agenda = {
+  ano: hoje.getFullYear(), mes: hoje.getMonth(),
+  dia: diaISO(hoje), eventos: [], salas: [], dentistas: [],
+  sala: null, dentista: "", carregando: false
+};
+
+const AG = {
+  async salas(){
+    if(MODO!=="nuvem") return [{id:"s1", nome:"Consultório 1"}];
+    return await DB.rest("GET","salas?select=id,nome,ordem&ativa=is.true&order=ordem");
+  },
+  async dentistas(){
+    return (S.usuarios||[]).filter(u=>u.perfil==="Dentista"||u.perfil==="Administrador");
+  },
+  async mes(ano, mes){
+    const ini = new Date(ano, mes, 1, 0, 0, 0);
+    const fim = new Date(ano, mes+1, 1, 0, 0, 0);
+    if(MODO!=="nuvem"){
+      return (S.agendaMes||[]).filter(e=>{
+        const d=new Date(e.inicio); return d>=ini && d<fim;
       });
     }
-    list.appendChild(row);
+    return await DB.rest("GET","vw_agenda?select=id,sala_id,sala,inicio,fim,duracao_min,status,"+
+      "procedimento,titulo,observacao,dentista_id,dentista,paciente_id,paciente,paciente_tel,"+
+      "remarcado_de,cancelado_em,motivo_cancelamento"+
+      "&inicio=gte."+encodeURIComponent(ini.toISOString())+
+      "&inicio=lt."+encodeURIComponent(fim.toISOString())+"&order=inicio");
+  },
+  /* pergunta ao banco quem está com o horário — é o conteúdo do popup */
+  async quemOcupa(salaId, inicioISO, fimISO){
+    if(MODO!=="nuvem"){
+      return (S.agendaMes||[]).filter(e=>OCUPA.includes(e.status) &&
+        new Date(e.inicio) < new Date(fimISO) && new Date(e.fim) > new Date(inicioISO));
+    }
+    return await DB.rest("POST","rpc/quem_ocupa",
+      {p_sala:salaId, p_inicio:inicioISO, p_fim:fimISO});
+  },
+  async criar(d){
+    if(MODO!=="nuvem"){
+      const fim = new Date(new Date(d.inicio).getTime() + d.duracao_min*60000).toISOString();
+      const conflito = (S.agendaMes||[]).find(e=>OCUPA.includes(e.status) && e.sala_id===d.sala_id &&
+        new Date(e.inicio) < new Date(fim) && new Date(e.fim) > new Date(d.inicio));
+      if(conflito){ const err=new Error("sala ocupada"); err.conflito=true; throw err; }
+      (S.agendaMes=S.agendaMes||[]).push({id:"g"+Date.now(), ...d, fim,
+        sala:(agenda.salas.find(s=>s.id===d.sala_id)||{}).nome,
+        dentista:(S.usuarios.find(u=>u.id===d.dentista_id)||{}).nome,
+        paciente:d.pacienteNome||null});
+      save(); return;
+    }
+    try{
+      await DB.rest("POST","agendamentos", {
+        clinica_id: DB.clinica, sala_id: d.sala_id, dentista_id: d.dentista_id,
+        paciente_id: d.paciente_id || null, inicio: d.inicio, duracao_min: d.duracao_min,
+        status: d.status, procedimento: d.procedimento || null, titulo: d.titulo || null,
+        observacao: d.observacao || null, criado_por: DB.meuId
+      });
+    }catch(e){
+      // 23P01 é a trava de sobreposição; qualquer outra coisa sobe como está
+      if(/sobreposicao|exclusion|conflicting key|23P01/i.test(e.message||"")) e.conflito = true;
+      throw e;
+    }
+  },
+  async mudarStatus(id, status, extra){
+    if(MODO!=="nuvem"){
+      const e=(S.agendaMes||[]).find(x=>x.id===id);
+      if(e){ e.status=status; Object.assign(e, extra||{});
+        if(status==="cancelado") e.cancelado_em=new Date().toISOString(); }
+      save(); return;
+    }
+    await DB.rest("PATCH","agendamentos?id=eq."+id, {status, ...(extra||{})});
+  },
+  async remarcar(ev, novoInicio){
+    if(MODO!=="nuvem"){
+      await AG.mudarStatus(ev.id, "cancelado", {motivo_cancelamento:"remarcado"});
+      await AG.criar({sala_id:ev.sala_id, dentista_id:ev.dentista_id, paciente_id:ev.paciente_id,
+        pacienteNome:ev.paciente, inicio:novoInicio, duracao_min:ev.duracao_min,
+        status:"agendado", procedimento:ev.procedimento, titulo:ev.titulo});
+      return;
+    }
+    // cancela a antiga primeiro: sem isso a nova esbarraria na própria
+    await DB.rest("PATCH","agendamentos?id=eq."+ev.id,
+      {status:"cancelado", motivo_cancelamento:"remarcado"});
+    try{
+      await DB.rest("POST","agendamentos", {
+        clinica_id: DB.clinica, sala_id: ev.sala_id, dentista_id: ev.dentista_id,
+        paciente_id: ev.paciente_id, inicio: novoInicio, duracao_min: ev.duracao_min,
+        status: "agendado", procedimento: ev.procedimento, titulo: ev.titulo,
+        remarcado_de: ev.id, criado_por: DB.meuId});
+    }catch(e){
+      // não deu para remarcar: devolve a original ao lugar, senão o
+      // paciente perde o horário que tinha
+      await DB.rest("PATCH","agendamentos?id=eq."+ev.id,
+        {status:"agendado", motivo_cancelamento:null});
+      if(/sobreposicao|exclusion|conflicting key|23P01/i.test(e.message||"")) e.conflito = true;
+      throw e;
+    }
+  }
+};
+
+async function carregarAgenda(){
+  agenda.carregando = true;
+  try{
+    if(!agenda.salas.length){
+      agenda.salas = await AG.salas();
+      if(!agenda.sala && agenda.salas.length) agenda.sala = agenda.salas[0].id;
+    }
+    agenda.dentistas = await AG.dentistas();
+    agenda.eventos = await AG.mes(agenda.ano, agenda.mes);
+  }catch(e){
+    agenda.eventos = [];
+    toast("Não consegui ler a agenda: "+e.message);
+  }
+  agenda.carregando = false;
+  renderAgenda();
+}
+
+const eventosDoDia = iso => agenda.eventos
+  .filter(e => diaISO(new Date(e.inicio)) === iso)
+  .filter(e => !agenda.sala || !e.sala_id || e.sala_id === agenda.sala)
+  .filter(e => !agenda.dentista || e.dentista_id === agenda.dentista)
+  .sort((a,b)=> a.inicio < b.inicio ? -1 : 1);
+
+/* o que acontece neste slot: devolve o evento que o ocupa, se houver */
+function noSlot(lista, iso, minuto){
+  const ini = new Date(iso+"T00:00:00"); ini.setMinutes(minuto);
+  const fim = new Date(ini.getTime() + PASSO*60000);
+  return lista.find(e => OCUPA.includes(e.status) &&
+    new Date(e.inicio) < fim && new Date(e.fim) > ini) || null;
+}
+
+/* ---------- calendário mensal ---------- */
+function renderAgenda(){
+  const alvo = $("#agendaBox"); if(!alvo) return;
+  if(agenda.carregando){ alvo.innerHTML='<div class="empty">carregando a agenda…</div>'; return; }
+
+  const primeiro = new Date(agenda.ano, agenda.mes, 1);
+  const diasNoMes = new Date(agenda.ano, agenda.mes+1, 0).getDate();
+  const vazios = primeiro.getDay();
+  const hojeIso = diaISO(hoje);
+
+  let celulas = "";
+  for(let i=0;i<vazios;i++) celulas += '<div class="dia fora"></div>';
+  for(let d=1; d<=diasNoMes; d++){
+    const dt = new Date(agenda.ano, agenda.mes, d);
+    const iso = diaISO(dt);
+    const evs = eventosDoDia(iso);
+    const cont = {};
+    evs.forEach(e=>{ cont[e.status] = (cont[e.status]||0)+1; });
+    const pontos = Object.entries(cont)
+      .filter(([s])=>s!=="cancelado" || evs.length<4)
+      .slice(0,4)
+      .map(([s,n])=>`<i style="background:${sitDe(s).texto}" title="${n} ${sitDe(s).rot}"></i>`).join("");
+    const fds = dt.getDay()===0 || dt.getDay()===6;
+    celulas += `<button class="dia${iso===agenda.dia?" sel":""}${iso===hojeIso?" hoje":""}${fds?" fds":""}"
+      data-dia="${iso}" aria-label="${d} de ${MESES[agenda.mes]}">
+      <span class="n">${d}</span>
+      <span class="pts">${pontos}</span>
+      ${evs.length?`<span class="qt">${evs.length}</span>`:""}
+    </button>`;
+  }
+
+  const salaOpts = agenda.salas.map(s=>
+    `<option value="${s.id}" ${s.id===agenda.sala?"selected":""}>${s.nome}</option>`).join("");
+  const dentOpts = '<option value="">Todos os dentistas</option>' + agenda.dentistas.map(u=>
+    `<option value="${u.id}" ${u.id===agenda.dentista?"selected":""}>${u.nome}</option>`).join("");
+
+  alvo.innerHTML = `
+    <div class="cal-topo">
+      <button class="iconbtn" id="mesAnt" aria-label="Mês anterior">‹</button>
+      <b>${MESES[agenda.mes][0].toUpperCase()+MESES[agenda.mes].slice(1)} de ${agenda.ano}</b>
+      <button class="iconbtn" id="mesProx" aria-label="Próximo mês">›</button>
+      <button class="minibtn" id="irHoje">hoje</button>
+    </div>
+    <div class="row" style="margin:8px 0">
+      <select id="selSala" class="searchbox" style="flex:1;min-width:140px">${salaOpts}</select>
+      <select id="selDent" class="searchbox" style="flex:1;min-width:160px">${dentOpts}</select>
+    </div>
+    <div class="cal">
+      <div class="cal-cab">${DIAS_SEM.map(d=>`<span>${d}</span>`).join("")}</div>
+      <div class="cal-grade">${celulas}</div>
+    </div>
+    <div class="legenda" style="margin-top:8px">
+      <span><i style="background:var(--surface);border-color:var(--line-2)"></i>livre</span>
+      <span><i style="background:var(--warn)"></i>bloqueado</span>
+      <span><i style="background:var(--accent)"></i>agendado</span>
+      <span><i style="background:var(--ok)"></i>atendido</span>
+      <span><i style="background:var(--crit)"></i>cancelado</span>
+    </div>
+    <div id="diaPainel"></div>`;
+
+  $("#mesAnt").addEventListener("click", ()=>irMes(-1));
+  $("#mesProx").addEventListener("click", ()=>irMes(1));
+  $("#irHoje").addEventListener("click", ()=>{
+    agenda.ano=hoje.getFullYear(); agenda.mes=hoje.getMonth(); agenda.dia=diaISO(hoje);
+    carregarAgenda();
+  });
+  $("#selSala").addEventListener("change", e=>{ agenda.sala=e.target.value; renderAgenda(); });
+  $("#selDent").addEventListener("change", e=>{ agenda.dentista=e.target.value; renderAgenda(); });
+  alvo.querySelectorAll("button[data-dia]").forEach(b=>b.addEventListener("click", ()=>{
+    agenda.dia = b.dataset.dia; renderAgenda();
+    $("#diaPainel").scrollIntoView({behavior:"smooth", block:"nearest"});
+  }));
+
+  renderDia();
+}
+
+function irMes(d){
+  let m = agenda.mes + d, a = agenda.ano;
+  if(m<0){ m=11; a--; } if(m>11){ m=0; a++; }
+  agenda.mes=m; agenda.ano=a;
+  carregarAgenda();
+}
+
+/* ---------- painel do dia ---------- */
+function renderDia(){
+  const box = $("#diaPainel"); if(!box) return;
+  const iso = agenda.dia;
+  const dt = new Date(iso+"T12:00:00");
+  const evs = eventosDoDia(iso);
+  const meu = DB.meuId || (usuario && usuario.id);
+
+  let linhas = "";
+  for(let t=H_INI*60; t<H_FIM*60; t+=PASSO){
+    const e = noSlot(evs, iso, t);
+    if(e){
+      const ini = minDe(new Date(e.inicio));
+      if(ini < t && ini >= H_INI*60) continue;      // já desenhado no slot de início
+    }
+    const s = e ? sitDe(e.status) : SIT.livre;
+    const doOutro = e && e.dentista_id && meu && e.dentista_id !== meu;
+    const span = e ? Math.max(1, Math.round(e.duracao_min/PASSO)) : 1;
+    linhas += `<div class="slot2" data-min="${t}" ${e?`data-ev="${e.id}"`:""}
+        style="--c:${s.cor};--ct:${s.texto};min-height:${span*40}px">
+      <div class="h mono">${hhmm(t)}</div>
+      <div class="corpo">
+        ${e ? `
+          <div class="t">
+            <b>${e.paciente || e.titulo || sitDe(e.status).rot}</b>
+            <small>${sitDe(e.status).rot}${e.procedimento?" · "+e.procedimento:""} · ${e.duracao_min} min${e.sala?" · "+e.sala:""}</small>
+            ${e.dentista?`<small class="quem${doOutro?" outro":""}">${doOutro?"reservado por ":""}${e.dentista}</small>`:""}
+            ${e.motivo_cancelamento?`<small style="color:var(--crit)">${e.motivo_cancelamento}</small>`:""}
+          </div>`
+        : `<div class="t"><b style="color:var(--ink-3);font-weight:500">Livre</b></div>`}
+      </div>
+    </div>`;
+  }
+
+  const podeMexer = pode("agenda");
+  box.innerHTML = `
+    <div class="sec-h" style="margin-top:14px">
+      <h2>${dt.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"})}</h2>
+      <span class="hint">${evs.filter(e=>OCUPA.includes(e.status)).length} ocupado(s) · ${(agenda.salas.find(s=>s.id===agenda.sala)||{}).nome||""}</span>
+    </div>
+    ${podeMexer?`<div class="row" style="margin-bottom:8px">
+      <button class="btn" id="novoBloqueio">Bloquear horário</button>
+      <button class="btn primary" id="novoAgend">Agendar paciente</button>
+    </div>`:'<div class="stage">Seu perfil vê a agenda, mas não altera.</div>'}
+    <div id="agForm"></div>
+    <div class="dia-grade">${linhas}</div>`;
+
+  if(podeMexer){
+    $("#novoBloqueio").addEventListener("click", ()=>abrirForm("bloqueio"));
+    $("#novoAgend").addEventListener("click", ()=>abrirForm("agendamento"));
+  }
+  box.querySelectorAll(".slot2").forEach(el=>el.addEventListener("click", ()=>{
+    if(!podeMexer) return;
+    const ev = el.dataset.ev ? agenda.eventos.find(x=>x.id===el.dataset.ev) : null;
+    if(remarcando){
+      if(ev){ toast("Escolha um horário livre."); return; }
+      concluirRemarcacao(+el.dataset.min); return;
+    }
+    if(ev) acoesDoEvento(ev); else abrirForm("agendamento", +el.dataset.min);
+  }));
+  if(remarcando){
+    const aviso = document.createElement("div");
+    aviso.className = "editbar";
+    aviso.innerHTML = `<span>Remarcando ${remarcando.paciente||remarcando.titulo||"o horário"} —
+      toque no novo horário</span><button id="cancelarRemarc">desistir</button>`;
+    box.insertBefore(aviso, box.querySelector(".dia-grade"));
+    $("#cancelarRemarc").addEventListener("click", ()=>{ remarcando=null; renderDia(); });
   }
 }
-$("#encaixeBtn").addEventListener("click", ()=>{
-  const r=proximos(3); encaixes=r.lista; renderAgenda();
-  if(!encaixes.length) toast("Nenhuma janela livre — agenda cheia.");
-  else if(r.hoje>=3) toast("3 horários mais próximos sugeridos.");
-  else toast("Sugeridos os "+encaixes.length+" horários mais próximos.");
-});
-$("#urgBtn").addEventListener("click", async ()=>{
-  const r=proximos(3); encaixes=r.lista;
-  $("#urgBanner").hidden=false;
-  const txt='Sandra Toledo respondeu ao acompanhamento: “dor muito forte, 9 de 10, inchaço aumentando”. Prioridade de emergência — encaixe sugerido para '+
-    (encaixes.length?encaixes.map(hhmm).join(", "):"o próximo horário disponível")+'.';
-  $("#urgText").textContent=txt;
-  renderAgenda();
-  document.querySelector(".tab[data-scr='agenda']").click();
-  toast("🚨 Emergência: encaixe imediato sugerido.");
-  await falar("Atenção. Paciente Sandra Toledo relatou dor intensa, nível nove. Encaixe de emergência sugerido para "+
-    (encaixes.length?encaixes.map(hhmm).join(", "):"o próximo horário disponível")+".");
-});
+
+/* ---------- formulário de bloqueio / agendamento ---------- */
+let remarcando = null;
+
+function abrirForm(tipo, minuto){
+  const box = $("#agForm");
+  const hs = [];
+  for(let t=H_INI*60; t<H_FIM*60; t+=PASSO) hs.push(t);
+  const sel = minuto!==undefined ? minuto : 9*60;
+  const meu = DB.meuId || (usuario && usuario.id);
+  const bloqueio = tipo==="bloqueio";
+
+  box.innerHTML = `<div class="card" style="margin-bottom:10px">
+    <div class="eyebrow">${bloqueio?"Bloquear horário":"Agendar paciente"}</div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:9px">
+      <div class="grid2">
+        <div class="field"><label for="agHora">Início</label>
+          <select id="agHora">${hs.map(t=>`<option value="${t}" ${t===sel?"selected":""}>${hhmm(t)}</option>`).join("")}</select></div>
+        <div class="field"><label for="agDur">Duração (min)</label>
+          <select id="agDur">${[30,45,60,90,120,150,180].map(d=>`<option value="${d}" ${d===(bloqueio?60:30)?"selected":""}>${d}</option>`).join("")}</select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="agSala">Sala</label>
+          <select id="agSala">${agenda.salas.map(s=>`<option value="${s.id}" ${s.id===agenda.sala?"selected":""}>${s.nome}</option>`).join("")}</select></div>
+        <div class="field"><label for="agDent">Dentista</label>
+          <select id="agDent">${agenda.dentistas.map(u=>`<option value="${u.id}" ${u.id===meu?"selected":""}>${u.nome}</option>`).join("")}</select></div>
+      </div>
+      ${bloqueio
+        ? `<div class="field"><label for="agTitulo">Motivo do bloqueio</label>
+             <input id="agTitulo" placeholder="Ex.: cirurgia longa, manutenção da sala, reunião" autocomplete="off"></div>`
+        : `<div class="field"><label for="agPac">Paciente</label>
+             <input id="agPac" list="pacList" placeholder="Nome do paciente" autocomplete="off"></div>
+           <div class="field"><label for="agProc">Procedimento</label>
+             <input id="agProc" list="procList" placeholder="Ex.: reavaliação pós-operatória" autocomplete="off"></div>`}
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="agSalvar">${bloqueio?"Bloquear":"Agendar"}</button>
+        <button class="btn" id="agCancelar">Cancelar</button>
+      </div>
+    </div></div>`;
+
+  $("#agCancelar").addEventListener("click", ()=>{ box.innerHTML=""; });
+  $("#agSalvar").addEventListener("click", async ()=>{
+    const t = +$("#agHora").value, dur = +$("#agDur").value;
+    const ini = new Date(agenda.dia+"T00:00:00"); ini.setMinutes(t);
+    const salaId = $("#agSala").value, dentId = $("#agDent").value;
+
+    let pacienteId = null, pacienteNome = null, proc = null, titulo = null;
+    if(bloqueio){
+      titulo = $("#agTitulo").value.trim() || "Horário bloqueado";
+    }else{
+      pacienteNome = $("#agPac").value.trim();
+      if(!pacienteNome){ toast("Informe o paciente."); $("#agPac").focus(); return; }
+      const p = S.pacientes.find(x=>norm(x.nome)===norm(pacienteNome));
+      if(!p){ toast("Paciente não encontrado no cadastro — cadastre antes de agendar."); return; }
+      pacienteId = UID.pac[p.id] || null;
+      pacienteNome = p.nome;
+      proc = $("#agProc").value.trim() || null;
+    }
+
+    const bt = $("#agSalvar"); bt.disabled = true; bt.textContent = "Salvando…";
+    try{
+      await AG.criar({sala_id:salaId, dentista_id:dentId, paciente_id:pacienteId,
+        pacienteNome, inicio: ini.toISOString(), duracao_min: dur,
+        status: bloqueio ? "bloqueado" : "agendado", procedimento: proc, titulo});
+      box.innerHTML = "";
+      await carregarAgenda();
+      toast(bloqueio ? "Horário bloqueado às "+hhmm(t)+"." : "Paciente agendado às "+hhmm(t)+".");
+    }catch(e){
+      bt.disabled=false; bt.textContent = bloqueio?"Bloquear":"Agendar";
+      if(e.conflito){
+        const fim = new Date(ini.getTime()+dur*60000);
+        await mostrarConflito(salaId, ini.toISOString(), fim.toISOString());
+      }else{
+        toast("Não deu para salvar: "+e.message);
+      }
+    }
+  });
+}
+
+/* ---------- o popup do conflito ---------- */
+async function mostrarConflito(salaId, iniISO, fimISO){
+  const lista = $("#loteModalLista");
+  $("#loteModalTit").textContent = "Horário já reservado";
+  lista.innerHTML = '<div class="empty">consultando…</div>';
+  $("#loteModal").hidden = false;
+  let quem = [];
+  try{ quem = await AG.quemOcupa(salaId, iniISO, fimISO); }catch(e){}
+  const sala = (agenda.salas.find(s=>s.id===salaId)||{}).nome || "a sala";
+  if(!quem.length){
+    lista.innerHTML = `<div class="stage">O banco recusou a reserva por sobreposição em ${sala},
+      mas não consegui identificar quem está com o horário. Atualize a agenda e tente de novo.</div>`;
+  }else{
+    lista.innerHTML = quem.map(q=>{
+      const s = sitDe(q.status);
+      const ini = new Date(q.inicio), fim = new Date(q.fim);
+      const z=n=>String(n).padStart(2,"0");
+      return `<div class="lote-row">
+        <div class="cod" style="background:${s.cor};color:${s.texto}">${s.rot.slice(0,2)}</div>
+        <div class="txt">
+          <b>${q.dentista}</b>
+          <small>${z(ini.getHours())}:${z(ini.getMinutes())} às ${z(fim.getHours())}:${z(fim.getMinutes())}
+            · ${sala} · ${s.rot}</small>
+          ${q.titulo?`<small>${q.titulo}</small>`:""}
+          ${q.paciente?`<small>paciente: ${q.paciente}</small>`:""}
+        </div></div>`;
+    }).join("") + `<div class="stage" style="margin-top:8px">Escolha outro horário, outra sala,
+      ou fale com ${quem[0].dentista} para liberar.</div>`;
+  }
+  if(vozLigada()) falar(quem.length
+    ? "Horário já reservado por "+quem[0].dentista+"."
+    : "Horário já reservado.");
+}
+
+/* ---------- ações sobre um agendamento ---------- */
+function acoesDoEvento(ev){
+  const meu = DB.meuId || (usuario && usuario.id);
+  const doOutro = ev.dentista_id && meu && ev.dentista_id !== meu;
+  const s = sitDe(ev.status);
+  const ini = new Date(ev.inicio), fim = new Date(ev.fim);
+  const z=n=>String(n).padStart(2,"0");
+
+  $("#loteModalTit").textContent = ev.paciente || ev.titulo || s.rot;
+  $("#loteModalLista").innerHTML = `
+    <div class="lote-row">
+      <div class="cod" style="background:${s.cor};color:${s.texto}">${s.rot.slice(0,2)}</div>
+      <div class="txt">
+        <b>${s.rot}</b>
+        <small>${z(ini.getHours())}:${z(ini.getMinutes())} às ${z(fim.getHours())}:${z(fim.getMinutes())}
+          · ${ev.duracao_min} min${ev.sala?" · "+ev.sala:""}</small>
+        ${ev.dentista?`<small${doOutro?' style="color:var(--warn)"':""}>${doOutro?"reservado por ":""}${ev.dentista}</small>`:""}
+        ${ev.procedimento?`<small>${ev.procedimento}</small>`:""}
+        ${ev.titulo?`<small>${ev.titulo}</small>`:""}
+      </div></div>
+    ${doOutro?`<div class="stage">Este horário é de ${ev.dentista}. Você pode ver, mas quem libera é quem reservou — ou o administrador.</div>`:""}
+    <div class="row" id="acoesAg" style="margin-top:4px">
+      ${(!doOutro || pode("admin")) && ev.status==="bloqueado"
+        ? '<button class="btn" data-ac="liberar">Liberar horário</button>' : ""}
+      ${(!doOutro || pode("admin")) && ["agendado","confirmado","encaixe","emergencia"].includes(ev.status) ? `
+        <button class="btn" data-ac="confirmar">Confirmar</button>
+        <button class="btn" data-ac="atendido">Marcar atendido</button>
+        <button class="btn" data-ac="remarcar">Remarcar</button>
+        <button class="btn" data-ac="faltou">Faltou</button>` : ""}
+      ${(!doOutro || pode("admin")) && OCUPA.includes(ev.status)
+        ? '<button class="btn" data-ac="cancelar" style="color:var(--crit);border-color:var(--crit)">Cancelar</button>' : ""}
+    </div>`;
+  $("#loteModal").hidden = false;
+
+  const box = $("#acoesAg");
+  if(box) box.querySelectorAll("button[data-ac]").forEach(b=>b.addEventListener("click", async ()=>{
+    const ac = b.dataset.ac;
+    box.querySelectorAll("button").forEach(x=>x.disabled=true);
+    try{
+      if(ac==="liberar"){
+        await AG.mudarStatus(ev.id, "cancelado", {motivo_cancelamento:"bloqueio liberado"});
+        toast("Horário liberado.");
+      }else if(ac==="confirmar"){
+        await AG.mudarStatus(ev.id, "confirmado"); toast("Presença confirmada.");
+      }else if(ac==="atendido"){
+        await AG.mudarStatus(ev.id, "atendido"); toast("Marcado como atendido.");
+      }else if(ac==="faltou"){
+        await AG.mudarStatus(ev.id, "faltou"); toast("Marcado como falta — o horário volta a ficar livre.");
+      }else if(ac==="cancelar"){
+        const motivo = prompt("Motivo do cancelamento (fica gravado com seu nome):","");
+        if(motivo===null){ box.querySelectorAll("button").forEach(x=>x.disabled=false); return; }
+        await AG.mudarStatus(ev.id, "cancelado", {motivo_cancelamento: motivo.trim() || "não informado"});
+        toast("Cancelado — registrado com seu nome.");
+      }else if(ac==="remarcar"){
+        remarcando = ev;
+        $("#loteModal").hidden = true;
+        toast("Escolha o novo horário no dia desejado.");
+        return;
+      }
+      $("#loteModal").hidden = true;
+      await carregarAgenda();
+    }catch(e){
+      box.querySelectorAll("button").forEach(x=>x.disabled=false);
+      toast("Não deu: "+e.message);
+    }
+  }));
+}
+
+/* clique num slot livre enquanto se remarca: conclui a remarcação */
+async function concluirRemarcacao(minuto){
+  const ev = remarcando; remarcando = null;
+  const ini = new Date(agenda.dia+"T00:00:00"); ini.setMinutes(minuto);
+  try{
+    await AG.remarcar(ev, ini.toISOString());
+    await carregarAgenda();
+    toast("Remarcado para "+fmtData(agenda.dia)+" às "+hhmm(minuto)+".");
+  }catch(e){
+    if(e.conflito){
+      const fim = new Date(ini.getTime()+ev.duracao_min*60000);
+      await mostrarConflito(ev.sala_id, ini.toISOString(), fim.toISOString());
+    }else toast("Não remarcou: "+e.message);
+    await carregarAgenda();
+  }
+}
+
 function renderFinanceiro(){
   const atd=S.atendimentos.slice().sort((a,b)=>a.data<b.data?1:-1);
   $("#finTiles").innerHTML=`
@@ -3196,7 +4277,7 @@ function aplicarPermissoes(){
   if(primeira) primeira.click();
   $("#saveAtend").disabled=!P.atender;
   $("#saveAtend").textContent = P.atender ? "Registrar atendimento" : "Somente o dentista registra atendimento";
-  $("#encaixeBtn").disabled=!P.agenda; $("#urgBtn").disabled=!P.agenda;
+
   $("#micBtn").disabled=!P.atender;
   document.querySelector(".voice").style.display = P.atender ? "" : "none";
 }
@@ -3225,11 +4306,17 @@ $("#novoMatBtn") && $("#novoMatBtn").addEventListener("click", ()=>{
   matNovoAberto=!matNovoAberto; entradaAberta=false; renderEstoque();
 });
 
+/* a agenda é por mês e pode ser pesada; carrega quando a aba abre,
+   não a cada redesenho de outra tela */
+document.querySelectorAll(".tab[data-scr='agenda']").forEach(t=>
+  t.addEventListener("click", ()=>{ if(!agenda.salas.length) carregarAgenda(); }));
+
 function renderAll(){
   if(!usuario) return;
   $("#pacList").innerHTML=S.pacientes.map(p=>`<option value="${p.nome}"></option>`).join("");
   $("#procList").innerHTML=PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
-  renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderAgenda(); renderFinanceiro();
+  renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderFinanceiro();
+  if(agenda.eventos.length || agenda.salas.length) renderAgenda();
   if(pode("admin")) renderAcessos();
 }
 $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
