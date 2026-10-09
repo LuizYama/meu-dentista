@@ -712,6 +712,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         </div>
       </div>
 
+      <div class="card" id="confBox" hidden></div>
+
       <div class="sec-h"><h2>Atendimentos de hoje</h2><span class="hint" id="hojeCount"></span></div>
       <div class="list" id="hojeList"></div>
       </div>
@@ -763,6 +765,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <button role="tab" aria-selected="true"  data-fin="fluxo">Fluxo de caixa</button>
         <button role="tab" aria-selected="false" data-fin="recebidos">Recebimentos</button>
         <button role="tab" aria-selected="false" data-fin="producao">Produção</button>
+        <button role="tab" aria-selected="false" data-fin="precos">Preços</button>
         <button role="tab" aria-selected="false" data-fin="taxas">Taxas da maquininha</button>
       </div>
       <div id="finPainel"></div>
@@ -831,30 +834,39 @@ const PERFIS = {
   Administrador:{rotulo:"Administrador", desc:"Acesso total e aprovação de usuários",
     telas:["hoje","pacientes","estoque","agenda","financeiro"],
     atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true, admin:true,
-    valores:true, lancaLote:true, caixa:true, projecao:true, relatorios:true},
+    valores:true, lancaLote:true, caixa:true, projecao:true, relatorios:true,
+    precos:true, precoTodos:true, soMinhas:false},
   Dentista:{rotulo:"Dentista", desc:"Atende, edita prontuário e agenda",
-    telas:["hoje","pacientes","estoque","agenda"],
-    atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
-    valores:false, lancaLote:false, caixa:false, projecao:false, relatorios:false},
+    telas:["hoje","pacientes","estoque","agenda","financeiro"],
+    atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:true, cadastro:true, admin:false,
+    valores:false, lancaLote:false, caixa:true, projecao:true, relatorios:false,
+    // precoTodos:false e soMinhas:true são o "só o que é meu": tabela
+    // própria, cobranças próprias, recebimento próprio
+    precos:true, precoTodos:false, soMinhas:true},
   Secretaria:{rotulo:"Secretária", desc:"Cadastro, contato e agenda",
     telas:["pacientes","agenda"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
-    valores:false, lancaLote:false, caixa:true, projecao:false, relatorios:false},
+    valores:false, lancaLote:false, caixa:true, projecao:false, relatorios:false,
+    // lê a tabela de todos para cobrar certo, mas não tabela preço de ninguém
+    precos:"ler", precoTodos:true, soMinhas:false},
   Financeiro:{rotulo:"Financeiro", desc:"Faturamento e agenda",
     telas:["financeiro","agenda"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false, admin:false,
-    valores:true, lancaLote:false, caixa:true, projecao:true, relatorios:true},
+    valores:true, lancaLote:false, caixa:true, projecao:true, relatorios:true,
+    precos:true, precoTodos:true, soMinhas:false},
   Estoque:{rotulo:"Estoque", desc:"Entradas, baixas e reposição",
     telas:["estoque"],
     atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false, admin:false,
-    valores:true, lancaLote:true, caixa:false, projecao:false, relatorios:true}
+    valores:true, lancaLote:true, caixa:false, projecao:false, relatorios:true,
+    precos:false, precoTodos:false, soMinhas:false}
 };
 const USUARIOS_SEED = [
   {id:"u1", nome:"Dra. Helena Prado", email:"helena@clinica.com.br", perfil:"Dentista",      senha:"dentista",   ativo:true},
   {id:"u2", nome:"Camila Rezende",    email:"camila@clinica.com.br", perfil:"Secretaria",    senha:"secretaria", ativo:true},
   {id:"u3", nome:"Marcos Vieira",     email:"marcos@clinica.com.br", perfil:"Financeiro",    senha:"financeiro", ativo:true},
   {id:"u4", nome:"Patrícia Alencar",  email:"patricia@clinica.com.br",perfil:"Estoque",      senha:"estoque",    ativo:true},
-  {id:"u5", nome:"Luiz Raminelli",    email:"admin@clinica.com.br",  perfil:"Administrador", senha:"admin",      ativo:true}
+  {id:"u5", nome:"Luiz Raminelli",    email:"admin@clinica.com.br",  perfil:"Administrador", senha:"admin",      ativo:true},
+  {id:"u6", nome:"Dr. Paulo Arantes", email:"paulo@clinica.com.br",  perfil:"Dentista",      senha:"dentista2",  ativo:true}
 ];
 let usuario = null;
 const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
@@ -1025,6 +1037,8 @@ const DB = {
     });
     await DB.carregarLotes();
     await DB.carregarCaixa();
+    await DB.carregarPrecos();
+    await DB.carregarComposicao();
   },
 
   mapearMateriais(mats){
@@ -1330,6 +1344,91 @@ const DB = {
   async rastrearPaciente(pacId){
     const pid = UID.pac[pacId]; if(!pid) return [];
     return await DB.rest("POST","rpc/rel_rastreio_paciente", {p_paciente_id: pid});
+  },
+
+  /* ---------------- tabela de preço por dentista ----------------
+     O RLS já filtra: o dentista recebe só a própria linha, o
+     administrador recebe todas. A tela não precisa filtrar de novo —
+     e não deve, porque filtro duplicado é o lugar onde um dos dois
+     fica desatualizado. */
+  async carregarPrecos(){
+    S.precoHora = null; S.precoProc = null; S.precoMat = null; S.tabelas = null;
+    if(!pode("precos")) return;
+    try{
+      const [hora, proc, mat, tab] = await Promise.all([
+        DB.rest("GET","precos_dentista?select=dentista_id,valor_hora,observacao,atualizado_em"),
+        DB.rest("GET","precos_procedimento_dentista?select=id,dentista_id,procedimento_id,"+
+          "procedimento,valor,ativo&order=procedimento"),
+        DB.rest("GET","precos_material_dentista?select=dentista_id,material_id,valor_unitario"),
+        DB.rest("GET","vw_tabela_precos_dentista?select=dentista_id,dentista,valor_hora,"+
+          "procedimentos,materiais,atualizado_em&order=dentista")
+      ]);
+      S.precoHora = hora; S.precoProc = proc; S.tabelas = tab;
+      S.precoMat = {};
+      mat.forEach(m=>{
+        const k = UID.matRev[m.material_id];
+        if(k) S.precoMat[m.dentista_id+"|"+k] = Number(m.valor_unitario);
+      });
+    }catch(e){ S.precoHora=null; S.precoProc=null; S.precoMat=null; S.tabelas=null; }
+  },
+
+  async gravarValorHora(dentistaId, valor, obs){
+    await DB.rest("POST","precos_dentista", {dentista_id:dentistaId, clinica_id:DB.clinica,
+      valor_hora:valor, observacao:obs||null, atualizado_em:new Date().toISOString(),
+      atualizado_por:DB.meuId}, "resolution=merge-duplicates");
+  },
+
+  async gravarPrecoProcedimento(d){
+    if(d.id){
+      await DB.rest("PATCH","precos_procedimento_dentista?id=eq."+d.id,
+        {valor:d.valor, ativo:d.ativo!==false, atualizado_em:new Date().toISOString(),
+         atualizado_por:DB.meuId});
+    }else{
+      await DB.rest("POST","precos_procedimento_dentista",
+        {clinica_id:DB.clinica, dentista_id:d.dentista, procedimento:d.nome,
+         procedimento_id:d.procId||null, valor:d.valor, atualizado_por:DB.meuId});
+    }
+  },
+
+  async apagarPrecoProcedimento(id){
+    await DB.rest("DELETE","precos_procedimento_dentista?id=eq."+id);
+  },
+
+  async gravarPrecoMaterial(dentistaId, localId, valor){
+    const mid = UID.mat[localId];
+    if(!mid) throw new Error("Material sem correspondência no banco.");
+    if(valor === null || valor === ""){
+      await DB.rest("DELETE","precos_material_dentista?dentista_id=eq."+dentistaId+
+        "&material_id=eq."+mid);
+      return;
+    }
+    await DB.rest("POST","precos_material_dentista", {dentista_id:dentistaId,
+      material_id:mid, valor_unitario:valor, atualizado_em:new Date().toISOString(),
+      atualizado_por:DB.meuId}, "resolution=merge-duplicates");
+  },
+
+  /* A prévia vem do BANCO, não daqui: o preço de material sem preço
+     próprio depende do custo do lote, que a página não lê e não deve
+     ler. A função é SECURITY DEFINER e devolve o preço, não o custo. */
+  async previaCobranca(atdLocal){
+    const aid = UID.atd[atdLocal];
+    if(!aid) throw new Error("Atendimento ainda não gravado no banco.");
+    return await DB.rest("POST","rpc/previa_cobranca", {p_atendimento: aid});
+  },
+
+  async gerarCobranca(atdLocal, itens, descricao, vencimento){
+    const aid = UID.atd[atdLocal];
+    if(!aid) throw new Error("Atendimento ainda não gravado no banco.");
+    return await DB.rest("POST","rpc/gerar_cobranca",
+      {p_atendimento:aid, p_itens:itens, p_descricao:descricao||null,
+       p_vencimento:vencimento||null});
+  },
+
+  async carregarComposicao(){
+    try{
+      S.cobItens = await DB.rest("GET","cobranca_itens?select=id,cobranca_id,ordem,tipo,"+
+        "descricao,material_id,quantidade,valor_unitario,valor_total,origem&order=cobranca_id,ordem");
+    }catch(e){ S.cobItens = []; }
   }
 };
 
@@ -1512,7 +1611,7 @@ classificarAparelho();
 /* ===================== estado =====================*/
 // a chave sobe de versão junto com o formato do estado: sobra de versão
 // antiga no navegador abria a tela com dado no formato errado
-const KEY="meu-dentista-v14";
+const KEY="meu-dentista-v15";
 let S;
 function load(){
   try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}
@@ -1553,6 +1652,11 @@ function migrar(){
   if(!S.pagamentos) S.pagamentos = [];
   if(!S.parcelas) S.parcelas = [];
   if(!S.movimentos) S.movimentos = [];
+  if(!S.cobItens) S.cobItens = [];
+  if(!S.precoHora) S.precoHora = null;
+  if(!S.precoProc) S.precoProc = null;
+  if(!S.precoMat) S.precoMat = null;
+  if(!S.tabelas) S.tabelas = null;
   if(!S.validade){
     // no modo demo o alerta de validade é calculado aqui; na nuvem vem
     // pronto da view, para a regra viver num lugar só
@@ -1566,6 +1670,10 @@ function migrar(){
               unidade:c?c.un:"un", vencido:dias<0, dias_para_vencer:dias};
     }).filter(a=>a.dias_para_vencer<=90).sort((a,b)=>a.validade<b.validade?-1:1);
   }
+  // atendimento sem dentista não gera cobrança com dono
+  (S.atendimentos||[]).forEach(a=>{
+    if(!a.dentista) a.dentista = (a.id==="a3") ? "u6" : "u1";
+  });
   (S.pacientes||[]).forEach(p=>{
     if(p.nasc && /^\d{4}$/.test(p.nasc)) p.nasc = p.nasc + "-01-01";
     if(p.nasc === "—") p.nasc = "";
@@ -3391,7 +3499,7 @@ $("#saveAtend").addEventListener("click", async ()=>{
   const criticos=ajustaEstoque([], ficha.mats, novoId);
   const novo={id:novoId, pac:pac.id, data:ISO(hoje), proc:ficha.proc.trim(),
     regiao:ficha.regiao.trim()||"—", cplx:ficha.cplx, dur:ficha.dur, mats:ficha.mats.slice(),
-    obs:ficha.obs||"", criadoPor:usuario.nome};
+    obs:ficha.obs||"", criadoPor:usuario.nome, dentista:meuId()};
   S.atendimentos.push(novo);
   save();
   if(!await naNuvem(()=>DB.gravarAtendimento(novo, pac), "atendimento")) return;
@@ -3400,7 +3508,14 @@ $("#saveAtend").addEventListener("click", async ()=>{
   renderAll(); esconderDialogo();
   const m = criticos.length ? "Atendimento registrado. Atenção: "+criticos[0]+" ficou abaixo do mínimo."
                             : "Atendimento registrado e estoque atualizado.";
-  toast(m); await falar(m);
+  toast(m);
+  /* A cobrança nasce aqui, mas não vale ainda: duração errada ou material
+     faltando viram valor errado, e valor errado que já virou cobrança é
+     discussão com paciente. Quem confere é quem assinou o prontuário.
+     Vem ANTES de falar: a conferência não espera o Charles terminar a
+     frase — e num navegador sem voz "falar" nem devolve o controle. */
+  if(pode("caixa")) await abrirConferencia(novoId);
+  await falar(m);
 });
 
 /* ===================== telas =====================*/
@@ -3518,13 +3633,22 @@ function abrirPaciente(id){
           ${clinico && a.mats.length?`<ul>${a.mats.map(m=>catById(m.id)?`<li>${m.q}× ${catById(m.id).nome}</li>`:"").join("")}</ul>`:""}
           ${clinico && a.obs?`<p style="margin:6px 0 0;font-size:12.5px;color:var(--ink-2)">${a.obs}</p>`:""}
           ${a.editadoPor?`<div class="audit">editado por ${a.editadoPor} em ${a.editadoEm}</div>`:""}
-          ${editaPront?`<div class="rowbtns"><button class="minibtn" data-edit="${a.id}">Editar atendimento</button></div>`:""}
+          ${editaPront||pode("caixa")?`<div class="rowbtns">
+            ${editaPront?`<button class="minibtn" data-edit="${a.id}">Editar atendimento</button>`:""}
+            ${pode("caixa") && !(S.cobrancas||[]).some(c=>c.atendimento_id===a.id)
+              ? `<button class="minibtn" data-cobrar="${a.id}">Gerar cobrança</button>`:""}
+          </div>`:""}
         </div></div>`).join("") || '<div class="empty">Sem atendimentos registrados.</div>'}</div>`;
   const vp=$("#voltarPac"); vp.hidden = lado;      // no desktop a lista já está do lado
   vp.addEventListener("click", ()=>{ pacAberto=null; pacCarregado=null; renderPacientes(); });
   if(lado) renderListaPacientes();
   const bp=$("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
   d.querySelectorAll("button[data-edit]").forEach(b=>b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
+  d.querySelectorAll("button[data-cobrar]").forEach(b=>b.addEventListener("click", async ()=>{
+    await abrirConferencia(b.dataset.cobrar);
+    document.querySelector(".tab[data-scr='hoje']").click();
+    const cx = $("#confBox"); if(cx) cx.scrollIntoView({behavior:"smooth", block:"center"});
+  }));
   renderCaixa(id);
   ligarAnamnese(id);
   if(pode("verClinico")) redesenharOdonto(id);
@@ -5066,14 +5190,16 @@ let finAba = "fluxo";
    "em março entram X". Somar pagamentos daria o faturamento, que é
    outro número — e é o número que engana. */
 function fluxoPorMes(){
-  if(S.fluxo && S.fluxo.length)
+  if(S.fluxo && S.fluxo.length)   // na nuvem o RLS já limitou ao que o perfil alcança
     return S.fluxo.map(f=>({mes:f.mes, bruto:Number(f.bruto||0), taxas:Number(f.taxas||0),
       liquido:Number(f.liquido||0), recebido:Number(f.recebido||0),
       previsto:Number(f.previsto||0), parcelas:Number(f.parcelas||0),
       atrasadas:Number(f.atrasadas||0)}));
   const mapa = {};
   const hojeI = hojeISO();
-  (S.parcelas||[]).forEach(x=>{
+  const meus = new Set(cobrancasVisiveis().map(c=>c.id));
+  const minhas = new Set((S.pagamentos||[]).filter(pg=>meus.has(pg.cobranca_id)).map(pg=>pg.id));
+  (S.parcelas||[]).filter(x=>minhas.has(x.pagamento_id)).forEach(x=>{
     const mes = (x.previsao_credito||"").slice(0,7)+"-01";
     const m = mapa[mes] || (mapa[mes]={mes, bruto:0, taxas:0, liquido:0, recebido:0,
       previsto:0, parcelas:0, atrasadas:0});
@@ -5095,12 +5221,20 @@ function renderFinanceiro(){
   const alvo = $("#finPainel"); if(!alvo) return;
   $$("#finAbas button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.fin===finAba)));
   const podeVer = pode("projecao");
-  if((finAba==="fluxo"||finAba==="taxas") && !podeVer) finAba="producao";
+  const verTaxa = pode("projecao") && !pode("soMinhas");   // taxa é da clínica, não do dentista
+  if(finAba==="fluxo" && !podeVer) finAba="producao";
+  if(finAba==="taxas" && !verTaxa) finAba="producao";
+  if(finAba==="precos" && !pode("precos")) finAba="producao";
   if(finAba==="fluxo")      alvo.innerHTML = htmlFluxo();
   else if(finAba==="recebidos") alvo.innerHTML = htmlRecebidos();
+  else if(finAba==="precos"){ alvo.innerHTML = htmlPrecos(); ligarPrecos(); }
   else if(finAba==="taxas") { alvo.innerHTML = htmlTaxas(); ligarTaxas(); }
   else                      alvo.innerHTML = htmlProducao();
-  $$("#finAbas button").forEach(b=>{ b.hidden = (b.dataset.fin==="fluxo"||b.dataset.fin==="taxas") && !podeVer; });
+  $$("#finAbas button").forEach(b=>{
+    b.hidden = (b.dataset.fin==="fluxo" && !podeVer)
+            || (b.dataset.fin==="taxas" && !verTaxa)
+            || (b.dataset.fin==="precos" && !pode("precos"));
+  });
   const imp = $("#fluxoImprimir"); if(imp) imp.addEventListener("click", ()=>window.print());
   const csv = $("#fluxoCsv");
   if(csv) csv.addEventListener("click", ()=>baixarCSV("fluxo-de-caixa",
@@ -5166,7 +5300,9 @@ function htmlFluxo(){
 }
 
 function htmlRecebidos(){
-  const pgs = (S.pagamentos||[]).slice().sort((a,b)=>(a.pago_em||"")<(b.pago_em||"")?1:-1);
+  const meus = new Set(cobrancasVisiveis().map(c=>c.id));
+  const pgs = (S.pagamentos||[]).filter(pg=>meus.has(pg.cobranca_id))
+    .sort((a,b)=>(a.pago_em||"")<(b.pago_em||"")?1:-1);
   const ver = pode("projecao");
   if(!pgs.length) return '<div class="empty">Nenhum pagamento registrado.</div>';
   const porForma = {};
@@ -5526,6 +5662,7 @@ $("#relatBtn") && $("#relatBtn").addEventListener("click", ()=>{
 });
 $$("#finAbas button").forEach(b=>b.addEventListener("click", ()=>{
   finAba=b.dataset.fin; renderFinanceiro();
+  window.scrollTo({top:0, behavior:"instant"});
 }));
 
 /* a agenda é por mês e pode ser pesada; carrega quando a aba abre,
@@ -5618,7 +5755,7 @@ function projetar(valor, forma, parcelas, antecipado, taxaManual, diaISO){
 
 /* ---------- cobranças e pagamentos do paciente ---------- */
 function cobrancasDe(pacId){
-  return (S.cobrancas||[]).filter(c=>c.pac===pacId)
+  return cobrancasVisiveis().filter(c=>c.pac===pacId)
     .sort((a,b)=>(a.emitida_em||"")<(b.emitida_em||"")?1:-1);
 }
 function pagamentosDe(cobId){
@@ -5646,6 +5783,7 @@ function resumoPaciente(pacId){
 }
 
 let caixaForm = null;    // {cobranca} quando o formulário está aberto
+let compAberta = null;   // id da cobrança com a composição expandida
 
 function renderCaixa(pacId){
   const box = $("#caixaBox"); if(!box) return;
@@ -5675,11 +5813,31 @@ function renderCaixa(pacId){
       const sit = falta<=0 ? ["ok","quitada"]
                 : somaPg>0 ? ["warn","parcial"]
                 : (c.vencimento && c.vencimento < hojeISO()) ? ["crit","vencida"] : ["neutral","aberta"];
+      const itens = (S.cobItens||[]).filter(x=>x.cobranca_id===c.id)
+        .sort((a,b)=>a.ordem-b.ordem);
+      const serv = cent(itens.filter(x=>x.tipo==="servico").reduce((a,x)=>a+Number(x.valor_total),0));
+      const matv = cent(itens.filter(x=>x.tipo==="material").reduce((a,x)=>a+Number(x.valor_total),0));
       return `<div class="item" style="flex-wrap:wrap">
         <div class="main"><b>${c.descricao||"Cobrança"}</b>
           <small>${fmtBRL(c.valor)}${c.vencimento?" · vence "+fmtData(c.vencimento):""}
-            ${falta>0?" · falta "+fmtBRL(falta):""}</small></div>
+            ${falta>0?" · falta "+fmtBRL(falta):""}</small>
+          ${itens.length?`<small style="color:var(--ink-2)">serviço ${fmtBRL(serv)}
+            + material ${fmtBRL(matv)}
+            · <button class="minibtn" style="padding:1px 6px;font-size:10.5px"
+                data-comp="${c.id}">ver composição</button></small>`:""}</div>
         <div class="end"><span class="pill ${sit[0]}">${sit[1]}</span></div>
+        ${compAberta===c.id && itens.length?`<div style="flex-basis:100%;margin-top:6px">
+          <div class="rolar"><table class="tab-rel">
+          <thead><tr><th>Item</th><th class="n">Qtd</th><th class="n">Unitário</th>
+            <th class="n">Total</th><th>De onde veio</th></tr></thead>
+          <tbody>${itens.map(x=>`<tr>
+            <td>${x.descricao}</td><td class="n">${fmtQtd(x.quantidade)}</td>
+            <td class="n">${fmtBRL(x.valor_unitario)}</td>
+            <td class="n"><b>${fmtBRL(x.valor_total)}</b></td>
+            <td style="font-size:11px;color:var(--ink-3)">${ROTULO_ORIGEM[x.origem]||x.origem||"—"}</td>
+          </tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="3">Total</td><td class="n">${fmtBRL(c.valor)}</td><td></td></tr></tfoot>
+          </table></div></div>`:""}
         ${pgs.length?`<div style="flex-basis:100%;margin-top:6px;padding-left:2px">
           ${pgs.map(pg=>htmlPagamento(pg, ver)).join("")}</div>`:""}
         ${falta>0?`<div class="rowbtns" style="flex-basis:100%">
@@ -5691,6 +5849,10 @@ function renderCaixa(pacId){
   const bp=$("#novoPagBtn"); if(bp) bp.addEventListener("click", ()=>formPagamento(pacId, cobs[0].id));
   box.querySelectorAll("button[data-pagar]").forEach(b=>
     b.addEventListener("click", ()=>formPagamento(pacId, b.dataset.pagar)));
+  box.querySelectorAll("button[data-comp]").forEach(b=>b.addEventListener("click", ()=>{
+    compAberta = compAberta === b.dataset.comp ? null : b.dataset.comp;
+    renderCaixa(pacId);
+  }));
 }
 
 function htmlPagamento(pg, ver){
@@ -5884,6 +6046,495 @@ function numBR(v){
   return isNaN(n) ? 0 : cent(n);
 }
 
+
+/* =====================================================================
+   PREÇO POR DENTISTA E COBRANÇA COMPOSTA
+
+   O valor cobrado tem duas partes, e a conta fica à vista:
+
+       serviço (hora do dentista, ou preço fechado do procedimento)
+     + materiais (preço do dentista, ou custo do lote com a margem
+                   lançada na entrada da nota)
+     = valor da cobrança
+
+   Três regras que o banco também aplica, e por isso estão espelhadas
+   aqui com o mesmo cuidado da conta de taxa: o número que vale é o do
+   banco; o daqui é previsão para a tela responder enquanto a pessoa
+   confere.
+
+     1. preço fechado do procedimento GANHA da hora — implante não se
+        cobra por minuto;
+     2. preço próprio do dentista GANHA da margem do estoque;
+     3. material sem custo lançado fica SEM PREÇO, nunca com zero.
+        Lacuna se percebe; zero errado com cara de certo, não.
+   ===================================================================== */
+
+const meuId = () => (MODO==="nuvem" ? DB.meuId : (usuario ? usuario.id : null));
+
+/* De quem é a tabela que esta tela está editando. O dentista só edita a
+   dele e nem vê o seletor; administrador e financeiro escolhem. */
+let precoDe = null;
+function dentistasDaClinica(){
+  if(S.tabelas && S.tabelas.length)
+    return S.tabelas.map(t=>({id:t.dentista_id, nome:t.dentista}));
+  return (S.usuarios||[]).filter(u=>u.perfil==="Dentista" && u.ativo)
+    .map(u=>({id:u.id, nome:u.nome}));
+}
+function dentistaAlvo(){
+  if(pode("soMinhas")) return meuId();
+  if(precoDe) return precoDe;
+  const ds = dentistasDaClinica();
+  return ds.length ? ds[0].id : meuId();
+}
+
+function valorHoraDe(dentistaId){
+  const r = (S.precoHora||[]).find(x=>x.dentista_id===dentistaId);
+  return r ? Number(r.valor_hora) : null;
+}
+function precoProcDe(dentistaId, nomeProc){
+  const alvo = norm(nomeProc||"").trim();
+  return (S.precoProc||[]).find(x=>x.dentista_id===dentistaId && x.ativo!==false
+    && norm(x.procedimento||"").trim() === alvo) || null;
+}
+function precoMatDe(dentistaId, localId){
+  const v = (S.precoMat||{})[dentistaId+"|"+localId];
+  return v===undefined ? null : v;
+}
+
+/* Preço do material quando o dentista não tem o seu: custo médio do que
+   ainda está em casa COM custo lançado, vezes a margem da nota. Dividir
+   pelo saldo inteiro faria o lote sem nota baixar a média, e o número
+   pareceria certo estando errado. */
+function precoPelaMargem(localId){
+  const c = catById(localId); if(!c) return null;
+  const ls = (S.lotes||[]).filter(l=>l.mat===localId && Number(l.saldo)>0);
+  let total=0, comCusto=0;
+  ls.forEach(l=>{
+    const k = (S.custos && S.custos[l.id]) ? Number(S.custos[l.id].custo_unitario) : null;
+    if(k!==null){ total += Number(l.saldo)*k; comCusto += Number(l.saldo); }
+  });
+  if(!comCusto) return null;                       // sem custo = sem preço
+  return cent((total/comCusto) * (1 + Number(c.margem||0)/100));
+}
+function precoMaterial(dentistaId, localId){
+  const p = precoMatDe(dentistaId, localId);
+  if(p !== null) return {valor:p, origem:"preco_dentista"};
+  return {valor:precoPelaMargem(localId), origem:"margem_estoque"};
+}
+
+/* Monta a composição de um atendimento. Espelha previa_cobranca() do
+   banco; no modo nuvem a prévia REAL vem de lá. */
+function composicaoLocal(atd){
+  const dent = atd.dentista || meuId();
+  const itens = [];
+  const fechado = precoProcDe(dent, atd.proc);
+  if(fechado){
+    itens.push({tipo:"servico", descricao:atd.proc, material_id:null, quantidade:1,
+      valor_unitario:Number(fechado.valor), valor_total:Number(fechado.valor),
+      origem:"tabela_procedimento"});
+  }else{
+    const h = valorHoraDe(dent);
+    const horas = cent(atd.dur/60);
+    itens.push({tipo:"servico", descricao:atd.proc+" — "+atd.dur+" min", material_id:null,
+      quantidade:horas, valor_unitario:h===null?0:h,
+      valor_total:h===null?0:cent(horas*h), origem:"valor_hora",
+      semPreco:h===null});
+  }
+  (atd.mats||[]).forEach(m=>{
+    const c = catById(m.id); if(!c) return;
+    const pr = precoMaterial(dent, m.id);
+    itens.push({tipo:"material", descricao:c.nome, material_id:m.id, quantidade:Number(m.q),
+      valor_unitario:pr.valor===null?0:pr.valor,
+      valor_total:pr.valor===null?0:cent(Number(m.q)*pr.valor),
+      origem:pr.origem, semPreco:pr.valor===null, unidade:c.un});
+  });
+  return itens;
+}
+const ROTULO_ORIGEM = {
+  tabela_procedimento:"preço fechado do procedimento",
+  valor_hora:"valor-hora do dentista",
+  preco_dentista:"preço do dentista",
+  margem_estoque:"custo do lote × margem da nota",
+  manual:"digitado à mão"
+};
+
+/* ---------- conferência da cobrança ---------- */
+let conf = null;       // {atd, itens, desc, venc} enquanto a conferência está aberta
+
+async function abrirConferencia(atdId){
+  const atd = S.atendimentos.find(a=>a.id===atdId); if(!atd) return;
+  let itens;
+  if(MODO==="nuvem"){
+    try{
+      const prev = await DB.previaCobranca(atdId);
+      itens = (prev||[]).map(x=>({tipo:x.tipo, descricao:x.descricao,
+        material_id: x.material_id ? (UID.matRev[x.material_id]||null) : null,
+        quantidade:Number(x.quantidade), valor_unitario: x.valor_unitario===null?0:Number(x.valor_unitario),
+        valor_total: x.valor_total===null?0:Number(x.valor_total), origem:x.origem,
+        semPreco: x.valor_unitario===null || Number(x.valor_unitario)===0}));
+    }catch(e){ toast("Não deu para montar a prévia: "+e.message); return; }
+  }else{
+    itens = composicaoLocal(atd);
+  }
+  conf = {atd:atdId, itens, desc:atd.proc, venc:hojeISO()};
+  renderConferencia();
+}
+
+function renderConferencia(){
+  const box = $("#confBox"); if(!box) return;
+  if(!conf){ box.hidden = true; box.innerHTML=""; return; }
+  const atd = S.atendimentos.find(a=>a.id===conf.atd);
+  const total = cent(conf.itens.reduce((a,i)=>a+Number(i.valor_total||0),0));
+  const semPreco = conf.itens.filter(i=>i.semPreco);
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="eyebrow">Conferir a cobrança antes de fechar</div>
+    <h2 style="font-size:16px;margin:3px 0 2px">${atd?atd.proc:""}</h2>
+    <div style="font-size:12px;color:var(--ink-3)">${atd?fmtData(atd.data)+" · "+atd.dur+" min · complexidade "+atd.cplx:""}</div>
+
+    ${semPreco.length?`<div class="pend" style="margin-top:10px">
+      <b>${semPreco.length} linha(s) sem preço.</b>
+      ${semPreco.some(i=>i.tipo==="servico")
+        ? "Cadastre seu valor-hora em Financeiro › Preços. "
+        : ""}
+      ${semPreco.some(i=>i.tipo==="material")
+        ? "Material sem custo de nota lançado e sem preço próprio — digite o valor aqui ou lance a nota do lote."
+        : ""}</div>`:""}
+
+    <div class="rolar" style="margin-top:10px"><table class="tab-rel">
+      <thead><tr><th>Item</th><th class="n">Qtd</th><th class="n">Unitário</th>
+        <th class="n">Total</th><th>De onde veio</th><th class="naoimprime">&nbsp;</th></tr></thead>
+      <tbody>${conf.itens.map((i,k)=>`<tr>
+        <td><b>${i.descricao}</b><br><span class="pill ${i.tipo==="servico"?"accent":i.tipo==="ajuste"?"warn":"neutral"}">${
+          i.tipo==="servico"?"serviço":i.tipo==="ajuste"?"ajuste":"material"}</span></td>
+        <td class="n"><input class="confin" data-k="${k}" data-c="quantidade" inputmode="decimal"
+          style="width:58px;text-align:right" value="${fmtQtd(i.quantidade)}"></td>
+        <td class="n"><input class="confin" data-k="${k}" data-c="valor_unitario" inputmode="decimal"
+          style="width:88px;text-align:right" value="${i.semPreco?"":Number(i.valor_unitario).toLocaleString("pt-BR",{minimumFractionDigits:2})}"
+          placeholder="sem preço"></td>
+        <td class="n"><b>${i.semPreco?'<span class="vaga">—</span>':fmtBRL(i.valor_total)}</b></td>
+        <td style="font-size:11px;color:var(--ink-3)">${ROTULO_ORIGEM[i.origem]||i.origem||"—"}</td>
+        <td class="naoimprime"><button class="minibtn" data-rm="${k}" title="Remover">✕</button></td>
+      </tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="3">Total da cobrança</td>
+        <td class="n">${fmtBRL(total)}</td><td colspan="2"></td></tr></tfoot>
+    </table></div>
+
+    <div class="row" style="margin-top:8px">
+      <button class="minibtn" id="confAddItem">+ Linha de ajuste</button>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field"><label for="confDesc">Descrição da cobrança</label>
+        <input id="confDesc" value="${(conf.desc||"").replace(/"/g,"&quot;")}"></div>
+      <div class="field"><label for="confVenc">Vencimento</label>
+        <input id="confVenc" type="date" value="${conf.venc}"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" style="flex:1" id="confFechar">Fechar cobrança de ${fmtBRL(total)}</button>
+      <button class="btn" id="confCancelar">Descartar</button>
+    </div>
+    <div class="stage">O valor sai de duas tabelas suas: hora (ou preço fechado do
+      procedimento) e material. Corrigir aqui vale só para esta cobrança — para mudar
+      daqui em diante, altere a tabela em Financeiro › Preços.</div>`;
+
+  box.querySelectorAll("input.confin").forEach(inp=>{
+    inp.addEventListener("input", ()=>{
+      const i = conf.itens[Number(inp.dataset.k)];
+      const v = numBR(inp.value);
+      i[inp.dataset.c] = v;
+      if(inp.dataset.c==="valor_unitario" && inp.value.trim()!=="") i.semPreco = false;
+      if(inp.dataset.c==="valor_unitario" && inp.value.trim()==="") i.semPreco = true;
+      i.origem = "manual";
+      i.valor_total = i.semPreco ? 0 : cent(Number(i.quantidade)*Number(i.valor_unitario));
+      // só o total e o rodapé mudam; redesenhar tudo tiraria o foco do campo
+      const tr = inp.closest("tr");
+      tr.querySelector("td.n:nth-of-type(3) b, td:nth-child(4) b").innerHTML =
+        i.semPreco ? '<span class="vaga">—</span>' : fmtBRL(i.valor_total);
+      tr.querySelector("td:nth-child(5)").textContent = ROTULO_ORIGEM.manual;
+      const t = cent(conf.itens.reduce((a,x)=>a+Number(x.valor_total||0),0));
+      box.querySelector("tfoot td.n").textContent = fmtBRL(t);
+      $("#confFechar").textContent = "Fechar cobrança de " + fmtBRL(t);
+    });
+  });
+  box.querySelectorAll("button[data-rm]").forEach(b=>b.addEventListener("click", ()=>{
+    conf.itens.splice(Number(b.dataset.rm),1); renderConferencia();
+  }));
+  $("#confAddItem").addEventListener("click", ()=>{
+    conf.itens.push({tipo:"ajuste", descricao:"Ajuste", material_id:null, quantidade:1,
+      valor_unitario:0, valor_total:0, origem:"manual", semPreco:true});
+    renderConferencia();
+  });
+  $("#confDesc").addEventListener("input", e=>{ conf.desc = e.target.value; });
+  $("#confVenc").addEventListener("input", e=>{ conf.venc = e.target.value; });
+  $("#confCancelar").addEventListener("click", ()=>{ conf=null; renderConferencia(); });
+  $("#confFechar").addEventListener("click", fecharCobranca);
+}
+
+async function fecharCobranca(){
+  if(!conf) return;
+  const bons = conf.itens.filter(i=>!i.semPreco && Number(i.valor_total)>0);
+  if(!bons.length){ toast("Nenhuma linha com valor — a cobrança ficaria em zero."); return; }
+  if(conf.itens.length !== bons.length &&
+     !confirm((conf.itens.length-bons.length)+" linha(s) sem preço serão deixadas de fora. Fechar assim?"))
+    return;
+  const total = cent(bons.reduce((a,i)=>a+Number(i.valor_total),0));
+  const atd = S.atendimentos.find(a=>a.id===conf.atd);
+
+  if(MODO==="nuvem"){
+    const itens = bons.map(i=>({tipo:i.tipo, descricao:i.descricao,
+      material_id: i.material_id ? (UID.mat[i.material_id]||null) : null,
+      quantidade:i.quantidade, valor_unitario:i.valor_unitario, origem:i.origem}));
+    const ok = await naNuvem(async ()=>{
+      await DB.gerarCobranca(conf.atd, itens, conf.desc, conf.venc);
+      await DB.carregarCaixa(); await DB.carregarComposicao();
+    }, "cobrança do atendimento");
+    if(!ok) return;
+  }else{
+    const cid = "cb"+Date.now();
+    S.cobrancas = S.cobrancas||[];
+    S.cobrancas.push({id:cid, pac:atd.pac, valor:total, vencimento:conf.venc,
+      descricao:conf.desc, atendimento_id:conf.atd, dentista_id:(atd.dentista||meuId()),
+      status:"aberta", emitida_em:new Date().toISOString()});
+    S.cobItens = S.cobItens||[];
+    bons.forEach((i,k)=>S.cobItens.push({id:cid+"-"+k, cobranca_id:cid, ordem:k+1,
+      tipo:i.tipo, descricao:i.descricao, material_id:i.material_id,
+      quantidade:i.quantidade, valor_unitario:i.valor_unitario,
+      valor_total:i.valor_total, origem:i.origem}));
+    save();
+  }
+  conf = null; renderConferencia(); renderAll();
+  toast("Cobrança de "+fmtBRL(total)+" lançada na ficha do paciente.");
+}
+
+/* ---------- tela de preços ---------- */
+function htmlPrecos(){
+  if(!pode("precos")) return '<div class="empty">Seu perfil não acessa tabela de preço.</div>';
+  const alvo = dentistaAlvo();
+  const ds = dentistasDaClinica();
+  const edita = pode("precos") === true &&
+    (pode("precoTodos") || alvo === meuId());
+  const nome = (ds.find(d=>d.id===alvo)||{}).nome || (usuario?usuario.nome:"—");
+  const h = valorHoraDe(alvo);
+  const procs = (S.precoProc||[]).filter(x=>x.dentista_id===alvo);
+
+  return `
+    ${pode("soMinhas") ? `<div class="stage">Esta é a <b>sua</b> tabela. Cada dentista
+      monta a dele, e nenhum vê a do outro.</div>`
+    : ds.length>1 ? `<div class="field" style="margin-bottom:12px">
+        <label for="prDent">Tabela de qual dentista</label>
+        <select id="prDent">${ds.map(d=>
+          `<option value="${d.id}" ${d.id===alvo?"selected":""}>${d.nome}</option>`).join("")}</select></div>`
+    : ""}
+
+    <div class="sec-h"><h2>Valor da hora — ${nome}</h2>
+      <span class="hint">base do cálculo de serviço</span></div>
+    <div class="card">
+      <div class="grid2">
+        <div class="field"><label for="prHora">Valor da hora (R$)</label>
+          <input id="prHora" inputmode="decimal" class="mono" ${edita?"":"disabled"}
+            value="${h===null?"":h.toLocaleString("pt-BR",{minimumFractionDigits:2})}"
+            placeholder="0,00"></div>
+        <div class="field"><label>Exemplos</label>
+          <div style="font-size:12.5px;color:var(--ink-2);padding-top:8px" id="prExemplo">
+            ${h===null?"cadastre o valor para ver":
+              `30 min = ${fmtBRL(cent(h/2))} · 60 min = ${fmtBRL(h)} · 90 min = ${fmtBRL(cent(h*1.5))}`}</div></div>
+      </div>
+      ${edita?`<div class="rowbtns"><button class="minibtn" id="prHoraSalvar">Salvar valor-hora</button></div>`:""}
+      ${h===null?`<div class="pend">Sem valor-hora, o serviço entra como <b>sem preço</b> na
+        conferência da cobrança — não como zero.</div>`:""}
+    </div>
+
+    <div class="sec-h" style="margin-top:14px"><h2>Preço fechado por procedimento</h2>
+      <span class="hint">${procs.length} cadastrado(s) · ignora a hora</span></div>
+    <div class="card rolar"><table class="tab-rel">
+      <thead><tr><th>Procedimento</th><th class="n">Valor</th>
+        ${edita?'<th class="naoimprime">&nbsp;</th>':""}</tr></thead>
+      <tbody>${procs.map(p=>`<tr data-proc="${p.id}">
+        <td><b>${p.procedimento}</b>${p.ativo===false?' <span class="pill neutral">inativo</span>':""}</td>
+        <td class="n">${edita?`<input class="prin" data-c="valor" inputmode="decimal"
+          style="width:96px;text-align:right"
+          value="${Number(p.valor).toLocaleString("pt-BR",{minimumFractionDigits:2})}">`
+          :fmtBRL(p.valor)}</td>
+        ${edita?`<td class="naoimprime"><button class="minibtn" data-pSalvar="${p.id}">Salvar</button>
+          <button class="minibtn" data-pApagar="${p.id}">✕</button></td>`:""}
+      </tr>`).join("") || `<tr><td colspan="${edita?3:2}" class="vaga">Nenhum preço fechado —
+        todo procedimento é cobrado pela hora.</td></tr>`}</tbody>
+    </table></div>
+    ${edita?`<div class="card" style="margin-top:8px">
+      <div class="eyebrow">Novo preço fechado</div>
+      <div class="grid2" style="margin-top:8px">
+        <div class="field"><label for="prNovoProc">Procedimento</label>
+          <input id="prNovoProc" list="procList" placeholder="Ex.: instalação de implante unitário"></div>
+        <div class="field"><label for="prNovoValor">Valor (R$)</label>
+          <input id="prNovoValor" inputmode="decimal" class="mono" placeholder="0,00"></div>
+      </div>
+      <div class="rowbtns"><button class="minibtn" id="prProcAdd">Adicionar</button></div>
+    </div>`:""}
+
+    <div class="sec-h" style="margin-top:14px"><h2>Preço de material</h2>
+      <span class="hint">vazio = usa a margem do estoque</span></div>
+    <div class="stage">Deixar em branco não é deixar sem preço: o sistema usa o custo do
+      lote com a margem lançada na entrada da nota. Preencher aqui é dizer
+      “para mim, este material custa isto ao paciente”.</div>
+    <div class="card rolar" style="margin-top:8px"><table class="tab-rel">
+      <thead><tr><th>Código</th><th>Material</th><th>Un</th>
+        <th class="n">Pela margem</th><th class="n">Meu preço</th>
+        ${edita?'<th class="naoimprime">&nbsp;</th>':""}</tr></thead>
+      <tbody>${CATALOGO.filter(c=>stockById(c.id)).map(c=>{
+        const margem = precoPelaMargem(c.id);
+        const meu = precoMatDe(alvo, c.id);
+        return `<tr data-mat="${c.id}">
+          <td class="mono">${c.codigo||"—"}</td><td>${c.nome}</td><td>${c.un}</td>
+          <td class="n">${margem===null?'<span class="vaga">sem custo</span>':fmtBRL(margem)}</td>
+          <td class="n">${edita?`<input class="min" inputmode="decimal"
+            style="width:96px;text-align:right" placeholder="margem"
+            value="${meu===null?"":meu.toLocaleString("pt-BR",{minimumFractionDigits:2})}">`
+            :(meu===null?'<span class="vaga">margem</span>':fmtBRL(meu))}</td>
+          ${edita?`<td class="naoimprime"><button class="minibtn" data-mSalvar="${c.id}">Salvar</button></td>`:""}
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>
+
+    ${pode("precoTodos") && S.tabelas && S.tabelas.length>1 ? `
+    <div class="sec-h" style="margin-top:14px"><h2>Quem já montou a tabela</h2>
+      <span class="hint">visão da clínica</span></div>
+    <div class="card rolar"><table class="tab-rel">
+      <thead><tr><th>Dentista</th><th class="n">Valor-hora</th>
+        <th class="n">Procedimentos</th><th class="n">Materiais</th></tr></thead>
+      <tbody>${S.tabelas.map(t=>`<tr>
+        <td><b>${t.dentista}</b></td>
+        <td class="n">${t.valor_hora===null?'<span class="vaga">não definido</span>':fmtBRL(t.valor_hora)}</td>
+        <td class="n">${t.procedimentos}</td><td class="n">${t.materiais}</td></tr>`).join("")}</tbody>
+    </table></div>`:""}`;
+}
+
+function ligarPrecos(){
+  const alvo = dentistaAlvo();
+  const sel = $("#prDent");
+  if(sel) sel.addEventListener("change", ()=>{ precoDe = sel.value; renderFinanceiro(); });
+
+  const bh = $("#prHoraSalvar");
+  if(bh) bh.addEventListener("click", async ()=>{
+    const v = numBR($("#prHora").value);
+    if(!(v>0)){ toast("Informe o valor da hora."); $("#prHora").focus(); return; }
+    if(v>5000 && !confirm("Valor-hora de "+fmtBRL(v)+". Está certo?")) return;
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarValorHora(alvo, v); await DB.carregarPrecos();
+      }, "valor-hora");
+      if(!ok) return;
+    }else{
+      S.precoHora = S.precoHora||[];
+      const i = S.precoHora.findIndex(x=>x.dentista_id===alvo);
+      const linha = {dentista_id:alvo, valor_hora:v, atualizado_em:new Date().toISOString()};
+      if(i>=0) S.precoHora[i]=linha; else S.precoHora.push(linha);
+      sincronizarTabelas(); save();
+    }
+    renderFinanceiro(); toast("Valor-hora salvo: "+fmtBRL(v)+" por hora.");
+  });
+
+  const ba = $("#prProcAdd");
+  if(ba) ba.addEventListener("click", async ()=>{
+    const nome = $("#prNovoProc").value.trim();
+    const v = numBR($("#prNovoValor").value);
+    if(!nome){ toast("Informe o procedimento."); return; }
+    if(!(v>0)){ toast("Informe o valor."); return; }
+    if(precoProcDe(alvo, nome)){ toast("Já existe preço fechado para esse procedimento."); return; }
+    if(MODO==="nuvem"){
+      const p = PROCEDIMENTOS.find(x=>norm(x.nome)===norm(nome));
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarPrecoProcedimento({dentista:alvo, nome, valor:v,
+          procId: p && p.uuid ? p.uuid : null});
+        await DB.carregarPrecos();
+      }, "preço do procedimento");
+      if(!ok) return;
+    }else{
+      S.precoProc = S.precoProc||[];
+      S.precoProc.push({id:"pp"+Date.now(), dentista_id:alvo, procedimento:nome,
+        procedimento_id:null, valor:v, ativo:true});
+      sincronizarTabelas(); save();
+    }
+    renderFinanceiro(); toast(nome+" a "+fmtBRL(v)+", fechado.");
+  });
+
+  $$("#finPainel button[data-pSalvar]").forEach(b=>b.addEventListener("click", async ()=>{
+    const id = b.dataset.psalvar || b.getAttribute("data-pSalvar");
+    const tr = b.closest("tr");
+    const v = numBR(tr.querySelector("input.prin").value);
+    if(!(v>0)){ toast("Valor inválido."); return; }
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarPrecoProcedimento({id, valor:v}); await DB.carregarPrecos();
+      }, "preço do procedimento");
+      if(!ok) return;
+    }else{
+      const p = (S.precoProc||[]).find(x=>x.id===id); if(p) p.valor=v;
+      sincronizarTabelas(); save();
+    }
+    renderFinanceiro(); toast("Preço atualizado.");
+  }));
+
+  $$("#finPainel button[data-pApagar]").forEach(b=>b.addEventListener("click", async ()=>{
+    const id = b.dataset.papagar || b.getAttribute("data-pApagar");
+    const p = (S.precoProc||[]).find(x=>x.id===id);
+    if(!confirm("Remover o preço fechado de “"+(p?p.procedimento:"")+"”? Volta a ser cobrado pela hora.")) return;
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        await DB.apagarPrecoProcedimento(id); await DB.carregarPrecos();
+      }, "preço do procedimento");
+      if(!ok) return;
+    }else{
+      S.precoProc = (S.precoProc||[]).filter(x=>x.id!==id);
+      sincronizarTabelas(); save();
+    }
+    renderFinanceiro(); toast("Volta a ser cobrado pela hora.");
+  }));
+
+  $$("#finPainel button[data-mSalvar]").forEach(b=>b.addEventListener("click", async ()=>{
+    const local = b.dataset.msalvar || b.getAttribute("data-mSalvar");
+    const tr = b.closest("tr");
+    const txt = tr.querySelector("input.min").value.trim();
+    const v = txt==="" ? null : numBR(txt);
+    if(v !== null && !(v>0)){ toast("Valor inválido."); return; }
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarPrecoMaterial(alvo, local, v); await DB.carregarPrecos();
+      }, "preço do material");
+      if(!ok) return;
+    }else{
+      S.precoMat = S.precoMat||{};
+      if(v===null) delete S.precoMat[alvo+"|"+local];
+      else S.precoMat[alvo+"|"+local] = v;
+      sincronizarTabelas(); save();
+    }
+    renderFinanceiro();
+    toast(v===null ? "Volta a usar a margem do estoque." : "Preço salvo: "+fmtBRL(v)+".");
+  }));
+}
+
+/* No modo demo a visão vw_tabela_precos_dentista não existe; é
+   recomposta aqui para a tela do administrador ter o que mostrar. */
+function sincronizarTabelas(){
+  if(MODO==="nuvem") return;
+  S.tabelas = (S.usuarios||[]).filter(u=>u.perfil==="Dentista" && u.ativo).map(u=>({
+    dentista_id:u.id, dentista:u.nome,
+    valor_hora: valorHoraDe(u.id),
+    procedimentos:(S.precoProc||[]).filter(x=>x.dentista_id===u.id && x.ativo!==false).length,
+    materiais:Object.keys(S.precoMat||{}).filter(k=>k.startsWith(u.id+"|")).length,
+    atualizado_em:null
+  }));
+}
+
+/* Cobranças que o perfil pode ver. No banco quem decide é o RLS; aqui a
+   mesma regra existe só para o modo demo não mostrar o que a nuvem
+   esconderia — se divergirem, a nuvem está certa. */
+function cobrancasVisiveis(){
+  const todas = S.cobrancas||[];
+  if(MODO==="nuvem") return todas;
+  if(!pode("soMinhas")) return todas;
+  const eu = meuId();
+  return todas.filter(c=>c.dentista_id === eu || !c.dentista_id && false);
+}
 
 /* =====================================================================
    RELATÓRIOS DE ESTOQUE
@@ -6293,6 +6944,49 @@ function semearMovimentosDemo(){
   save();
 }
 
+/* Tabelas de preço de demonstração. Dois dentistas com números
+   diferentes de propósito: é a única forma de o cliente ver, na tela,
+   que a tabela é de cada um e que ninguém enxerga a do outro. */
+function semearPrecosDemo(){
+  if(MODO==="nuvem" || S.precoSemeado) return;
+  S.precoSemeado = true;
+  S.precoHora = [
+    {dentista_id:"u1", valor_hora:420.00, atualizado_em:new Date().toISOString()},
+    {dentista_id:"u6", valor_hora:650.00, atualizado_em:new Date().toISOString()}
+  ];
+  S.precoProc = [
+    {id:"pp1", dentista_id:"u1", procedimento:"Instalação de implante unitário",
+     procedimento_id:null, valor:3200.00, ativo:true},
+    {id:"pp2", dentista_id:"u6", procedimento:"Instalação de implante unitário",
+     procedimento_id:null, valor:4500.00, ativo:true}
+  ];
+  // a Helena cobra o enxerto acima da margem; o Paulo não cadastrou nada
+  // e por isso cai na margem da nota
+  S.precoMat = {"u1|enx": 420.00, "u1|memb": 520.00};
+  sincronizarTabelas();
+
+  /* Uma cobrança COM composição, montada do atendimento a1, para a tela
+     de composição não abrir vazia. Os números saem das tabelas acima —
+     não são digitados aqui, senão a demonstração mostraria uma conta que
+     o sistema não faz. */
+  const a1 = (S.atendimentos||[]).find(a=>a.id==="a1");
+  if(a1){
+    const itens = composicaoLocal(a1).filter(i=>!i.semPreco);
+    if(itens.length){
+      const cid = "cb-demo";
+      S.cobrancas.push({id:cid, pac:a1.pac,
+        valor:cent(itens.reduce((t,i)=>t+i.valor_total,0)),
+        vencimento:a1.data, descricao:a1.proc, atendimento_id:a1.id,
+        dentista_id:a1.dentista, status:"aberta", emitida_em:a1.data+"T18:00:00"});
+      itens.forEach((i,k)=>S.cobItens.push({id:cid+"-"+k, cobranca_id:cid, ordem:k+1,
+        tipo:i.tipo, descricao:i.descricao, material_id:i.material_id,
+        quantidade:i.quantidade, valor_unitario:i.valor_unitario,
+        valor_total:i.valor_total, origem:i.origem}));
+    }
+  }
+  save();
+}
+
 /* No modo demo o caixa começa com três vendas que cobrem os casos que o
    cliente precisa ver antes de confiar no sistema: à vista no PIX, a
    prazo no crédito parcelado, e uma cobrança ainda em aberto. Sem isso o
@@ -6314,7 +7008,8 @@ function semearCaixaDemo(){
   vendas.forEach((v,i)=>{
     const cid = "cd"+i;
     S.cobrancas.push({id:cid, pac:v.pac, valor:v.valor, vencimento:v.venc,
-      descricao:v.desc, status:"aberta", emitida_em:v.venc+"T09:00:00"});
+      descricao:v.desc, status:"aberta", emitida_em:v.venc+"T09:00:00",
+      dentista_id: (v.pac==="p4" ? "u6" : "u1")});
     v.pagos.forEach((pg,k)=>{
       const pid = cid+"-p"+k;
       const pr = projetar(pg.v, pg.forma, pg.n, false, null, pg.dia);
@@ -6334,12 +7029,13 @@ function semearCaixaDemo(){
 
 function renderAll(){
   if(!usuario) return;
-  semearCodigosDemo(); semearMovimentosDemo(); semearCaixaDemo();
+  semearCodigosDemo(); semearMovimentosDemo(); semearCaixaDemo(); semearPrecosDemo();
   const br=$("#relatBtn"); if(br) br.hidden = !pode("relatorios");
   $("#pacList").innerHTML=S.pacientes.map(p=>`<option value="${p.nome}"></option>`).join("");
   $("#procList").innerHTML=PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
+  if(MODO!=="nuvem" && !S.tabelas) sincronizarTabelas();
   renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderFinanceiro();
-  renderRelatorios();
+  renderRelatorios(); renderConferencia();
   if(agenda.eventos.length || agenda.salas.length) renderAgenda();
   renderMiniAgenda();
   if(pode("admin")) renderAcessos();
@@ -6353,6 +7049,8 @@ window.MD = {
   get usuario(){ return usuario; },
   get modo(){ return MODO; },
   projetar, taxaPara, resumoPaciente, fluxoPorMes, abrirPaciente, numBR, hojeISO, cent,
+  valorHoraDe, precoMaterial, precoPelaMargem, composicaoLocal, cobrancasVisiveis,
+  abrirConferencia, conferencia(){ return conf; },
   relatorio(){ return rel; }
 };
 
