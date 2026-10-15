@@ -308,6 +308,18 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .field input,.field select,.field textarea{background:var(--surface-2);border:1px solid var(--line);
   border-radius:var(--r-sm);padding:10px 11px;font-size:14px;width:100%}
 .field.missing input,.field.missing select{border-color:var(--warn);background:var(--warn-soft)}
+/* olho para revelar a senha. O campo ganha espaço à direita para o texto
+   não passar por baixo do botão em senha longa. */
+.comolho{position:relative;display:flex}
+.comolho input{padding-right:44px}
+.olho{position:absolute;right:2px;top:0;bottom:0;width:40px;display:grid;place-items:center;
+  color:var(--ink-3);border-radius:var(--r-sm)}
+.olho:hover{color:var(--accent)}
+.olho svg{width:19px;height:19px;pointer-events:none}
+.olho .riscado{display:none}
+.olho[aria-pressed="true"]{color:var(--accent)}
+.olho[aria-pressed="true"] .aberto{display:none}
+.olho[aria-pressed="true"] .riscado{display:block}
 .field .flag{font-size:11px;color:var(--warn);font-weight:600}
 .segs{display:flex;gap:6px}
 .seg{flex:1;padding:9px 4px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface-2);
@@ -553,7 +565,23 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <div class="field"><label for="inUser">Usuário ou e-mail</label>
           <input id="inUser" autocomplete="username" placeholder="nome@clinica.com.br"></div>
         <div class="field"><label for="inSenha">Senha</label>
-          <input id="inSenha" type="password" autocomplete="current-password" placeholder="sua senha"></div>
+          <div class="comolho">
+          <input id="inSenha" type="password" autocomplete="current-password" placeholder="sua senha">
+          <button type="button" class="olho" data-olho="inSenha" aria-pressed="false"
+            aria-label="Mostrar senha" title="Mostrar senha">
+            <svg class="aberto" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path>
+              <circle cx="12" cy="12" r="2.8"></circle>
+            </svg>
+            <svg class="riscado" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12s3.2-6.5 8-6.5c1.2 0 2.3.2 3.3.7M20 12s-1 2-2.9 3.7"></path>
+              <path d="M9.5 9.6a3 3 0 1 0 4.3 4.2"></path>
+              <path d="M3.5 3.5l17 17"></path>
+            </svg>
+          </button>
+          </div></div>
         <button class="btn primary wide" id="entrarBtn">Entrar</button>
         <div class="hint-demo" id="modoHint">Verificando conexão com o banco…</div>
         <div class="hint-demo" id="demoHint"></div>
@@ -579,7 +607,23 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
             <option value="Estoque">Estoque</option>
           </select></div>
         <div class="field"><label for="inNovoSenha">Senha desejada</label>
-          <input id="inNovoSenha" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres"></div>
+          <div class="comolho">
+          <input id="inNovoSenha" type="password" autocomplete="new-password" placeholder="mínimo 8 caracteres">
+          <button type="button" class="olho" data-olho="inNovoSenha" aria-pressed="false"
+            aria-label="Mostrar senha" title="Mostrar senha">
+            <svg class="aberto" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path>
+              <circle cx="12" cy="12" r="2.8"></circle>
+            </svg>
+            <svg class="riscado" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12s3.2-6.5 8-6.5c1.2 0 2.3.2 3.3.7M20 12s-1 2-2.9 3.7"></path>
+              <path d="M9.5 9.6a3 3 0 1 0 4.3 4.2"></path>
+              <path d="M3.5 3.5l17 17"></path>
+            </svg>
+          </button>
+          </div></div>
         <button class="btn primary wide" id="novoBtn">Solicitar acesso</button>
         <div id="novoMsg"></div>
       </div>
@@ -615,6 +659,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     <!-- ===== HOJE ===== -->
     <section class="screen on" id="scr-hoje">
       <div class="sec-h" data-col="full"><h2 id="saudacao">Atendimento</h2><span class="hint mono" id="todayChip">—</span></div>
+      <div data-col="full" id="avisoSql" hidden></div>
 
       <div class="voice" data-col="a">
         <div class="head">
@@ -1036,6 +1081,7 @@ const DB = {
         obs:(nota&&nota.nota)||""};
     });
     await DB.carregarLotes();
+    await DB.conferirEsquema();
     await DB.carregarCaixa();
     await DB.carregarPrecos();
     await DB.carregarComposicao();
@@ -1424,6 +1470,23 @@ const DB = {
        p_vencimento:vencimento||null});
   },
 
+  /* O PostgREST avisa "Could not find the table … in the schema cache"
+     quando a tabela não existe. Para quem está usando, isso não quer
+     dizer nada — quer dizer que o SQL da atualização não foi rodado. A
+     página precisa saber disso ANTES de oferecer o botão. */
+  async conferirEsquema(){
+    const alvos = [
+      ["vw_fluxo_caixa",   "financeiro e fluxo de caixa",  "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
+      ["vw_rel_saidas",    "relatórios de estoque",        "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
+      ["precos_dentista",  "preço por dentista",           "ATUALIZAR-PRECOS-POR-DENTISTA.sql"]
+    ];
+    S.faltaSql = [];
+    for(const [tab, nome, arquivo] of alvos){
+      try{ await DB.rest("GET", tab+"?select=*&limit=0"); }
+      catch(e){ if(ehFaltaDeEsquema(e)) S.faltaSql.push({nome, arquivo}); }
+    }
+  },
+
   async carregarComposicao(){
     try{
       S.cobItens = await DB.rest("GET","cobranca_itens?select=id,cobranca_id,ordem,tipo,"+
@@ -1432,12 +1495,50 @@ const DB = {
   }
 };
 
+/* "Could not find the table 'public.x' in the schema cache" é o
+   PostgREST dizendo que a tabela não existe. Não é falha de permissão
+   nem de rede, e tratar como tal mandaria a pessoa procurar no lugar
+   errado. */
+function ehFaltaDeEsquema(e){
+  const m = (e && (e.message || e.hint || "")) + "";
+  return /schema cache|Could not find the (table|function)|PGRST20[25]|does not exist/i.test(m);
+}
+
+/* O aviso que substitui o erro cru. Diz o que falta, qual arquivo roda
+   isso e onde se roda — porque "Could not find the table" não é
+   instrução para ninguém. */
+function htmlFaltaSql(oque){
+  const faltas = (S.faltaSql||[]);
+  const alvo = oque ? faltas.filter(f=>f.nome.includes(oque)) : faltas;
+  if(!alvo.length) return "";
+  const arquivos = [...new Set(alvo.map(f=>f.arquivo))];
+  return `<div class="card" style="border-color:var(--warn)">
+    <div class="eyebrow" style="color:var(--warn)">Atualização do banco pendente</div>
+    <p style="margin:6px 0 0;font-size:13.5px">
+      ${alvo.length>1?"Os módulos":"O módulo"}
+      <b>${alvo.map(f=>f.nome).join("</b>, <b>")}</b>
+      ${alvo.length>1?"ainda não existem":"ainda não existe"} no banco desta clínica.
+      A tela está pronta; as tabelas, não.</p>
+    <p style="margin:8px 0 0;font-size:12.5px;color:var(--ink-2)">
+      Para habilitar: abra o <b>SQL Editor</b> do Supabase e rode
+      ${arquivos.length>1?"os arquivos":"o arquivo"}
+      ${arquivos.map(a=>`<b class="mono">${a}</b>`).join(" e ")},
+      na ordem em que foram entregues. Pode rodar duas vezes sem estragar nada.</p>
+    <p style="margin:8px 0 0;font-size:12px;color:var(--ink-3)">
+      Nada do que já está no banco é alterado por isso — a atualização só acrescenta.</p>
+  </div>`;
+}
+
 /* Erro de gravação não pode passar em silêncio: o número na tela deixaria
    de ser o número do banco e ninguém perceberia. Avisa e recarrega. */
 async function naNuvem(fn, oqueFalhou){
   if(MODO!=="nuvem") return true;
   try{ await fn(); return true; }
   catch(e){
+    if(ehFaltaDeEsquema(e)){
+      toast("Esta parte ainda não existe no banco — falta rodar o SQL da atualização.");
+      return false;
+    }
     toast("Não salvou no banco ("+oqueFalhou+"): "+e.message);
     try{ await DB.carregarTudo(); renderAll(); }catch(_){}
     return false;
@@ -1657,6 +1758,7 @@ function migrar(){
   if(!S.precoProc) S.precoProc = null;
   if(!S.precoMat) S.precoMat = null;
   if(!S.tabelas) S.tabelas = null;
+  if(!S.faltaSql) S.faltaSql = [];     // no modo demo nunca falta nada
   if(!S.validade){
     // no modo demo o alerta de validade é calculado aqui; na nuvem vem
     // pronto da view, para a regra viver num lugar só
@@ -5225,10 +5327,18 @@ function renderFinanceiro(){
   if(finAba==="fluxo" && !podeVer) finAba="producao";
   if(finAba==="taxas" && !verTaxa) finAba="producao";
   if(finAba==="precos" && !pode("precos")) finAba="producao";
-  if(finAba==="fluxo")      alvo.innerHTML = htmlFluxo();
-  else if(finAba==="recebidos") alvo.innerHTML = htmlRecebidos();
-  else if(finAba==="precos"){ alvo.innerHTML = htmlPrecos(); ligarPrecos(); }
-  else if(finAba==="taxas") { alvo.innerHTML = htmlTaxas(); ligarTaxas(); }
+  const semFin   = (S.faltaSql||[]).some(f=>f.nome.includes("financeiro"));
+  const semPreco = (S.faltaSql||[]).some(f=>f.nome.includes("preço"));
+  if(finAba==="fluxo")          alvo.innerHTML = semFin ? htmlFaltaSql("financeiro") : htmlFluxo();
+  else if(finAba==="recebidos") alvo.innerHTML = (semFin?htmlFaltaSql("financeiro"):"") + htmlRecebidos();
+  else if(finAba==="precos"){
+    if(semPreco){ alvo.innerHTML = htmlFaltaSql("preço"); }
+    else { alvo.innerHTML = htmlPrecos(); ligarPrecos(); }
+  }
+  else if(finAba==="taxas") {
+    if(semFin){ alvo.innerHTML = htmlFaltaSql("financeiro"); }
+    else { alvo.innerHTML = htmlTaxas(); ligarTaxas(); }
+  }
   else                      alvo.innerHTML = htmlProducao();
   $$("#finAbas button").forEach(b=>{
     b.hidden = (b.dataset.fin==="fluxo" && !podeVer)
@@ -5482,10 +5592,53 @@ $("#voltarAcessos").addEventListener("click", ()=>{
 });
 
 /* ===================== login =====================*/
+/* Olho para revelar a senha. Três cuidados que fazem diferença no balcão:
+     · volta a esconder sozinho depois de 20 s — senha revelada que fica
+       revelada é senha lida por quem passa atrás;
+     · esconde de novo ao enviar o formulário e ao trocar de painel;
+     · o foco e a posição do cursor são preservados, senão quem está no
+       meio de digitar perde o lugar.
+   O olho não é acessório: senha que não se vê é senha digitada errado
+   três vezes, e no celular isso trava o acesso de quem precisa atender. */
+(function(){
+  const timers = new WeakMap();
+  function esconder(inp, bt){
+    inp.type = "password";
+    bt.setAttribute("aria-pressed","false");
+    bt.setAttribute("aria-label","Mostrar senha");
+    bt.title = "Mostrar senha";
+    clearTimeout(timers.get(bt));
+  }
+  $$("button[data-olho]").forEach(bt=>{
+    const inp = $("#"+bt.dataset.olho);
+    if(!inp) return;
+    bt.addEventListener("click", ()=>{
+      const mostrando = inp.type === "text";
+      if(mostrando){ esconder(inp, bt); }
+      else{
+        inp.type = "text";
+        bt.setAttribute("aria-pressed","true");
+        bt.setAttribute("aria-label","Ocultar senha");
+        bt.title = "Ocultar senha";
+        clearTimeout(timers.get(bt));
+        timers.set(bt, setTimeout(()=>esconder(inp, bt), 20000));
+      }
+      // devolve o cursor para onde estava
+      const pos = inp.value.length;
+      try{ inp.focus(); inp.setSelectionRange(pos, pos); }catch(e){}
+    });
+    // Enter no campo entra; a senha não fica exposta depois disso
+    inp.addEventListener("keydown", e=>{ if(e.key==="Enter") esconder(inp, bt); });
+  });
+  window.esconderSenhas = ()=> $$("button[data-olho]").forEach(bt=>{
+    const inp = $("#"+bt.dataset.olho); if(inp) esconder(inp, bt);
+  });
+})();
 /* Escopo no tablist DO LOGIN, não em ".aba button": a classe .aba é
    reusada em outras telas, e um seletor solto aqui capturava as abas do
    financeiro e dos relatórios — que não têm painel de login para abrir. */
 $$("#loginAbas button").forEach(b=>b.addEventListener("click", ()=>{
+  if(window.esconderSenhas) window.esconderSenhas();
   $$("#loginAbas button").forEach(x=>x.setAttribute("aria-selected", String(x===b)));
   $$(".painel").forEach(p=>p.classList.remove("on"));
   const alvo = $("#pn-"+b.dataset.painel); if(alvo) alvo.classList.add("on");
@@ -5563,7 +5716,11 @@ async function entrar(){
   try{ sessionStorage.setItem("md-user", u.id); }catch(e){}
   entrarNoApp();
 }
-$("#entrarBtn").addEventListener("click", entrar);
+$("#entrarBtn").addEventListener("click", ()=>{
+  // a senha não fica à vista depois de tentar entrar, nem se a tentativa falhar
+  if(window.esconderSenhas) window.esconderSenhas();
+  entrar();
+});
 $("#inSenha").addEventListener("keydown", e=>{ if(e.key==="Enter") entrar(); });
 $("#inUser").addEventListener("keydown", e=>{ if(e.key==="Enter") $("#inSenha").focus(); });
 
@@ -5585,6 +5742,7 @@ $("#recBtn").addEventListener("click", async ()=>{
     'Confira o spam.'+(MODO==="nuvem"?'':'<br><b>Fora do banco nada é enviado</b> — o envio real depende do servidor.')+'</div>';
 });
 $("#novoBtn").addEventListener("click", ()=>{
+  if(window.esconderSenhas) window.esconderSenhas();
   const nome=$("#inNovoNome").value.trim(), em=$("#inNovoEmail").value.trim(),
         perfil=$("#inNovoPerfil").value, senha=$("#inNovoSenha").value;
   if(nome.split(" ").filter(Boolean).length<2){ toast("Informe nome e sobrenome."); return; }
@@ -5788,6 +5946,11 @@ let compAberta = null;   // id da cobrança com a composição expandida
 function renderCaixa(pacId){
   const box = $("#caixaBox"); if(!box) return;
   if(!pode("caixa")){ box.innerHTML=""; return; }
+  if((S.faltaSql||[]).some(f=>f.nome.includes("financeiro"))){
+    box.innerHTML = `<div class="sec-h" style="margin-top:14px"><h2>Pagamentos</h2></div>`
+      + htmlFaltaSql("financeiro");
+    return;
+  }
   const r = resumoPaciente(pacId);
   const cobs = cobrancasDe(pacId);
   const ver = pode("projecao");
@@ -6163,6 +6326,10 @@ let conf = null;       // {atd, itens, desc, venc} enquanto a conferência está
 
 async function abrirConferencia(atdId){
   const atd = S.atendimentos.find(a=>a.id===atdId); if(!atd) return;
+  if((S.faltaSql||[]).some(f=>f.nome.includes("preço"))){
+    toast("A cobrança composta precisa do SQL de preços — veja Financeiro › Preços.");
+    return;
+  }
   let itens;
   if(MODO==="nuvem"){
     try{
@@ -6558,6 +6725,13 @@ function renderRelatorios(){
   const card = $("#relatCard"), saida = $("#relatSaida");
   const bt = $("#relatBtn"); if(bt) bt.hidden = !pode("relatorios");
   if(!rel.aberto || !pode("relatorios")){ card.hidden=true; saida.innerHTML=""; return; }
+  // sem as visões no banco não há relatório para pedir período
+  const falta = (S.faltaSql||[]).some(f=>f.nome.includes("relatórios"));
+  if(falta){
+    card.hidden = true;
+    saida.innerHTML = htmlFaltaSql("relatórios");
+    return;
+  }
   rel.de  = rel.de  || primeiroDoMes();
   rel.ate = rel.ate || hojeISO();
   card.hidden=false;
@@ -6600,7 +6774,14 @@ async function gerarRelatorio(){
     rel.dados = MODO==="nuvem" ? await DB.carregarRelatorios(rel.de, rel.ate)
                                : relatorioLocal(rel.de, rel.ate);
   }catch(e){
-    toast("Não deu para gerar: "+e.message);
+    if(ehFaltaDeEsquema(e)){
+      // a sondagem pode ter passado antes de alguém mexer no banco
+      (S.faltaSql = S.faltaSql||[]).push(
+        {nome:"relatórios de estoque", arquivo:"ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"});
+      toast("Os relatórios ainda não existem no banco — veja a instrução na tela.");
+    }else{
+      toast("Não deu para gerar: "+e.message);
+    }
     rel.dados=null;
   }
   rel.carregando=false; renderRelatorios();
@@ -7030,6 +7211,10 @@ function semearCaixaDemo(){
 function renderAll(){
   if(!usuario) return;
   semearCodigosDemo(); semearMovimentosDemo(); semearCaixaDemo(); semearPrecosDemo();
+  // um aviso só, no topo, quando falta atualização: repetir em cada
+  // tela vira ruído e a pessoa para de ler
+  const av = $("#avisoSql");
+  if(av){ const h = htmlFaltaSql(); av.innerHTML = h; av.hidden = !h; }
   const br=$("#relatBtn"); if(br) br.hidden = !pode("relatorios");
   $("#pacList").innerHTML=S.pacientes.map(p=>`<option value="${p.nome}"></option>`).join("");
   $("#procList").innerHTML=PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
@@ -7088,5 +7273,6 @@ $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month
 })();
 })();
 </script>
+
 
 </html>
