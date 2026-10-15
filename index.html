@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0B5967">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Dr. Leonardo Reis</title>
+<title>IDente · Dr. Leonardo Reis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -171,6 +171,64 @@ a{color:var(--accent)}
 .dente-painel{margin-top:12px;background:var(--surface-2);border:1px solid var(--line-2);
   border-radius:var(--r);padding:13px;display:flex;flex-direction:column;gap:10px}
 
+/* ---------- janela do odontograma ---------- */
+.od-modal{position:fixed;inset:0;z-index:95;background:var(--ground);display:flex}
+.od-caixa{flex:1;min-width:0;display:flex;flex-direction:column}
+#odontoCorpo{flex:1;min-height:0;display:flex;flex-direction:column}
+.od-barra{display:flex;align-items:center;gap:10px;padding:11px 16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);background:var(--surface)}
+.od-quem{flex:1;min-width:140px}
+.od-quem b{display:block;font-family:var(--f-marca);font-size:18px;line-height:1.1}
+.od-quem small{display:block;font-size:11px;color:var(--ink-3);margin-top:1px}
+.od-palco{flex:1;min-height:0;display:flex;gap:0}
+.od-cena{flex:1;min-width:0;position:relative;background:
+  radial-gradient(70% 60% at 50% 38%, var(--surface), var(--ground) 78%)}
+#odCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+#odCanvas:active{cursor:grabbing}
+.od-vistas{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:5px;
+  background:color-mix(in srgb,var(--surface) 86%,transparent);padding:7px;
+  border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(6px)}
+.od-dica{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:10.5px;
+  color:var(--ink-3);pointer-events:none}
+.od-2d{padding:14px;overflow:auto;height:100%}
+.od-lado{width:306px;flex:0 0 auto;border-left:1px solid var(--line);background:var(--surface);
+  padding:14px;overflow:auto}
+.od-ajuda{margin:5px 0 10px;font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.od-tintas{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.od-tinta{display:flex;align-items:center;gap:6px;padding:6px 7px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface-2);font-size:11px;text-align:left;
+  color:var(--ink-2);line-height:1.2}
+.od-tinta i{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid var(--line-2)}
+.od-tinta[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);
+  color:var(--accent);font-weight:700;box-shadow:0 0 0 1px var(--accent) inset}
+.od-faces{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.od-face{position:relative;display:flex;align-items:center;gap:8px;padding:8px 9px;
+  border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);
+  text-align:left;font-size:11.5px;color:var(--ink-2);line-height:1.3}
+.od-face i{width:16px;height:16px;border-radius:4px;flex:none;border:1px solid var(--line-2)}
+.od-face b{color:var(--ink);text-transform:capitalize}
+.od-face[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.od-face em{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-style:normal;
+  font-size:12px;color:var(--ink-3);padding:3px 5px;border-radius:5px}
+.od-face em:hover{background:var(--crit-soft);color:var(--crit)}
+.od-hist{font-size:11px;color:var(--ink-3);line-height:1.75;margin-top:4px}
+
+/* a prévia na ficha: clicável, com a chamada por cima */
+.od-previa{position:relative;cursor:pointer;border-radius:var(--r);transition:box-shadow .15s}
+.od-previa:hover{box-shadow:0 0 0 2px var(--accent)}
+.od-previa .arcada svg{pointer-events:none}
+.od-chamada{position:absolute;right:14px;bottom:14px;background:var(--accent);
+  color:var(--accent-ink);border-radius:var(--r-sm);padding:8px 12px;box-shadow:var(--shadow)}
+.od-chamada b{display:block;font-size:12.5px}
+.od-chamada span{display:block;font-size:10.5px;opacity:.85}
+
+@media (max-width:860px){
+  .od-palco{flex-direction:column}
+  .od-cena{min-height:52vh}
+  .od-lado{width:auto;border-left:none;border-top:1px solid var(--line);max-height:44vh}
+  .od-vistas{flex-direction:row;flex-wrap:wrap;max-width:62%}
+}
+
 /* ---------- exames ---------- */
 .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:9px}
 .exame{display:flex;flex-direction:column;gap:0;text-align:left;background:var(--surface);
@@ -229,6 +287,13 @@ a{color:var(--accent)}
   background:linear-gradient(90deg,transparent,var(--ouro),transparent)}
 .login .marca span{display:block;font-size:10.5px;color:var(--marca);text-transform:uppercase;
   letter-spacing:.19em;font-weight:600}
+/* O sistema é o IDente; a clínica é quem o usa. Separar os dois evita a
+   leitura errada de que "IDente" seria a marca do Dr. Leonardo. */
+.login .marca .instalado{margin-top:14px;padding-top:11px;border-top:1px solid var(--line);
+  width:230px}
+.login .marca .instalado b{font-family:var(--f-marca);font-size:15px;font-weight:700;
+  letter-spacing:0;color:var(--ink-2)}
+.login .marca .instalado span{font-size:8.5px;letter-spacing:.16em;color:var(--ink-3);margin-top:2px}
 .modal{width:100%;max-width:392px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:20px;display:flex;flex-direction:column;gap:14px}
 .modal h2{font-size:17px}
@@ -272,9 +337,12 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 
 /* ---------- primitivos ---------- */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow-sm)}
-.sec-h{display:flex;align-items:baseline;gap:8px;padding:0 2px}
-.sec-h h2{font-size:15px}
-.sec-h .hint{font-size:11.5px;color:var(--ink-3);margin-left:auto;text-align:right}
+/* flex-wrap: no celular o título e a dica somados passavam de 600px e
+   empurravam a ficha inteira para fora da tela — a página ganhava
+   rolagem horizontal e o texto ficava cortado */
+.sec-h{display:flex;align-items:baseline;gap:8px;padding:0 2px;flex-wrap:wrap}
+.sec-h h2{font-size:15px;min-width:0}
+.sec-h .hint{font-size:11.5px;color:var(--ink-3);margin-left:auto;text-align:right;min-width:0}
 .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--ink-3);font-weight:700}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;
@@ -382,7 +450,11 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .stock .bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:7px}
 .stock .bar i{display:block;height:100%;border-radius:3px;background:var(--ok)}
 .stock .bar i.warn{background:var(--warn)} .stock .bar i.crit{background:var(--crit)}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+/* auto-fit com mínimo em pixels: com repeat(3,1fr) cada coluna herda
+   o min-content do seu conteúdo e três blocos de ~200px forçavam a
+   ficha a 660px — no celular a página inteira saía da tela. */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+.tile b{overflow-wrap:anywhere}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 10px;box-shadow:var(--shadow-sm)}
 .tile b{display:block;font-family:var(--f-display);font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
 .tile span{font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-top:3px;line-height:1.25}
@@ -419,6 +491,34 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 }
 
 /* ---------- ficha do paciente ---------- */
+.busca-linha{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.busca-linha .searchbox{flex:1 1 220px;min-width:0}
+.busca-linha .btn{flex:0 0 auto;white-space:nowrap}
+@media (max-width:719px){
+  .busca-linha #pacFiltro{width:100%!important;order:3}
+  .busca-linha .btn{flex:1 1 100%}
+}
+
+/* A ficha aberta usa a largura toda e se distribui em colunas: cadastro
+   e situação lado a lado, odontograma e histórico abaixo em largura
+   plena. Numa coluna só, o dentista rolava a tela inteira para ver o
+   que já tinha visto. */
+/* minmax(0,1fr) na coluna única: sem isso a coluna herda o min-content
+   do odontograma 2D (SVG de 620px, que já rola sozinho) e a ficha
+   inteira nasce com 660px — no celular a tela ganhava rolagem lateral. */
+.ficha{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){
+  .ficha{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ficha > .larga{grid-column:1 / -1}
+}
+@media (min-width:1360px){
+  .ficha{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ficha > .meia{grid-column:span 2}
+}
+.ficha-topo{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ficha-topo .quem{flex:1;min-width:0}
+.ficha-topo h2{font-family:var(--f-marca);font-size:23px;line-height:1.15;letter-spacing:-.01em}
+.ficha-topo .acoes{display:flex;gap:7px;flex-wrap:wrap}
 .dados{margin:12px 0 0;display:flex;flex-direction:column}
 .dados div{display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line)}
 .dados div:last-child{border-bottom:none}
@@ -441,6 +541,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .minibtn{font-size:11.5px;font-weight:600;color:var(--accent);border:1px solid var(--line);
   background:var(--surface);border-radius:8px;padding:5px 9px}
+.minibtn[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
 
 /* ---------- agenda ---------- */
 .slot{display:flex;gap:11px;align-items:stretch}
@@ -531,7 +632,7 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 
   main{grid-area:conteudo;padding:22px;max-width:760px;margin:0 auto;width:100%}
   .toast{bottom:26px}
-  .tiles{grid-template-columns:repeat(3,1fr)}
+  .tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 }
 
 @media (min-width:1100px){
@@ -549,12 +650,11 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
   #scr-hoje > [data-col="a"]{grid-column:1;position:sticky;top:78px}
   #scr-hoje > [data-col="b"]{grid-column:2}
 
-  /* Pacientes: lista e prontuário lado a lado */
-  #scr-pacientes.on{display:grid;grid-template-columns:310px 1fr;gap:14px 24px;align-items:start}
-  #pacSearch{grid-column:1;grid-row:1}
-  #pacList2{grid-column:1;grid-row:2;max-height:calc(100vh - 210px);overflow:auto;padding-right:4px}
-  #pacDetail{grid-column:2;grid-row:1 / span 2}
-  html[data-dispositivo="desktop"] #pacDetail:not([hidden]) ~ * {}
+  /* Pacientes: lista larga enquanto se procura. Com a ficha aberta a
+     lista SAI — ver trinta nomes ao lado do prontuário de um não ajuda
+     ninguém, e rouba a largura de quem está sendo atendido. */
+  #scr-pacientes.on{display:flex;flex-direction:column;gap:14px}
+  #pacList2{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:8px}
 
   /* Estoque e financeiro ganham duas colunas de cartões */
   #scr-estoque .list,#scr-financeiro .list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -580,8 +680,12 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <path fill="currentColor" fill-rule="evenodd" d="M27.8 98.7C26.1 98.1 24.1 95.9 22.3 92.8C22.0 92.4 21.5 91.6 21.3 91.1C20.8 90.2 17.2 83.2 17.2 83.0C17.2 83.0 16.9 82.4 16.6 81.6C14.5 77.2 13.0 73.4 10.9 67.0C10.7 66.4 10.3 65.4 10.2 65.0C10.0 64.5 9.8 63.9 9.7 63.7C9.7 63.4 9.4 62.6 9.1 61.8C8.4 59.8 7.5 57.0 7.2 55.7C7.0 55.1 6.8 54.4 6.7 54.1C6.3 53.1 5.3 49.3 5.0 48.1C4.9 47.4 4.6 46.3 4.5 45.6C4.3 44.9 4.1 43.9 4.0 43.4C3.9 42.9 3.8 42.1 3.7 41.6C3.6 41.1 3.5 40.3 3.4 39.8C3.4 39.3 3.2 38.4 3.2 37.8C2.4 31.8 2.1 22.0 2.6 18.8C3.7 11.9 8.1 6.2 13.6 4.3C18.8 2.5 31.9 7.5 41.7 14.9C43.1 16.0 43.1 16.1 41.4 15.4C39.7 14.7 37.6 13.9 37.0 13.8C36.8 13.8 36.3 13.6 36.0 13.5C25.4 10.0 16.7 12.7 12.5 20.6C10.0 25.5 9.0 36.6 10.3 45.6C10.7 48.6 11.2 51.0 11.5 52.6C11.6 53.1 11.8 53.9 11.9 54.4C12.2 56.0 14.2 63.6 15.0 66.3C15.5 68.3 15.5 68.2 16.3 70.9C17.7 75.3 19.2 79.0 20.9 81.8C21.2 82.3 21.5 82.8 21.5 82.9C21.5 83.1 23.8 86.2 24.6 87.1C27.0 89.5 28.5 89.2 30.5 85.6C31.1 84.6 31.4 84.1 33.0 80.8C35.4 75.9 38.0 72.5 43.5 67.0C46.6 63.9 49.1 61.6 50.8 60.5C53.5 58.7 59.2 56.3 64.4 54.9C65.3 54.6 66.2 54.4 66.4 54.3C66.6 54.2 67.2 54.1 67.6 54.0C67.9 53.9 68.7 53.8 69.2 53.7C72.5 52.9 76.0 52.4 76.1 52.7C76.2 52.8 76.1 53.2 75.9 53.6L75.5 54.4L74.0 54.6C71.1 54.9 68.3 55.6 66.1 56.5C65.9 56.6 65.4 56.8 65.0 57.0C56.9 60.3 53.3 62.8 48.7 68.2C48.2 68.8 47.7 69.3 47.7 69.3C47.1 69.9 43.3 75.0 41.9 77.2C41.0 78.6 38.9 82.5 37.7 85.2C37.4 85.9 36.9 87.0 36.5 87.8C36.2 88.5 35.8 89.3 35.6 89.7C35.0 91.1 33.2 94.6 32.7 95.4C30.9 98.5 29.7 99.3 27.8 98.7ZM63.0 81.6C63.0 81.4 64.6 78.8 66.9 75.4C69.8 71.1 70.1 70.6 70.8 69.5C71.7 68.1 75.1 61.5 75.1 61.3C75.1 61.2 75.5 60.2 76.1 59.0C77.0 57.1 79.0 52.6 80.0 50.3C81.0 47.9 82.0 45.4 82.8 43.3C83.3 42.1 83.7 40.9 83.8 40.8C83.9 40.6 84.0 40.3 84.1 40.0C84.2 39.8 84.5 38.9 84.8 38.0C85.3 36.7 86.0 34.5 86.4 33.0C87.7 28.5 88.3 23.0 87.8 19.4C86.7 12.4 81.6 9.1 73.3 10.2C70.7 10.5 69.8 10.6 69.3 10.8C69.1 10.8 68.2 11.0 67.5 11.2C65.5 11.6 62.3 12.5 59.3 13.3C52.1 15.4 46.7 14.2 36.1 8.0C34.9 7.4 31.8 5.7 31.8 5.7C31.7 5.7 31.3 5.5 30.8 5.3C26.6 3.3 21.8 2.3 17.5 2.3C16.1 2.3 14.9 2.3 14.8 2.3C14.5 2.0 18.3 1.3 20.8 1.2C26.1 1.0 29.2 1.9 39.2 6.9C48.1 11.3 47.1 11.0 51.9 11.0C56.4 10.9 57.5 10.7 61.5 9.2C71.0 5.5 76.4 4.0 80.5 4.0C87.5 4.0 93.8 7.0 95.9 11.5C97.8 15.3 98.2 18.9 97.2 24.1C97.1 24.8 96.9 25.6 96.8 26.1C96.0 31.1 92.0 41.5 88.2 48.2C86.4 51.5 86.3 51.7 84.5 54.7C83.9 55.7 80.4 61.0 79.9 61.6C79.8 61.8 78.9 63.0 77.9 64.3C76.2 66.6 73.5 70.0 72.0 71.8C71.6 72.3 71.1 72.9 70.9 73.1C70.1 74.1 66.8 77.8 65.9 78.7C63.5 81.3 63.0 81.7 63.0 81.6Z"></path>
       </svg>
       <div>
-        <b>Dr. Leonardo Reis</b>
+        <b>IDente</b>
         <i></i>
+        <span>Gestão de consultório odontológico</span>
+      </div>
+      <div class="instalado">
+        <b>Dr. Leonardo Reis</b>
         <span>Implantodontia e Estética</span>
       </div>
     </div>
@@ -797,7 +901,14 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 
     <!-- ===== PACIENTES ===== -->
     <section class="screen" id="scr-pacientes">
-      <input class="searchbox" id="pacSearch" placeholder="Buscar paciente…" autocomplete="off">
+      <div class="busca-linha" id="pacBusca">
+        <input class="searchbox" id="pacSearch" placeholder="Buscar por nome…" autocomplete="off">
+        <div class="aba" role="tablist" id="pacFiltro" style="flex:0 0 auto;width:210px">
+          <button role="tab" aria-selected="true"  data-por="nome">Nome</button>
+          <button role="tab" aria-selected="false" data-por="proc">Procedimento</button>
+        </div>
+        <button class="btn primary" id="novaConsultaBtn">+ Nova consulta</button>
+      </div>
       <div class="list" id="pacList2"></div>
       <div id="pacDetail" hidden></div>
     </section>
@@ -886,6 +997,11 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <button class="iconbtn" id="exameModalX" aria-label="Fechar">✕</button>
     </div>
     <div id="exameModalCorpo"></div>
+  </div>
+</div>
+<div class="od-modal" id="odontoModal" hidden>
+  <div class="od-caixa" role="dialog" aria-modal="true" aria-label="Odontograma">
+    <div id="odontoCorpo"></div>
   </div>
 </div>
 <div class="modal-fundo" id="loteModal" hidden>
@@ -2757,7 +2873,12 @@ function idadeAnos(nasc){
   let a = h.getFullYear()-d.getFullYear();
   const m = h.getMonth()-d.getMonth();
   if(m<0 || (m===0 && h.getDate()<d.getDate())) a--;
-  return a + ((h - new Date(h.getFullYear(), d.getMonth(), d.getDate()))/31557600000 % 1);
+  /* a fração tem de contar do ÚLTIMO aniversário. Contando do
+     aniversário DESTE ano, quem ainda não fez anos ganhava uma fração
+     negativa e a ficha mostrava 36 onde o cabeçalho mostrava 37. */
+  const ult = new Date(h.getFullYear(), d.getMonth(), d.getDate());
+  if(ult > h) ult.setFullYear(ult.getFullYear()-1);
+  return a + Math.min(0.999, (h - ult)/31557600000);
 }
 function denticaoSugerida(idade){
   if(idade===null) return "permanente";
@@ -2999,7 +3120,7 @@ function svgDente(fdi, x, y, estados, esperado, nx, ny){
 
 let odonto = {estados:{}, historico:[], denticao:null, selecionado:null};
 
-function desenharOdontograma(pac){
+function desenharOdontograma(pac, naJanela){
   const idade = idadeAnos(pac.nasc);
   const modo = odonto.denticao || denticaoSugerida(idade);
   const esperados = new Set(dentesEsperados(idade, modo));
@@ -3072,7 +3193,7 @@ function desenharOdontograma(pac){
         <span class="hint" style="font-size:11px;color:var(--ink-3)">${rotuloIdade} · dentição ${rotuloModo}</span>
       </div>
       <div class="row" style="margin-top:8px">
-        ${["decidua","mista","permanente"].map(m=>
+        ${naJanela ? "" : ["decidua","mista","permanente"].map(m=>
           `<button class="minibtn" data-dent="${m}" ${m===modo?'style="background:var(--accent-soft);color:var(--accent);border-color:var(--accent)"':""}>
             ${{decidua:"Decídua",mista:"Mista",permanente:"Permanente"}[m]}</button>`).join("")}
         ${(()=>{
@@ -3098,7 +3219,7 @@ function desenharOdontograma(pac){
         ${CONDICOES.filter(c=>c[0]!=="higido"&&c[0]!=="outro").map(([k,rot,cor])=>
           `<span><i style="background:${cor}"></i>${rot}</span>`).join("")}
       </div>
-      <div id="dentePainel"></div>
+      ${naJanela ? "" : '<div id="dentePainel"></div>'}
     </div>`;
 }
 
@@ -3265,11 +3386,895 @@ function ligarPainelDente(pacId, fdi){
     }));
 }
 
+
+/* =====================================================================
+   ODONTOGRAMA 3D
+
+   Um motor próprio, de propósito: o visualizador de artifact bloqueia
+   host externo, então Three.js e companhia estão fora. O que está aqui
+   é o mínimo que um odontograma precisa — malha por tipo de dente,
+   rotação 360°, luz direcional, pintor por profundidade e clique que
+   acerta a FACE, não só o dente.
+
+   Honestidade sobre o que isto é: geometria APROXIMADA, gerada por
+   regra a partir de medidas médias de largura mesiodistal, espessura
+   vestíbulo-lingual, altura de coroa e número de raízes. Não é
+   escaneamento do paciente. Serve para marcar e conferir; não serve
+   para planejar cirurgia em cima da forma.
+
+   O dado gravado é o MESMO do 2D: {fdi, face, condicao, nota} em
+   dentes_estado. O 3D é outra janela para a mesma ficha, não um
+   segundo prontuário.
+   ===================================================================== */
+
+/* ---------- álgebra mínima ---------- */
+const v3 = (x,y,z)=>({x,y,z});
+function girarY(p,a){ const c=Math.cos(a),s=Math.sin(a);
+  return v3(p.x*c + p.z*s, p.y, -p.x*s + p.z*c); }
+function girarX(p,a){ const c=Math.cos(a),s=Math.sin(a);
+  return v3(p.x, p.y*c - p.z*s, p.y*s + p.z*c); }
+
+/* ---------- medidas médias, em milímetros ----------
+   Largura mesiodistal e espessura vestíbulo-lingual de tabela
+   odontométrica clássica, arredondadas. É o que dá ao molar cara de
+   molar e ao incisivo cara de incisivo sem precisar de escaneamento. */
+const MED = {
+  // [larguraMD, espessuraVL, alturaCoroa, comprimentoRaiz, nRaizes, cúspides]
+  sup:{1:[8.6,7.1,10.5,13.0,1,0], 2:[6.6,6.2, 9.0,13.0,1,0], 3:[7.6,8.1,10.0,17.0,1,1],
+       4:[7.1,9.2, 8.5,14.0,2,2], 5:[6.6,9.0, 8.5,14.0,1,2],
+       6:[10.4,11.5,7.5,13.0,3,4], 7:[9.8,11.3,7.0,12.0,3,4], 8:[8.8,10.5,6.5,11.0,3,4]},
+  inf:{1:[5.3,6.0, 9.0,12.5,1,0], 2:[5.9,6.5, 9.5,14.0,1,0], 3:[6.9,7.6,11.0,16.0,1,1],
+       4:[7.1,7.8, 8.5,14.0,1,2], 5:[7.3,8.2, 8.0,14.5,1,2],
+       6:[11.2,10.3,7.5,14.0,2,5], 7:[10.7,10.1,7.0,13.0,2,4], 8:[10.0,9.5,7.0,11.0,2,4]}
+};
+/* decíduo: menor e com raiz proporcionalmente mais curta e divergente */
+const ESC_DEC = 0.78;
+
+function medidaDe(fdi){
+  const q = Math.floor(fdi/10), p = fdi%10;
+  const sup = (q===1||q===2||q===5||q===6);
+  const dec = q>=5;
+  let pos = p;
+  if(dec) pos = (p<=2) ? p : (p===3 ? 3 : p+1);   // 54/55 ocupam o lugar de molares
+  const m = (sup?MED.sup:MED.inf)[Math.min(pos,8)] || MED.sup[1];
+  const e = dec ? ESC_DEC : 1;
+  return {md:m[0]*e, vl:m[1]*e, hc:m[2]*e, hr:m[3]*(dec?0.72:1),
+          raizes:m[4], cusp:m[5], sup, dec, pos};
+}
+
+/* ---------- a malha de um dente ----------
+   Construída em espaço LOCAL com uma convenção que simplifica tudo
+   depois: +X é vestibular, −X é lingual/palatina, +Z é distal, −Z é
+   mesial, +Y é oclusal. Assim a face de cada triângulo sai do ângulo
+   dele, sem depender de onde o dente está na arcada. */
+const SEG = 16;                       // 12 deixava a coroa com cara de prisma
+const malhaCache = {};
+
+function secao(t, md, vl, n){
+  /* superelipse: n alto aproxima o retângulo arredondado do molar,
+     n baixo aproxima o ovoide do incisivo */
+  const pts = [];
+  const a = md/2, b = vl/2;
+  for(let i=0;i<SEG;i++){
+    const th = (i/SEG)*Math.PI*2;
+    const c = Math.cos(th), s = Math.sin(th);
+    const r = 1/Math.pow(Math.pow(Math.abs(c/1),n)+Math.pow(Math.abs(s/1),n), 1/n);
+    pts.push({x: r*c*b, z: r*s*a});     // x = vestíbulo-lingual, z = mesiodistal
+  }
+  return pts;
+}
+
+function malhaDente(fdi){
+  const ch = "m"+fdi;
+  if(malhaCache[ch]) return malhaCache[ch];
+  const M = medidaDe(fdi);
+  const anterior = M.pos <= 3;
+  const nSup = anterior ? 2.2 : 3.4;
+
+  const V = [];       // vértices
+  const T = [];       // triângulos {a,b,c, face}
+  const add = p => (V.push(p), V.length-1);
+
+  /* ---- coroa: quatro anéis do colo até a oclusal ---- */
+  /* O perfil da coroa precisa de DOIS fatores, não um: o incisivo é
+     lâmina — alarga no sentido mesiodistal enquanto afina no
+     vestíbulo-lingual até a borda incisal. Com um fator só ele saía
+     cilindro, e a arcada da frente virava uma fileira de canudos.
+     O molar, ao contrário, mantém volume nos dois sentidos. */
+  const canino = M.pos === 3;
+  const vlFinal = canino ? 0.60 : 0.38;
+  const niveis = anterior
+    ? [ {y:0.00, md:0.80, vl:0.88},        // colo
+        {y:0.20, md:0.91, vl:0.93},
+        {y:0.45, md:0.99, vl:0.86},
+        {y:0.70, md:1.03, vl:canino ? 0.76 : 0.58},
+        {y:0.88, md:1.04, vl:vlFinal + 0.12},
+        {y:1.00, md:1.02, vl:vlFinal} ]    // borda incisal
+    : [ {y:0.00, md:0.78, vl:0.80},        // colo
+        {y:0.20, md:0.90, vl:0.92},
+        {y:0.42, md:0.98, vl:0.99},
+        {y:0.64, md:1.00, vl:1.00},        // maior diâmetro
+        {y:0.84, md:0.99, vl:0.97},
+        {y:1.00, md:0.92, vl:0.90} ];      // oclusal
+  const aneis = niveis.map(n=>{
+    const s = secao(n.y, M.md*n.md, M.vl*n.vl, nSup);
+    return s.map(p=>add(v3(p.x, n.y*M.hc, p.z)));
+  });
+
+  /* a face sai do ângulo do segmento: vestibular e lingual ocupam a
+     metade voltada para fora e para dentro; mesial e distal, as pontas */
+  const faceDoSeg = i => {
+    const th = (i+0.5)/SEG*Math.PI*2;
+    const c = Math.cos(th), s = Math.sin(th);
+    if(Math.abs(c) >= Math.abs(s)) return c>0 ? "V" : "L";
+    return s>0 ? "D" : "M";
+  };
+  for(let k=0;k<aneis.length-1;k++){
+    for(let i=0;i<SEG;i++){
+      const j=(i+1)%SEG, f=faceDoSeg(i);
+      T.push({a:aneis[k][i], b:aneis[k][j], c:aneis[k+1][j], face:f});
+      T.push({a:aneis[k][i], b:aneis[k+1][j], c:aneis[k+1][i], face:f});
+    }
+  }
+
+  /* ---- superfície de mastigação: cúspides ----
+     molar quatro (ou cinco), pré-molar duas, canino uma ponta,
+     incisivo uma borda reta. É o que diferencia a vista oclusal. */
+  const topo = aneis[aneis.length-1];
+  const amp = anterior ? (M.cusp===1 ? 1.5 : 0.30) : 1.45;
+  const alturaCusp = i => {
+    const th = (i/SEG)*Math.PI*2;
+    if(M.cusp>=4) return amp*Math.abs(Math.cos(2*th));
+    if(M.cusp===2) return amp*Math.abs(Math.cos(th));
+    if(M.cusp===1) return amp*Math.max(0, Math.cos(th-Math.PI/2));
+    return amp*0.3;
+  };
+  const anelTopo = [];
+  for(let i=0;i<SEG;i++){
+    const p = V[topo[i]];
+    const enc = anterior ? 0.96 : 0.86;
+    anelTopo.push(add(v3(p.x*enc, M.hc + alturaCusp(i), p.z*enc)));
+  }
+  /* nos posteriores o centro AFUNDA: é a fossa central, e sem ela a
+     vista oclusal é um planalto onde não se distingue molar de prémolar */
+  const centro = add(v3(0, M.hc + (anterior ? amp*0.45 : -amp*0.18), 0));
+  for(let i=0;i<SEG;i++){
+    const j=(i+1)%SEG, f = anterior && M.cusp===0 ? "I" : (anterior?"I":"O");
+    T.push({a:topo[i], b:topo[j], c:anelTopo[j], face:f});
+    T.push({a:topo[i], b:anelTopo[j], c:anelTopo[i], face:f});
+    T.push({a:anelTopo[i], b:anelTopo[j], c:centro, face:f});
+  }
+
+  /* ---- raízes: uma a três, divergentes ---- */
+  const posRaiz = {
+    1: [[0,0]],
+    2: [[ 0.30,0], [-0.30,0]],                        // vestibular / palatina
+    3: [[ 0.30,-0.28], [0.30,0.28], [-0.34,0]]        // MV, DV, palatina
+  }[M.raizes] || [[0,0]];
+
+  /* A raiz é um tronco de cone curto e grosso, não um espeto: no
+     primeiro desenho ela saiu fina e comprida demais e a arcada virou
+     um ouriço. Encurtada para 0,72 do comprimento real, que é o que
+     cabe na tela sem roubar a coroa — que é onde se marca. */
+  const HR = M.hr*0.72;
+  posRaiz.forEach(([dx,dz])=>{
+    const rx = M.vl*0.5*(M.raizes>1?0.52:0.74);
+    const rz = M.md*0.5*(M.raizes>1?0.52:0.74);
+    /* três anéis e ponta romba: com dois anéis e vértice único a raiz
+       saía como agulha, e dezesseis agulhas davam um ouriço */
+    const niv = [[-0.04, 1.00, 0.55], [-0.45, 0.80, 0.74],
+                 [-0.80, 0.52, 0.88], [-0.96, 0.22, 0.95]];
+    const an = niv.map(([h, r, d])=>{
+      const anel=[];
+      for(let i=0;i<SEG;i++){
+        const th=(i/SEG)*Math.PI*2;
+        anel.push(add(v3(Math.cos(th)*rx*r + dx*M.vl*d, h*HR,
+                         Math.sin(th)*rz*r + dz*M.md*d)));
+      }
+      return anel;
+    });
+    const apice = add(v3(dx*M.vl*0.97, -HR, dz*M.md*0.97));
+    for(let k=0;k<an.length-1;k++)
+      for(let i=0;i<SEG;i++){
+        const j=(i+1)%SEG;
+        T.push({a:an[k][i], b:an[k][j], c:an[k+1][j], face:"R"});
+        T.push({a:an[k][i], b:an[k+1][j], c:an[k+1][i], face:"R"});
+      }
+    const ult = an[an.length-1];
+    for(let i=0;i<SEG;i++) T.push({a:ult[i], b:ult[(i+1)%SEG], c:apice, face:"R"});
+  });
+
+  const r = {V, T, M};
+  malhaCache[ch] = r;
+  return r;
+}
+
+/* ---------- a cena: os dentes na arcada ----------
+   A arcada é meia elipse. Cada dente ganha posição, a direção para
+   FORA (que vira o +X local, a vestibular) e a tangente (que vira o
+   +Z local, o distal). Em cima a coroa aponta para baixo; embaixo,
+   para cima — e é só isso que inverte entre as arcadas. */
+/* O perímetro da arcada tem de caber a soma das larguras mesiodistais:
+   ~16 dentes de 8 mm pedem uns 125 mm de arco. Com Rx=26 os dentes se
+   atropelavam e viravam um borrão. */
+const ARC_RX = 31, ARC_RZ = 35, ABERT = 1.40;
+
+const ORD_SUP = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+const ORD_INF = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+const ORD_SUP_D = [55,54,53,52,51,61,62,63,64,65];
+const ORD_INF_D = [85,84,83,82,81,71,72,73,74,75];
+
+function postoNaArcada(ordem, i, superior){
+  const n = ordem.length;
+  const a = ((i + 0.5)/n - 0.5) * 2;          // −1 (direita) a +1 (esquerda)
+  const ang = a * ABERT;
+  const x = ARC_RX * Math.sin(ang);
+  /* z NEGATIVO na frente da boca. Com o cosseno positivo os incisivos
+     ficavam no fundo da cena e os molares na frente: a vista "Frente"
+     era na verdade a vista de quem olha da garganta, e por isso a
+     gengiva superior parecia cortar as coroas ao meio. */
+  const z = -ARC_RZ * Math.cos(ang);
+  // normal da elipse = para fora da boca
+  let nx = x/(ARC_RX*ARC_RX), nz = z/(ARC_RZ*ARC_RZ);
+  const L = Math.hypot(nx,nz) || 1; nx/=L; nz/=L;
+  // tangente: no lado direito o distal vai para trás; no esquerdo, idem
+  const sinal = a < 0 ? -1 : 1;
+  /* mao: a base local (vestibular, oclusal, distal) é destra ou
+     canhota conforme o lado da arcada e conforme ser a de cima — e
+     numa base canhota a ordem dos vértices inverte, de modo que o
+     descarte de face oposta tira justamente a face da frente. Era o
+     que deixava metade dos dentes com cara de casca oca, mostrando a
+     parede de dentro. Guardado aqui e aplicado no descarte. */
+  return {x, z, nx, nz, tx: -nz*sinal, tz: nx*sinal,
+          mao: -sinal * (superior ? -1 : 1),
+          y: superior ? 13.5 : -13.5, superior};
+}
+
+/* monta a lista de dentes visíveis para a dentição escolhida */
+function dentesDaCena(pac){
+  const idade = idadeAnos(pac.nasc);
+  const modo = odonto.denticao || denticaoSugerida(idade);
+  const esperados = new Set(dentesEsperados(idade, modo));
+  const out = [];
+  const juntar = (ordem, superior) => ordem.forEach((fdi,i)=>{
+    const posto = postoNaArcada(ordem, i, superior);
+    out.push({fdi, ...posto, presente: esperados.has(fdi)});
+  });
+  if(modo === "decidua"){
+    juntar(ORD_SUP_D, true); juntar(ORD_INF_D, false);
+  }else{
+    juntar(ORD_SUP, true); juntar(ORD_INF, false);
+    if(modo === "mista"){
+      // os decíduos ainda em boca entram um pouco à frente, como na
+      // dentição mista de verdade: não substituem o lugar do permanente
+      ORD_SUP_D.forEach((fdi,i)=>{ if(esperados.has(fdi)){
+        const p = postoNaArcada(ORD_SUP_D, i, true);
+        out.push({fdi, ...p, x:p.x*0.92, z:p.z*0.92, y:p.y-1.6, presente:true, deciduo:true}); }});
+      ORD_INF_D.forEach((fdi,i)=>{ if(esperados.has(fdi)){
+        const p = postoNaArcada(ORD_INF_D, i, false);
+        out.push({fdi, ...p, x:p.x*0.92, z:p.z*0.92, y:p.y+1.6, presente:true, deciduo:true}); }});
+    }
+  }
+  return out;
+}
+
+/* ---------- gengiva ----------
+   O primeiro desenho mostrava as raízes nuas e a arcada virava um
+   ouriço: dezesseis espetos bege apontando para fora, exatamente onde
+   NÃO se marca nada. Boca de verdade tem gengiva, e é ela que diz onde
+   a coroa começa. Por padrão a gengiva cobre a raiz; o botão "Raiz"
+   deixa a gengiva translúcida e mostra o que está por baixo, que é o
+   que interessa em endodontia e implante.
+   Construída direto em coordenadas de mundo: é uma fita ao longo da
+   mesma elipse da arcada, com crista por dentro e por fora do colo. */
+const gengCache = {};
+function malhaGengiva(ordem, superior){
+  const ch = (superior?"s":"i") + ordem.join(",");
+  if(gengCache[ch]) return gengCache[ch];
+  const V=[], T=[];
+  const add = p => (V.push(p), V.length-1);
+  const dir = superior ? -1 : 1;          // sentido da coroa
+  const yb  = superior ? 13.5 : -13.5;    // mesmo plano do colo dos dentes
+  const n = ordem.length;
+  /* meia espessura vestíbulo-lingual de cada dente, na mesma escala em
+     que ele é desenhado. A gengiva acompanha o dente: fina na frente,
+     onde o incisivo é lâmina, e larga atrás, no rebordo do molar. Com
+     uma espessura fixa ela virava uma parede na frente das coroas. */
+  const meia = ordem.map(fdi => medidaDe(fdi).vl*0.5*0.93);
+  const espEm = a => {
+    const fi = Math.max(0, Math.min(n-1.001, (a/2 + 0.5)*n - 0.5));
+    const i = Math.floor(fi), f = fi-i;
+    return meia[i]*(1-f) + meia[Math.min(i+1,n-1)]*f;
+  };
+  /* Perfil fechado, como um tubo: a primeira versão era uma fita
+     aberta de topo chato e parede reta, e a arcada ficou com um muro
+     rosa em volta. Rebordo é um cordão arredondado, baixo. */
+  const CRISTA = 1.0;    // o quanto a gengiva sobe no colo da coroa
+  const FUNDO  = 3.0;    // o quanto desce para o lado do osso
+  /* A crista fica um pouco mais ESTREITA que o colo do dente: assim a
+     coroa nasce por fora dela e a gengiva some entre os dentes, que é
+     onde ela deve estar. Com a crista mais larga que o dente, a arcada
+     virava uma bandeja de plástico rosa com dentes afundados. */
+  const PERFIL = [       // [fator da espessura, altura]
+    [ 0.88,  CRISTA], [ 1.12,  0.0], [ 1.08, -1.5], [ 0.74, -FUNDO],
+    [-0.76, -FUNDO], [-1.08, -1.5], [-1.12,  0.0], [-0.88,  CRISTA]
+  ];
+  const NP = PERFIL.length;
+  const PASSOS = n*5;
+  const linhas = PERFIL.map(()=>[]);
+  for(let s=0;s<=PASSOS;s++){
+    const a = (s/PASSOS - 0.5)*2;
+    const h = espEm(a);
+    const ang = a*ABERT*1.05;             // passa um pouco dos últimos molares
+    const x = ARC_RX*Math.sin(ang), z = -ARC_RZ*Math.cos(ang);
+    let nx = x/(ARC_RX*ARC_RX), nz = z/(ARC_RZ*ARC_RZ);
+    const L = Math.hypot(nx,nz)||1; nx/=L; nz/=L;
+    PERFIL.forEach(([fo,dy],k)=>
+      linhas[k].push(add(v3(x+nx*h*fo, yb + dir*dy, z+nz*h*fo))));
+  }
+  for(let k=0;k<NP;k++){
+    const k2 = (k+1)%NP;
+    for(let s=0;s<PASSOS;s++){
+      const A=linhas[k][s], B=linhas[k][s+1], C=linhas[k2][s+1], D=linhas[k2][s];
+      T.push({a:A,b:B,c:C,face:"G"}); T.push({a:A,b:C,c:D,face:"G"});
+    }
+  }
+  // tampa as duas pontas, atrás do último molar
+  [0, PASSOS].forEach(s=>{
+    for(let k=1;k<NP-1;k++)
+      T.push({a:linhas[0][s], b:linhas[k][s], c:linhas[k+1][s], face:"G"});
+  });
+  return (gengCache[ch] = {V,T});
+}
+
+function gengivasDaCena(pac){
+  const modo = odonto.denticao || denticaoSugerida(idadeAnos(pac.nasc));
+  const sup = modo==="decidua" ? ORD_SUP_D : ORD_SUP;
+  const inf = modo==="decidua" ? ORD_INF_D : ORD_INF;
+  return [malhaGengiva(sup, true), malhaGengiva(inf, false)];
+}
+
+/* leva um vértice local para o mundo */
+function paraMundo(p, d){
+  /* 0,93: com escala cheia as coroas vizinhas se atravessavam e a
+     arcada virava uma parede contínua. Dentes encostam, não se fundem. */
+  const esc = d.deciduo ? 0.78 : 0.93;
+  const sx = p.x*esc, sy = (d.superior ? -p.y : p.y)*esc, sz = p.z*esc;
+  return v3(d.x + sx*d.nx + sz*d.tx,
+            d.y + sy,
+            d.z + sx*d.nz + sz*d.tz);
+}
+
+/* ---------- cores: o canvas não entende var(--x) ----------
+   Resolve uma vez por tema e guarda. Trocar de tema limpa o cache,
+   senão o odontograma fica com as cores do tema anterior. */
+let _corCache = {};
+function corReal(expr){
+  if(_corCache[expr]) return _corCache[expr];
+  const d = document.createElement("div");
+  d.style.cssText = "position:absolute;visibility:hidden;color:"+expr;
+  document.body.appendChild(d);
+  const c = getComputedStyle(d).color;
+  d.remove();
+  return (_corCache[expr] = c);
+}
+function limparCoresCache(){ _corCache = {}; }
+
+function rgbMix(cor, k){                 // clareia/escurece para a luz
+  const m = /rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(cor);
+  if(!m) return cor;
+  const f = v => Math.max(0, Math.min(255, Math.round(+v*k)));
+  return "rgb("+f(m[1])+","+f(m[2])+","+f(m[3])+")";
+}
+
+/* Luz fixa na câmera: vinda de cima, da esquerda e da frente. Presa à
+   câmera e não à cena, o volume continua legível em qualquer giro — com
+   luz presa à cena, metade das voltas deixa a arcada na sombra. */
+const LUZ = (()=>{ const v=v3(-0.35,0.62,0.70); const l=Math.hypot(v.x,v.y,v.z);
+  return v3(v.x/l, v.y/l, v.z/l); })();
+const ESMALTE = "rgb(236,230,217)";
+
+/* ---------- o visualizador ---------- */
+const O3D = {
+  cv:null, ctx:null, pac:null,
+  giro:0.0, incl:-0.20, dist:172, alvoY:0, raizes:false,
+  tris:[], arrastando:false, ultimo:null, precisaDesenhar:false,
+  rapido:false,                          // durante o arraste, sem raízes
+
+  iniciar(canvas, pacId){
+    O3D.cv = canvas; O3D.ctx = canvas.getContext("2d"); O3D.pac = pacId;
+    O3D.ajustarTamanho();
+    O3D.ligarEventos();
+    O3D.pedirDesenho();
+  },
+
+  ajustarTamanho(){
+    const cv = O3D.cv; if(!cv) return;
+    const r = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(320, Math.round(r.width*dpr));
+    cv.height = Math.max(260, Math.round(r.height*dpr));
+    O3D.dpr = dpr;
+  },
+
+  vista(nome){
+    const v = {
+      frente:   [0,    -0.20],
+      direita:  [-1.25,-0.22],
+      esquerda: [ 1.25,-0.22],
+      tras:     [Math.PI, -0.20],
+      cima:     [0,    -1.35],
+      baixo:    [0,     1.35]
+    }[nome];
+    if(v){ O3D.giro=v[0]; O3D.incl=v[1]; O3D.pedirDesenho(); }
+  },
+
+  pedirDesenho(){
+    if(O3D.precisaDesenhar) return;
+    O3D.precisaDesenhar = true;
+    requestAnimationFrame(()=>{ O3D.precisaDesenhar=false; O3D.desenhar(); });
+  },
+
+  /* projeta e devolve os triângulos já ordenados do fundo para a frente */
+  montar(){
+    const pac = pacById(O3D.pac); if(!pac) return [];
+    const cosY=Math.cos(O3D.giro), sinY=Math.sin(O3D.giro);
+    const cosX=Math.cos(O3D.incl), sinX=Math.sin(O3D.incl);
+    const W=O3D.cv.width, H=O3D.cv.height;
+    const f = Math.min(W,H) * 1.70;
+    const tris=[];
+
+    /* uma só projeção, usada pelos dentes e pela gengiva */
+    const P = w => {
+      // câmera: gira em Y, inclina em X, afasta
+      let q = v3(w.x*cosY + w.z*sinY, w.y - O3D.alvoY, -w.x*sinY + w.z*cosY);
+      q = v3(q.x, q.y*cosX - q.z*sinX, q.y*sinX + q.z*cosX);
+      const zc = q.z + O3D.dist;
+      const k = f/Math.max(zc, 12);
+      return {sx: W/2 + q.x*k, sy: H/2 - q.y*k, z: zc, cx:q.x, cy:q.y, cz:q.z};
+    };
+
+    const emitir = (proj, lista, extra, mao) => {
+      lista.forEach(t=>{
+        const A=proj[t.a], B=proj[t.b], C=proj[t.c];
+        // descarta o que está de costas; mao=0 é superfície de dois lados
+        const area = (B.sx-A.sx)*(C.sy-A.sy) - (C.sx-A.sx)*(B.sy-A.sy);
+        if(mao ? area*mao <= 0 : area === 0) return;
+        /* Lambert de verdade: normal pelo produto vetorial em espaço de
+           câmera. A primeira versão usava a área projetada, que não é
+           normal nenhuma — por isso os dentes saíam chapados. */
+        const ux=B.cx-A.cx, uy=B.cy-A.cy, uz=B.cz-A.cz;
+        const vx=C.cx-A.cx, vy=C.cy-A.cy, vz=C.cz-A.cz;
+        let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+        const nl=Math.hypot(nx,ny,nz)||1; nx/=nl; ny/=nl; nz/=nl;
+        /* o Y da tela é invertido em relação ao da câmera, então a
+           normal desta ordem de vértices aponta para LONGE do
+           observador. Sem virar, difuso dá quase zero e tudo sai
+           cinza-chapado — foi exatamente o que aconteceu. */
+        if(nz < 0){ nx=-nx; ny=-ny; nz=-nz; }
+        // luz de cima e levemente à frente, mais um ambiente generoso
+        const dif = Math.max(0, nx*LUZ.x + ny*LUZ.y + nz*LUZ.z);
+        tris.push(Object.assign({A,B,C, z:(A.z+B.z+C.z)/3, face:t.face,
+                                 lum: 0.62 + 0.46*dif}, extra));
+      });
+    };
+
+    /* a gengiva entra primeiro na lista; quem ordena é o z, não a ordem */
+    if(!O3D.rapido || !O3D.raizes){
+      gengivasDaCena(pac).forEach(g=>{
+        const proj = g.V.map(P);
+        emitir(proj, g.T, {fdi:null, sumiu:false, deciduo:false}, 0);
+      });
+    }
+
+    dentesDaCena(pac).forEach(d=>{
+      const est = (odonto.estados||{})[d.fdi] || {};
+      const sumiu = Object.values(est).some(e=>
+        e.condicao==="ausente" || e.condicao==="extraido");
+      if(!d.presente && !Object.keys(est).length) return;   // nem nasceu, nem anotado
+
+      const malha = malhaDente(d.fdi);
+      const proj = malha.V.map(p=>P(paraMundo(p, d)));
+      /* raiz só quando pedida: coberta pela gengiva ela não aparece e
+         ainda custa um terço dos triângulos da cena */
+      const lista = O3D.raizes && !O3D.rapido
+        ? malha.T : malha.T.filter(t=>t.face!=="R");
+      emitir(proj, lista, {fdi:d.fdi, sumiu, deciduo:!!d.deciduo}, d.mao);
+    });
+    tris.sort((a,b)=>b.z-a.z);
+    return tris;
+  },
+
+  desenhar(){
+    const ctx=O3D.ctx; if(!ctx) return;
+    const W=O3D.cv.width, H=O3D.cv.height;
+    ctx.clearRect(0,0,W,H);
+    const tris = O3D.tris = O3D.montar();
+
+    /* Dente é branco nos dois temas. Puxar de --surface deixava a
+       arcada PRETA no escuro, que é o oposto de um dente. O que muda
+       com o tema é o fundo, não o esmalte. */
+    const esmalte = ESMALTE;
+    const osso    = corReal("var(--ink-3)");
+    const sel     = corReal("var(--accent)");
+    /* dentina/cemento: um bege quente. Antes eu usava --warn-soft e as
+       raízes saíam amarelo-gema, puxando o olho para o que menos
+       importa — quem marca, marca a coroa. */
+    const RAIZ    = "rgb(206,188,163)";
+    /* rosa de mucosa. Fixo nos dois temas, como o esmalte: gengiva
+       escura num tema escuro vira buraco preto no meio da boca. */
+    const GENGIVA = "rgb(203,151,147)";
+
+    for(const t of tris){
+      const lum = t.lum;
+      let base;
+      if(t.face === "G"){ base = GENGIVA; }
+      else if(t.face === "R"){ base = RAIZ; }
+      else{
+        const e = ((odonto.estados||{})[t.fdi]||{})[O3D.nomeFace(t.fdi, t.face)];
+        base = e ? corReal(corCondicao(e.condicao)) : esmalte;
+      }
+      if(t.sumiu) base = rgbMix(osso, 1.0);
+
+      const marcado = O3D.sel && O3D.sel.fdi===t.fdi &&
+        (O3D.sel.face==="*" || O3D.sel.face===O3D.nomeFace(t.fdi, t.face));
+      /* seleção não pode APAGAR a condição: pintar a face escolhida de
+         azul fazia a cárie recém-lançada sumir sob o realce. Quando a
+         face tem condição, o realce é só um clareado dela. */
+      const temCond = base !== esmalte && t.face !== "R" && t.face !== "G";
+      ctx.fillStyle = marcado ? (temCond ? rgbMix(base, lum*1.22) : rgbMix(sel, lum*1.15))
+                              : rgbMix(base, lum);
+      /* com a raiz à mostra a gengiva fica translúcida — é assim que
+         se olha um canal sem perder a referência de onde é o colo */
+      ctx.globalAlpha = t.face==="G" ? (O3D.raizes ? 0.38 : 1)
+                      : t.sumiu ? 0.30 : (t.deciduo ? 0.96 : 1);
+      ctx.beginPath();
+      ctx.moveTo(t.A.sx,t.A.sy); ctx.lineTo(t.B.sx,t.B.sy); ctx.lineTo(t.C.sx,t.C.sy);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    O3D.numerar(ctx, W, H);
+  },
+
+  /* o número FDI flutua acima de cada dente — sem ele ninguém sabe em
+     qual dente clicou, que é o erro clássico de odontograma 3D bonito */
+  numerar(ctx, W, H){
+    const pac = pacById(O3D.pac); if(!pac) return;
+    const cosY=Math.cos(O3D.giro), sinY=Math.sin(O3D.giro);
+    const cosX=Math.cos(O3D.incl), sinX=Math.sin(O3D.incl);
+    const f = Math.min(W,H) * 1.70;
+    const dpr = O3D.dpr || 1;
+    ctx.font = "600 "+(11*dpr)+"px "+getComputedStyle(document.body).fontFamily;
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    const marcas=[];
+    dentesDaCena(pac).forEach(d=>{
+      if(!d.presente && !((odonto.estados||{})[d.fdi])) return;
+      const M = medidaDe(d.fdi);
+      /* O número vai para FORA e para o lado da raiz, não acima da
+         oclusal: em cima da oclusal os números da arcada de cima caíam
+         no meio dos da de baixo e o par virava uma linha só. Assim
+         cada arcada tem a sua faixa de números. */
+      const w = paraMundo(v3(M.vl*1.05, -2.6, 0), d);
+      let q = v3(w.x*cosY + w.z*sinY, w.y - O3D.alvoY, -w.x*sinY + w.z*cosY);
+      q = v3(q.x, q.y*cosX - q.z*sinX, q.y*sinX + q.z*cosX);
+      const zc = q.z + O3D.dist; if(zc < 14) return;
+      const k = f/zc;
+      marcas.push({x: W/2 + q.x*k, y: H/2 - q.y*k, z: zc, fdi:d.fdi});
+    });
+    /* Do mais PERTO para o mais longe, pulando quem cai em cima de um
+       número já posto. Sem isso, 15 e 45 se sobrepunham e o par virava
+       uma mancha ilegível — que é pior do que faltar um número. */
+    marcas.sort((a,b)=>a.z-b.z);
+    const postas=[];
+    const cabe = m => {
+      const r = 15*dpr;
+      for(const q of postas)
+        if(Math.abs(q.x-m.x)<r*1.5 && Math.abs(q.y-m.y)<r*0.85) return false;
+      postas.push(m); return true;
+    };
+    const visiveis = marcas.filter(cabe).reverse();
+    ctx.lineJoin = "round";
+    visiveis.forEach(m=>{
+      const perto = Math.max(0.22, Math.min(1, 190/m.z));
+      ctx.globalAlpha = perto;
+      // halo: sem ele o número some em cima da coroa clara
+      ctx.lineWidth = 3.2*dpr;
+      ctx.strokeStyle = corReal("var(--ground)");
+      ctx.strokeText(String(m.fdi), m.x, m.y);
+      ctx.fillStyle = corReal("var(--ink-2)");
+      ctx.fillText(String(m.fdi), m.x, m.y);
+    });
+    ctx.globalAlpha = 1;
+  },
+
+  /* a sigla da malha vira o nome real da face, que muda por arcada e
+     por ser dente da frente ou de trás */
+  nomeFace(fdi, sigla){
+    const f = facesDe(fdi).find(x=>x[1]===sigla);
+    return f ? f[0] : null;
+  },
+
+  /* ---------- clique: acerta a face ----------
+     Percorre de frente para trás e devolve o primeiro triângulo que
+     contém o ponto. É mais lento que o truque do buffer de cor, mas
+     acontece uma vez por clique e não a cada quadro. */
+  acertar(px, py){
+    for(let i=O3D.tris.length-1; i>=0; i--){
+      const t=O3D.tris[i];
+      if(!O3D.dentro(px,py,t.A,t.B,t.C)) continue;
+      // gengiva tapa: o toque nela não atravessa para o dente de trás
+      if(t.face==="G" || t.fdi==null) return null;
+      return {fdi:t.fdi, face: t.face==="R" ? null : O3D.nomeFace(t.fdi, t.face)};
+    }
+    return null;
+  },
+  dentro(px,py,A,B,C){
+    const d1=(px-B.sx)*(A.sy-B.sy)-(A.sx-B.sx)*(py-B.sy);
+    const d2=(px-C.sx)*(B.sy-C.sy)-(B.sx-C.sx)*(py-C.sy);
+    const d3=(px-A.sx)*(C.sy-A.sy)-(C.sx-A.sx)*(py-A.sy);
+    const neg=(d1<0)||(d2<0)||(d3<0), pos=(d1>0)||(d2>0)||(d3>0);
+    return !(neg&&pos);
+  },
+
+  ligarEventos(){
+    const cv=O3D.cv;
+    const pos = ev => {
+      const r = cv.getBoundingClientRect();
+      const t = ev.touches ? ev.touches[0] : ev;
+      return {x:(t.clientX-r.left)*(cv.width/r.width),
+              y:(t.clientY-r.top)*(cv.height/r.height),
+              cx:t.clientX, cy:t.clientY};
+    };
+    let partiu=null, mexeu=0;
+
+    const baixo = ev => {
+      partiu = pos(ev); mexeu = 0; O3D.arrastando = true;
+      if(ev.touches && ev.touches.length===2){ O3D.pinca = O3D.distTouch(ev); }
+    };
+    const mover = ev => {
+      if(!O3D.arrastando || !partiu) return;
+      if(ev.touches && ev.touches.length===2 && O3D.pinca){
+        const d = O3D.distTouch(ev);
+        O3D.dist = Math.max(70, Math.min(320, O3D.dist * (O3D.pinca/d)));
+        O3D.pinca = d; O3D.pedirDesenho(); ev.preventDefault(); return;
+      }
+      const p = pos(ev);
+      const dx = p.cx - partiu.cx, dy = p.cy - partiu.cy;
+      mexeu += Math.abs(dx)+Math.abs(dy);
+      O3D.giro += dx*0.011;
+      O3D.incl = Math.max(-1.45, Math.min(1.45, O3D.incl + dy*0.009));
+      partiu = p; O3D.rapido = true; O3D.pedirDesenho();
+      if(ev.cancelable) ev.preventDefault();
+    };
+    const cima = ev => {
+      O3D.arrastando=false; O3D.pinca=null;
+      if(O3D.rapido){ O3D.rapido=false; O3D.pedirDesenho(); }
+      // arraste curto é clique: girar não pode marcar dente sem querer
+      if(mexeu < 7 && partiu){
+        const alvo = O3D.acertar(partiu.x, partiu.y);
+        if(alvo && O3D.aoClicar) O3D.aoClicar(alvo);
+      }
+      partiu=null;
+    };
+    cv.addEventListener("pointerdown", e=>{ cv.setPointerCapture(e.pointerId); baixo(e); });
+    cv.addEventListener("pointermove", mover);
+    cv.addEventListener("pointerup", cima);
+    cv.addEventListener("pointercancel", ()=>{ O3D.arrastando=false; partiu=null; });
+    cv.addEventListener("touchstart", baixo, {passive:true});
+    cv.addEventListener("touchmove", mover, {passive:false});
+    cv.addEventListener("touchend", cima);
+    cv.addEventListener("wheel", ev=>{
+      O3D.dist = Math.max(70, Math.min(320, O3D.dist + ev.deltaY*0.22));
+      O3D.pedirDesenho(); ev.preventDefault();
+    }, {passive:false});
+  },
+  distTouch(ev){
+    const a=ev.touches[0], b=ev.touches[1];
+    return Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+  }
+};
+
+/* =====================================================================
+   A JANELA DO ODONTOGRAMA
+   Tela cheia, porque marcar dente a dente numa caixinha dentro da ficha
+   é o que fazia o dentista desistir e anotar em papel.
+   ===================================================================== */
+let JO = {pac:null, pincel:null, modo:"3d", sel:null};
+
+function abrirJanelaOdonto(pacId){
+  if(!pode("verClinico")){ toast("Seu perfil não acessa o odontograma."); return; }
+  JO.pac = pacId; JO.sel = null;
+  const m = $("#odontoModal"); m.hidden = false;
+  document.body.style.overflow = "hidden";
+  renderJanelaOdonto();
+}
+function fecharJanelaOdonto(){
+  $("#odontoModal").hidden = true;
+  document.body.style.overflow = "";
+  if(JO.pac && pacAberto===JO.pac) redesenharOdonto(JO.pac);
+}
+
+function renderJanelaOdonto(){
+  const pac = pacById(JO.pac); if(!pac) return;
+  const edita = pode("prontuario");
+  const idade = idadeAnos(pac.nasc);
+  const modo = odonto.denticao || denticaoSugerida(idade);
+  const corpo = $("#odontoCorpo");
+
+  const pintaveis = CONDICOES.filter(c=>c[0]!=="outro");
+
+  corpo.innerHTML = `
+    <div class="od-barra">
+      <div class="od-quem">
+        <b>${pac.nome}</b>
+        <small>${pac.nasc?idadeDe(pac.nasc)+" anos · ":""}dentição ${modo}</small>
+      </div>
+      <div class="aba" style="width:170px;flex:0 0 auto">
+        <button role="tab" aria-selected="${JO.modo==="3d"}"  data-om="3d">3D</button>
+        <button role="tab" aria-selected="${JO.modo==="2d"}"  data-om="2d">2D · impressão</button>
+      </div>
+      <div class="aba" style="width:240px;flex:0 0 auto">
+        ${[["decidua","Decídua"],["mista","Mista"],["permanente","Permanente"]].map(([v,r])=>
+          `<button role="tab" aria-selected="${modo===v}" data-dent3="${v}">${r}</button>`).join("")}
+      </div>
+      <button class="iconbtn" id="odFechar" aria-label="Fechar" title="Fechar">✕</button>
+    </div>
+
+    <div class="od-palco">
+      <div class="od-cena">
+        ${JO.modo==="3d" ? `
+          <canvas id="odCanvas"></canvas>
+          <div class="od-vistas">
+            ${[["frente","Frente"],["direita","Direita"],["esquerda","Esquerda"],
+               ["tras","Trás"],["cima","Oclusal ↑"],["baixo","Oclusal ↓"]].map(([v,r])=>
+              `<button class="minibtn" data-vista="${v}">${r}</button>`).join("")}
+            <button class="minibtn" data-zoom="-1">−</button>
+            <button class="minibtn" data-zoom="1">+</button>
+            <button class="minibtn" id="odRaiz" aria-pressed="${O3D.raizes}"
+              title="Mostra a raiz por baixo da gengiva">Raiz</button>
+          </div>
+          <div class="od-dica">arraste para girar · roda ou pinça para aproximar · toque na face para marcar</div>
+        ` : `<div class="od-2d">${desenharOdontograma(pac, true)}</div>`}
+      </div>
+
+      <aside class="od-lado">
+        ${edita ? `
+        <div class="eyebrow">Pincel</div>
+        <p class="od-ajuda">Escolha a condição e toque na face do dente. Toque de novo
+          com <b>Hígido</b> para desmarcar.</p>
+        <div class="od-tintas">
+          ${pintaveis.map(([k,rot,cor])=>`
+            <button class="od-tinta" data-tinta="${k}" aria-pressed="${JO.pincel===k}" title="${rot}">
+              <i style="background:${cor}"></i><span>${rot}</span></button>`).join("")}
+        </div>
+        <button class="btn wide" id="odSemPincel" style="margin-top:8px"
+          ${JO.pincel?"":"disabled"}>Soltar o pincel (só olhar)</button>
+        ` : `<div class="stage">Seu perfil vê o odontograma, mas não anota.</div>`}
+
+        <div id="odSel"></div>
+      </aside>
+    </div>`;
+
+  corpo.querySelectorAll("[data-om]").forEach(b=>b.addEventListener("click", ()=>{
+    JO.modo = b.dataset.om; renderJanelaOdonto();
+  }));
+  corpo.querySelectorAll("[data-dent3]").forEach(b=>b.addEventListener("click", ()=>{
+    odonto.denticao = b.dataset.dent3; JO.sel=null; renderJanelaOdonto();
+  }));
+  $("#odFechar").addEventListener("click", fecharJanelaOdonto);
+
+  corpo.querySelectorAll("[data-tinta]").forEach(b=>b.addEventListener("click", ()=>{
+    JO.pincel = (JO.pincel===b.dataset.tinta) ? null : b.dataset.tinta;
+    renderJanelaOdonto();
+  }));
+  const sp = $("#odSemPincel");
+  if(sp) sp.addEventListener("click", ()=>{ JO.pincel=null; renderJanelaOdonto(); });
+
+  if(JO.modo==="3d"){
+    const cv = $("#odCanvas");
+    O3D.sel = JO.sel;
+    O3D.iniciar(cv, JO.pac);
+    O3D.aoClicar = alvo => aplicarPincel(alvo);
+    corpo.querySelectorAll("[data-vista]").forEach(b=>
+      b.addEventListener("click", ()=>O3D.vista(b.dataset.vista)));
+    corpo.querySelectorAll("[data-zoom]").forEach(b=>b.addEventListener("click", ()=>{
+      O3D.dist = Math.max(70, Math.min(320, O3D.dist - b.dataset.zoom*22)); O3D.pedirDesenho();
+    }));
+    const br = $("#odRaiz");
+    if(br) br.addEventListener("click", ()=>{
+      O3D.raizes = !O3D.raizes;
+      br.setAttribute("aria-pressed", String(O3D.raizes));
+      O3D.pedirDesenho();
+    });
+    if(!O3D._resize){ O3D._resize = true;
+      window.addEventListener("resize", ()=>{ if(!$("#odontoModal").hidden){
+        O3D.ajustarTamanho(); O3D.pedirDesenho(); } }); }
+  }else{
+    const svg = $("#odontoModal #svgArcada");
+    if(svg) svg.addEventListener("click", ev=>{
+      const el = ev.target.closest("[data-dente], [data-f]"); if(!el) return;
+      const fdi = el.dataset.dente ? +el.dataset.dente : +el.dataset.f.split(":")[0];
+      const face = el.dataset.f ? el.dataset.f.split(":")[1] : null;
+      aplicarPincel({fdi, face});
+    });
+  }
+  pintarSelecionado();
+}
+
+/* O pincel carregado marca na hora; sem pincel, o toque só seleciona e
+   abre o detalhe. Marcar sem querer durante uma consulta é pior que um
+   clique a mais. */
+async function aplicarPincel(alvo){
+  JO.sel = {fdi:alvo.fdi, face:alvo.face || "*"};
+  O3D.sel = JO.sel;
+  if(JO.pincel && alvo.face && pode("prontuario")){
+    try{
+      await ODONTO.anotar(JO.pac, {fdi:alvo.fdi, face:alvo.face, condicao:JO.pincel, nota:null});
+      await carregarOdontograma(JO.pac);
+      toast("Dente "+alvo.fdi+" · "+alvo.face+": "+rotuloCondicao(JO.pincel));
+    }catch(e){ toast("Não registrou: "+e.message); }
+  }
+  if(JO.modo==="3d") O3D.pedirDesenho(); else renderJanelaOdonto();
+  pintarSelecionado();
+}
+
+function pintarSelecionado(){
+  const box = $("#odSel"); if(!box) return;
+  if(!JO.sel){ box.innerHTML = '<div class="stage" style="margin-top:12px">Toque num dente para ver o que está lançado nele.</div>'; return; }
+  const fdi = JO.sel.fdi;
+  const est = (odonto.estados||{})[fdi] || {};
+  const faces = facesDe(fdi);
+  const hist = (odonto.historico||[]).filter(h=>h.fdi===fdi).slice(0,8);
+  box.innerHTML = `
+    <div class="sec-h" style="margin-top:16px"><h2>Dente ${fdi}</h2>
+      <span class="hint">${ehAnterior(fdi%10)?"anterior":"posterior"}</span></div>
+    <div class="od-faces">
+      ${faces.map(([nome,sig])=>{
+        const e = est[nome];
+        return `<button class="od-face" data-face="${nome}" aria-pressed="${JO.sel.face===nome}">
+          <i style="background:${e?corCondicao(e.condicao):"var(--surface-2)"}"></i>
+          <span><b>${nome}</b>${e?"<br>"+rotuloCondicao(e.condicao):"<br>hígido"}</span>
+          ${e?`<em data-anular="${e.id}" title="Anular">✕</em>`:""}
+        </button>`;
+      }).join("")}
+    </div>
+    ${hist.length?`<div class="eyebrow" style="margin-top:14px">Histórico deste dente</div>
+      <div class="od-hist">${hist.map(h=>`<div>${fmtData((h.registrado_em||"").slice(0,10))} ·
+        ${h.face} · ${rotuloCondicao(h.condicao)}${h.anulado_em?' <span style="color:var(--crit)">(anulado)</span>':""}</div>`).join("")}</div>`:""}`;
+
+  box.querySelectorAll("[data-face]").forEach(b=>b.addEventListener("click", ev=>{
+    if(ev.target.dataset.anular) return;
+    aplicarPincel({fdi, face:b.dataset.face});
+  }));
+  box.querySelectorAll("[data-anular]").forEach(el=>el.addEventListener("click", async ev=>{
+    ev.stopPropagation();
+    if(!confirm("Anular este lançamento? Sai da situação atual, fica no histórico.")) return;
+    try{
+      await ODONTO.anular(JO.pac, el.dataset.anular);
+      await carregarOdontograma(JO.pac);
+      if(JO.modo==="3d") O3D.pedirDesenho(); else renderJanelaOdonto();
+      pintarSelecionado();
+      toast("Lançamento anulado — continua no histórico.");
+    }catch(e){ toast("Não anulou: "+e.message); }
+  }));
+}
+
+/* Na ficha o odontograma é PRÉVIA: mostra a situação de relance e é o
+   que vai para o papel. Editar acontece na janela, com espaço — marcar
+   dente a dente numa caixinha é o que fazia o dentista desistir e
+   anotar no bloco. */
 function redesenharOdonto(pacId){
   const pac = pacById(pacId); if(!pac) return;
   const box = $("#odontoBox"); if(!box) return;
-  box.innerHTML = desenharOdontograma(pac);
-  ligarOdontograma(pacId);
+  box.innerHTML = `<div class="od-previa" id="odPrevia" role="button" tabindex="0"
+      title="Abrir o odontograma">
+      ${desenharOdontograma(pac, true)}
+      <div class="od-chamada"><b>Abrir odontograma</b><span>girar em 3D, marcar e anotar</span></div>
+    </div>`;
+  const pv = $("#odPrevia");
+  pv.addEventListener("click", ()=>abrirJanelaOdonto(pacId));
+  pv.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){
+    e.preventDefault(); abrirJanelaOdonto(pacId); } });
 }
 
 /* ===================== exames e mídias =====================
@@ -3668,28 +4673,69 @@ function renderHoje(){
   });
 }
 let pacAberto=null;
+let pacPor = "nome";   // "nome" | "proc"
+
 function renderPacientes(){
   if(pacAberto){ if(pacById(pacAberto)){ abrirPaciente(pacAberto); return; } pacAberto=null; }
-  $("#pacDetail").hidden=true; $("#pacSearch").hidden=false; $("#pacList2").hidden=false;
+  $("#pacDetail").hidden=true;
+  $("#pacBusca").hidden=false; $("#pacList2").hidden=false;
+  $$("#pacFiltro button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.por===pacPor)));
+  $("#pacSearch").placeholder = pacPor==="proc"
+    ? "Buscar por procedimento… (ex.: implante, enxerto)" : "Buscar por nome…";
   renderListaPacientes();
 }
+
 function renderListaPacientes(){
   const q=norm($("#pacSearch").value.trim()), list=$("#pacList2"); list.innerHTML="";
-  const arr=S.pacientes.filter(p=>!q||norm(p.nome).includes(q));
-  if(!arr.length){ list.innerHTML='<div class="empty">Nenhum paciente encontrado.</div>'; return; }
-  arr.forEach(p=>{
-    const n=S.atendimentos.filter(a=>a.pac===p.id).length;
-    const ult=S.atendimentos.filter(a=>a.pac===p.id).sort((a,b)=>a.data<b.data?1:-1)[0];
-    const sub = pode("verClinico") ? (p.obs||"—") : (p.tel||p.email||"contato não informado");
+
+  /* Buscar por procedimento não procura no paciente: procura no que foi
+     FEITO nele. Devolve quem teve aquele procedimento, e mostra qual —
+     senão a lista filtrada não explica por que cada nome está ali. */
+  const casa = p => {
+    if(!q) return {ok:true};
+    if(pacPor==="nome") return {ok: norm(p.nome).includes(q)};
+    const hits = S.atendimentos.filter(a=>a.pac===p.id && norm(a.proc||"").includes(q));
+    return {ok: hits.length>0, hits};
+  };
+  const arr = S.pacientes.map(p=>({p, m:casa(p)})).filter(x=>x.m.ok);
+  if(!arr.length){
+    list.innerHTML = '<div class="empty">'+(pacPor==="proc"
+      ? "Nenhum paciente com esse procedimento no histórico."
+      : "Nenhum paciente encontrado.")+'</div>';
+    return;
+  }
+  arr.forEach(({p,m})=>{
+    const meus=S.atendimentos.filter(a=>a.pac===p.id);
+    const ult=meus.slice().sort((a,b)=>a.data<b.data?1:-1)[0];
+    const sub = (m.hits && m.hits.length)
+      ? m.hits.length+"× "+m.hits[0].proc + (m.hits.length>1?" e outros":"")
+      : pode("verClinico") ? (p.obs||"—") : (p.tel||p.email||"contato não informado");
     const b=document.createElement("button"); b.className="item";
     b.innerHTML=`<div class="av">${p.nome.slice(0,1)}</div>
       <div class="main"><b>${p.nome}</b><small>${sub}</small></div>
-      <div class="end"><span class="pill neutral">${n} atend.</span>
+      <div class="end"><span class="pill ${m.hits?"accent":"neutral"}">${meus.length} atend.</span>
       <span class="mono" style="font-size:11px;color:var(--ink-3)">${ult?fmtData(ult.data):"—"}</span></div>`;
-    if(p.id===pacAberto) b.style.borderColor="var(--accent)";
     b.addEventListener("click", ()=>abrirPaciente(p.id));
     list.appendChild(b);
   });
+}
+
+/* Começa um atendimento já com o paciente preenchido e leva para a tela
+   de Hoje, que é onde se dita. Sem isso, "nova consulta" obrigava a
+   digitar de novo o nome de quem já estava aberto na tela. */
+function novaConsulta(pacId){
+  if(!pode("atender")){ toast("Seu perfil não registra atendimento clínico."); return; }
+  const p = pacId ? pacById(pacId) : null;
+  sairDaEdicao();
+  ficha = fichaVazia();
+  if(p) ficha.paciente = p.nome;
+  renderFicha();
+  document.querySelector(".tab[data-scr='hoje']").click();
+  setTimeout(()=>{
+    const alvo = p ? $("#inProc") : $("#inPaciente");
+    if(alvo){ alvo.focus(); alvo.scrollIntoView({behavior:"smooth", block:"center"}); }
+  }, 120);
+  toast(p ? "Nova consulta de "+p.nome+" — informe o procedimento." : "Nova consulta — informe o paciente.");
 }
 function idadeDe(iso){
   if(!iso) return "";
@@ -3721,43 +4767,65 @@ function abrirPaciente(id){
   const clinico=pode("verClinico"), editaPront=pode("prontuario"), editaCad=pode("cadastro");
   const vazio='<span style="color:var(--ink-3)">não informado</span>';
   const pend=["nasc","sexo","cpf","tel","email"].filter(k=>!p[k]).length;
-  const lado = ehDesktop();
-  $("#pacSearch").hidden=!lado; $("#pacList2").hidden=!lado;
+  /* A lista de pacientes SAI quando a ficha abre, em qualquer largura.
+     Ver trinta nomes ao lado do prontuário de um não ajuda e rouba a
+     largura de quem está sendo atendido. */
+  $("#pacBusca").hidden=true; $("#pacList2").hidden=true;
   const d=$("#pacDetail"); d.hidden=false;
   d.innerHTML=`
-    <button class="backlink" id="voltarPac">← Todos os pacientes</button>
-    <div class="card" style="margin-top:8px" id="pacCard">
-      <div class="eyebrow">Ficha do paciente</div>
-      <h2 style="font-size:20px;margin-top:3px">${p.nome}</h2>
-      <div class="row" style="margin-top:8px">
-        ${p.nasc?`<span class="pill neutral">${idadeDe(p.nasc)} anos</span>`:""}
-        ${p.sexo?`<span class="pill neutral">${p.sexo}</span>`:""}
-        <span class="pill accent">${hist.length} atendimento(s)</span>
-      </div>
-      <dl class="dados">
-        <div><dt>Nascimento</dt><dd>${p.nasc?fmtData(p.nasc):vazio}</dd></div>
-        <div><dt>Sexo</dt><dd>${p.sexo||vazio}</dd></div>
-        <div><dt>CPF</dt><dd>${p.cpf?`<span class="mono">${p.cpf}</span>`:vazio}</dd></div>
-        <div><dt>Telefone</dt><dd>${p.tel?`<a href="tel:${p.tel.replace(/\D/g,"")}" class="lnk mono">${p.tel}</a>`:vazio}</dd></div>
-        <div><dt>E-mail</dt><dd>${p.email?`<a href="mailto:${p.email}" class="lnk">${p.email}</a>`:vazio}</dd></div>
-      </dl>
-      ${pend?`<div class="pend">${pend} campo(s) em branco — ${editaCad?"complete o cadastro abaixo.":"peça à secretária para completar."}</div>`:""}
-      ${editaCad?`<div class="rowbtns"><button class="minibtn" id="editPac">Editar ficha do paciente</button></div>`:""}
+    <div class="ficha-topo">
+      <button class="backlink" id="voltarPac">← Todos os pacientes</button>
     </div>
-    ${clinico?`<div class="card" style="margin-top:10px">
-      <div class="eyebrow">Observação clínica</div>
-      <p style="margin:6px 0 0;font-size:13px;color:var(--ink-2)">${p.obs||vazio}</p>
-      <div class="row" style="margin-top:10px"><span class="pill neutral">${hist.reduce((s,a)=>s+a.dur,0)} min em cadeira</span></div>
-    </div>`:""}
-    ${htmlAlertasAnam()}
-    ${htmlAnamnese()}
-    ${pode("verClinico")?'<div id="odontoBox"></div>':""}
-    <div id="caixaBox"></div>
-    <div class="sec-h" style="margin-top:14px"><h2>Exames e imagens</h2>
-      <span class="hint">raio-X, tomografia, fotos e vídeos</span></div>
-    <div id="examesLista"><div class="empty">carregando…</div></div>
-    ${htmlEnvioExame()}
-    <div class="sec-h" style="margin-top:14px"><h2>Histórico</h2><span class="hint">mais recente primeiro</span></div>
+    <div class="ficha-topo" style="margin:6px 0 12px">
+      <div class="av" style="width:52px;height:52px;border-radius:14px;font-size:21px">${p.nome.slice(0,1)}</div>
+      <div class="quem">
+        <h2>${p.nome}</h2>
+        <div class="row" style="margin-top:6px">
+          ${p.nasc?`<span class="pill neutral">${idadeDe(p.nasc)} anos</span>`:""}
+          ${p.sexo?`<span class="pill neutral">${p.sexo}</span>`:""}
+          <span class="pill accent">${hist.length} atendimento(s)</span>
+          ${clinico?`<span class="pill neutral">${hist.reduce((s,a)=>s+a.dur,0)} min em cadeira</span>`:""}
+        </div>
+      </div>
+      <div class="acoes">
+        ${pode("atender")?`<button class="btn primary" id="fichaNovaConsulta">+ Nova consulta</button>`:""}
+        ${pode("verClinico")?`<button class="btn" id="fichaOdonto">Abrir odontograma</button>`:""}
+      </div>
+    </div>
+
+    <div class="ficha">
+      <div class="card" id="pacCard">
+        <div class="eyebrow">Cadastro</div>
+        <dl class="dados">
+          <div><dt>Nascimento</dt><dd>${p.nasc?fmtData(p.nasc):vazio}</dd></div>
+          <div><dt>Sexo</dt><dd>${p.sexo||vazio}</dd></div>
+          <div><dt>CPF</dt><dd>${p.cpf?`<span class="mono">${p.cpf}</span>`:vazio}</dd></div>
+          <div><dt>Telefone</dt><dd>${p.tel?`<a href="tel:${p.tel.replace(/\D/g,"")}" class="lnk mono">${p.tel}</a>`:vazio}</dd></div>
+          <div><dt>E-mail</dt><dd>${p.email?`<a href="mailto:${p.email}" class="lnk">${p.email}</a>`:vazio}</dd></div>
+        </dl>
+        ${pend?`<div class="pend">${pend} campo(s) em branco — ${editaCad?"complete pelo botão abaixo.":"peça à secretária para completar."}</div>`:""}
+        ${editaCad?`<div class="rowbtns"><button class="minibtn" id="editPac">Editar cadastro</button></div>`:""}
+      </div>
+
+      ${clinico?`<div class="card">
+        <div class="eyebrow">Observação clínica</div>
+        <p style="margin:7px 0 0;font-size:13px;color:var(--ink-2);line-height:1.55">${p.obs||vazio}</p>
+      </div>`:""}
+
+      <div class="larga">${htmlAlertasAnam()}</div>
+      <div class="larga">${htmlAnamnese()}</div>
+      ${pode("verClinico")?'<div class="larga" id="odontoBox"></div>':""}
+      <div class="larga" id="caixaBox"></div>
+
+      <div class="larga">
+        <div class="sec-h"><h2>Exames e imagens</h2>
+          <span class="hint">raio-X, tomografia, fotos e vídeos</span></div>
+        <div id="examesLista" style="margin-top:8px"><div class="empty">carregando…</div></div>
+        ${htmlEnvioExame()}
+      </div>
+    </div>
+
+    <div class="sec-h" style="margin-top:16px"><h2>Histórico</h2><span class="hint">mais recente primeiro</span></div>
     <div class="tl">${hist.map(a=>`
       <div class="ev"><div class="rail"><div class="dot"></div><div class="ln"></div></div>
         <div class="content">
@@ -3772,9 +4840,10 @@ function abrirPaciente(id){
               ? `<button class="minibtn" data-cobrar="${a.id}">Gerar cobrança</button>`:""}
           </div>`:""}
         </div></div>`).join("") || '<div class="empty">Sem atendimentos registrados.</div>'}</div>`;
-  const vp=$("#voltarPac"); vp.hidden = lado;      // no desktop a lista já está do lado
-  vp.addEventListener("click", ()=>{ pacAberto=null; pacCarregado=null; renderPacientes(); });
-  if(lado) renderListaPacientes();
+  $("#voltarPac").addEventListener("click",
+    ()=>{ pacAberto=null; pacCarregado=null; renderPacientes(); });
+  const bnc=$("#fichaNovaConsulta"); if(bnc) bnc.addEventListener("click", ()=>novaConsulta(id));
+  const bod=$("#fichaOdonto"); if(bod) bod.addEventListener("click", ()=>abrirJanelaOdonto(id));
   const bp=$("#editPac"); if(bp) bp.addEventListener("click", ()=>editarPaciente(id));
   d.querySelectorAll("button[data-edit]").forEach(b=>b.addEventListener("click", ()=>editarAtendimento(b.dataset.edit)));
   d.querySelectorAll("button[data-cobrar]").forEach(b=>b.addEventListener("click", async ()=>{
@@ -5830,11 +6899,18 @@ $$(".tab").forEach(t=>t.addEventListener("click", ()=>{
   $("#scr-"+t.dataset.scr).classList.add("on");
   window.scrollTo({top:0, behavior:"instant"});
 }));
-$("#pacSearch").addEventListener("input", renderPacientes);
+$("#pacSearch").addEventListener("input", renderListaPacientes);
+$$("#pacFiltro button").forEach(b=>b.addEventListener("click", ()=>{
+  pacPor = b.dataset.por; pacAberto = null; renderPacientes();
+}));
+$("#novaConsultaBtn").addEventListener("click", ()=>novaConsulta(pacAberto));
 $("#themeBtn").addEventListener("click", ()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const dark = cur ? cur==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.setAttribute("data-theme", dark?"light":"dark");
+  // o canvas guardou as cores resolvidas do tema anterior
+  limparCoresCache();
+  if(!$("#odontoModal").hidden && JO.modo==="3d") O3D.pedirDesenho();
 });
 
 $("#novaEntradaBtn") && $("#novaEntradaBtn").addEventListener("click", ()=>{
@@ -7267,7 +8343,11 @@ window.MD = {
   projetar, taxaPara, resumoPaciente, fluxoPorMes, abrirPaciente, numBR, hojeISO, cent,
   valorHoraDe, precoMaterial, precoPelaMargem, composicaoLocal, cobrancasVisiveis,
   abrirConferencia, conferencia(){ return conf; },
-  relatorio(){ return rel; }
+  relatorio(){ return rel; },
+  /* o odontograma 3D fica acessível para os testes: sem isso não dá
+     para conferir a orientação das faces fora do olho humano */
+  odo3d: {O3D, dentesDaCena, malhaDente, paraMundo, medidaDe, facesDe,
+          get estados(){ return odonto.estados; }}
 };
 
 $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
