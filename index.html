@@ -1455,18 +1455,27 @@ const DB = {
     try{
       const [cob, pag] = await Promise.all([
         DB.rest("GET","cobrancas?select=id,paciente_id,atendimento_id,valor,vencimento,status,descricao,emitida_em&order=emitida_em.desc&limit=400"),
-        DB.rest("GET","pagamentos?select=id,cobranca_id,valor,forma_enum,parcelas,antecipado,adquirente,bandeira,nsu,taxa,taxa_pct,liquido,pago_em,observacao&order=pago_em.desc&limit=600")
+        DB.rest("GET","pagamentos?select=id,cobranca_id,valor,forma_enum,parcelas,antecipado,adquirente,bandeira,maquininha_id,nsu,taxa,taxa_pct,liquido,pago_em,observacao&order=pago_em.desc&limit=600")
       ]);
       S.cobrancas = cob.map(c=>({...c, pac:UID.pacRev[c.paciente_id]||""}));
       S.pagamentos = pag;
     }catch(e){ S.cobrancas=[]; S.pagamentos=[]; }
 
+    /* O NOME da maquininha não é segredo: a secretária precisa dele para
+       lançar o pagamento. A TAXA é, e fica atrás de pode("projecao"). */
+    S.maquininhas = null;
+    try{
+      S.maquininhas = await DB.rest("GET","maquininhas?select=id,apelido,marca,modelo,"+
+        "banco,bandeiras,numero_serie,ativa,padrao&order=apelido");
+    }catch(e){ S.maquininhas = null; }
+
     S.taxas=null; S.fluxo=null; S.parcelas=null;
     if(!pode("projecao")) return;
     try{
       const [tx, fx, pr] = await Promise.all([
-        DB.rest("GET","taxas_adquirente?select=id,adquirente,forma,parcelas_min,parcelas_max,"+
-          "taxa_pct,taxa_antecip_pct,taxa_fixa,prazo_dias,ativa&order=forma,parcelas_min"),
+        DB.rest("GET","taxas_adquirente?select=id,adquirente,maquininha_id,bandeira,forma,"+
+          "parcelas_min,parcelas_max,taxa_pct,taxa_antecip_pct,taxa_fixa,prazo_dias,ativa"+
+          "&order=forma,parcelas_min"),
         DB.rest("GET","vw_fluxo_caixa?select=mes,bruto,taxas,liquido,recebido,previsto,parcelas,atrasadas&order=mes"),
         DB.rest("GET","parcelas_recebimento?select=id,pagamento_id,numero,total,valor_bruto,taxa,"+
           "valor_liquido,previsao_credito,recebido_em,conciliado&order=previsao_credito")
@@ -1494,6 +1503,7 @@ const DB = {
       forma: d.forma, forma_enum: d.forma,
       parcelas: d.parcelas || 1, antecipado: !!d.antecipado,
       adquirente: d.adquirente || null, bandeira: d.bandeira || null,
+      maquininha_id: d.maquininha || null,
       nsu: d.nsu || null, observacao: d.obs || null,
       registrado_por: DB.meuId};
     if(d.taxa !== null && d.taxa !== undefined && d.taxa !== "") corpo.taxa = d.taxa;
@@ -1505,8 +1515,25 @@ const DB = {
     await DB.rest("PATCH","taxas_adquirente?id=eq."+t.id, {
       taxa_pct: t.taxa_pct, taxa_antecip_pct: t.taxa_antecip_pct,
       taxa_fixa: t.taxa_fixa, prazo_dias: t.prazo_dias, ativa: t.ativa,
+      maquininha_id: t.maquininha_id || null, bandeira: t.bandeira || null,
       atualizado_em: new Date().toISOString()
     });
+  },
+
+  async criarTaxa(t){
+    await DB.rest("POST","taxas_adquirente", {clinica_id: DB.clinica, ...t});
+  },
+  async apagarTaxa(id){
+    await DB.rest("DELETE","taxas_adquirente?id=eq."+id);
+  },
+
+  /* A maquininha é cadastro de clínica, não de dentista: quem cobra é a
+     clínica e o extrato chega numa conta só. */
+  async gravarMaquininha(m){
+    const corpo = {apelido:m.apelido, marca:m.marca, modelo:m.modelo, banco:m.banco,
+      numero_serie:m.numero_serie, bandeiras:m.bandeiras||[], ativa:m.ativa!==false};
+    if(m.id) await DB.rest("PATCH","maquininhas?id=eq."+m.id, corpo);
+    else await DB.rest("POST","maquininhas", {clinica_id: DB.clinica, ...corpo});
   },
 
   async conciliarParcela(id, dataISO){
@@ -2911,211 +2938,336 @@ function dentesEsperados(idade, modo){
 /* Os dentes vão num arco elíptico — superior e inferior — porque é assim
    que a boca é, e porque o dentista acha o 36 no lugar onde o 36 está.
    Cada dente é a cruz de cinco faces do odontograma clássico. */
-/* A arcada não é meio círculo: se fosse, os sisos encostariam no lado
-   oposto e as duas arcadas fechariam um anel. O arco vai de 22° a 158°,
-   que deixa os molares para trás, como na boca, e separa superior de
-   inferior. */
-/* Os centros das duas elipses ficam do lado de DENTRO: o arco superior
-   tem centro abaixo dele e o inferior acima. É isso que aproxima as duas
-   arcadas da linha média sem que elas se cruzem. */
-const ARCO = {cx:400, rx:378, ry:224, supY:352, infY:224, a0:17, a1:163};
-function posArco(i, n, superior, escala, g0, g1, t_){
-  const k = escala || 1;
-  const rx = ARCO.rx*k, ry = ARCO.ry*k;
-  const cy = superior ? ARCO.supY : ARCO.infY;
-  const t = t_ !== undefined ? t_ : (n===1 ? 0.5 : i/(n-1));
-  const grau = (g0===undefined?ARCO.a0:g0) + ((g1===undefined?ARCO.a1:g1)-(g0===undefined?ARCO.a0:g0))*t;
-  const ang = grau*Math.PI/180;
-  const x = ARCO.cx - rx*Math.cos(ang);
-  const y = superior ? cy - ry*Math.sin(ang) : cy + ry*Math.sin(ang);
-  // direção para fora do arco, onde o número do dente fica sem colidir
-  const nx = -Math.cos(ang), ny = (superior ? -1 : 1)*Math.sin(ang);
-  return {x, y, nx, ny};
-}
+/* ---------- odontograma 2D: quadro anatômico linear ----------
+   A primeira versão desenhava a arcada em U, com cada dente visto só
+   por oclusal. Lia-se mal: o U come espaço na largura, os dentes ficam
+   girados em ângulos diferentes e nenhuma ficha de papel é assim. O
+   dentista pediu o quadro clássico, e é o que está aqui.
 
-/* ---------- odontograma anatômico ----------
-   Cada dente é desenhado com a forma do seu tipo, visto por oclusal:
-   incisivo estreito no sentido vestíbulo-lingual, canino com a ponta da
-   cúspide, pré-molar oval com duas cúspides, molar quase quadrado com o
-   sulco em cruz. E cada dente é GIRADO para acompanhar a curva do arco,
-   com a face vestibular sempre para fora — é assim que a boca é, e é o
-   que faz o dentista achar o 36 sem traduzir o desenho.
+   Quatro fileiras por arcada, na ordem em que a boca se apresenta:
 
-   O contorno é uma superelipse: r(θ) = 1/((|cosθ/a|^n + |senθ/b|^n)^(1/n)).
-   n=2 dá elipse, n≈3 dá quadrado arredondado. Com três números por tipo
-   de dente sai a silhueta inteira, sem precisar de malha nem de arquivo
-   externo — o que importa num app que tem de abrir rápido na cadeira.
+       raízes para cima        ← vista vestibular da arcada superior
+       vista oclusal
+       18 17 16 … 26 27 28     ← numeração FDI
+       48 47 46 … 36 37 38
+       vista oclusal
+       raízes para baixo       ← vista vestibular da arcada inferior
 
-   As cinco faces continuam clicáveis: o miolo é a oclusal (ou incisal) e
-   o anel ao redor é dividido em quatro setores — vestibular, lingual,
-   mesial e distal. Forma anatômica por fora, odontograma clássico por
-   dentro. */
+   As proporções saem da MESMA tabela odontométrica do odontograma 3D
+   (medidaDe): largura mesiodistal, espessura vestíbulo-lingual, altura
+   de coroa e comprimento de raiz. Um desenho e outro não podem discordar
+   sobre o tamanho de um molar.
 
-/* Largura mésio-distal média, em milímetros. Serve para duas coisas:
-   desenhar molar maior que incisivo (o incisivo inferior tem quase
-   metade da largura do primeiro molar inferior), e repartir o arco em
-   fatias proporcionais — espaçar por ângulo igual amontoava os molares,
-   que é justamente onde o dentista mais anota. */
-const LARG_SUP = {1:8.5, 2:6.5, 3:7.8, 4:7.0, 5:6.7, 6:10.3, 7:9.5, 8:8.5};
-const LARG_INF = {1:5.3, 2:5.9, 3:6.9, 4:7.0, 5:7.1, 6:11.0, 7:10.5, 8:10.0};
-const LARG_DEC_SUP = {1:6.5, 2:5.1, 3:7.0, 4:7.3, 5:8.2};
-const LARG_DEC_INF = {1:4.2, 2:4.1, 3:5.0, 4:7.7, 5:9.9};
-function larguraDente(fdi){
-  const q = Math.floor(fdi/10), p = fdi%10;
-  if(q===1||q===2) return LARG_SUP[p];
-  if(q===3||q===4) return LARG_INF[p];
-  if(q===5||q===6) return LARG_DEC_SUP[p];
-  return LARG_DEC_INF[p];
-}
-// 8 mm é a referência; o limite evita que o siso suma ou o molar estoure
-const escalaDente = fdi => Math.max(0.72, Math.min(1.3, larguraDente(fdi)/8));
+   O que é clicável continua sendo FACE, não pixel: na vista oclusal o
+   dente é dividido nas cinco faces de sempre; na vista vestibular a
+   coroa é a face vestibular e a raiz seleciona o dente inteiro — que é
+   onde se olha endodontia, implante e extração. */
 
-function perfilDente(fdi){
+const ESC2D = 3.9;          // pixels por milímetro
+const VAO2D = 3;            // folga entre dentes vizinhos
+
+function tipoDente(fdi){
   const p = fdi % 10, dec = Math.floor(fdi/10) >= 5;
-  if(dec){
-    if(p <= 2) return {a:.46, b:.31, n:2.3, tipo:"incisivo"};
-    if(p === 3) return {a:.38, b:.38, n:2.0, tipo:"canino"};
-    return            {a:.47, b:.45, n:2.8, tipo:"molar"};
-  }
-  if(p === 1) return {a:.52, b:.30, n:2.4, tipo:"incisivo"};
-  if(p === 2) return {a:.44, b:.29, n:2.4, tipo:"incisivo"};
-  if(p === 3) return {a:.41, b:.41, n:2.0, tipo:"canino"};
-  if(p <= 5)  return {a:.41, b:.47, n:2.5, tipo:"premolar"};
-  if(p === 6) return {a:.56, b:.52, n:3.0, tipo:"molar"};
-  if(p === 7) return {a:.53, b:.50, n:3.0, tipo:"molar"};
-  return            {a:.47, b:.46, n:2.9, tipo:"molar"};   // siso, menor
+  if(dec) return p <= 2 ? "incisivo" : p === 3 ? "canino" : "molar";
+  if(p <= 2) return "incisivo";
+  if(p === 3) return "canino";
+  if(p <= 5) return "premolar";
+  return "molar";
 }
 
-/* raio do contorno no ângulo θ (radianos), em unidades do tamanho L */
-function raioPerfil(pf, th){
-  const ca = Math.abs(Math.cos(th)/pf.a), sb = Math.abs(Math.sin(th)/pf.b);
-  let r = 1 / Math.pow(Math.pow(ca, pf.n) + Math.pow(sb, pf.n), 1/pf.n);
-  // canino: a cúspide vestibular avança um pouco — é o que dá a ponta
-  if(pf.tipo === "canino") r *= 1 + 0.26*Math.pow(Math.max(0, Math.sin(th)), 3);
-  // incisivo: a face lingual é mais estreita que a vestibular
-  if(pf.tipo === "incisivo") r *= 1 - 0.14*Math.max(0, -Math.sin(th));
+/* o traço fica mais pesado no dente que está selecionado */
+const traco2D = esperado => esperado ? "var(--line-2)" : "var(--line)";
+
+/* ---------- vista vestibular: coroa ----------
+   De baixo para cima no sistema local: y=0 é o colo, y=hc é a borda
+   incisal ou oclusal. A coroa é mais estreita no colo, alarga até o
+   ponto de contato (62% da altura) e volta a estreitar na borda. */
+function coroaVestibular(fdi){
+  const M = medidaDe(fdi), tipo = tipoDente(fdi);
+  const a = M.md/2, h = M.hc;
+  const lados = [[0,0.80],[0.30,0.93],[0.62,1.00],[0.86,0.96]];
+  let borda;
+  if(tipo === "incisivo")
+    borda = [[-0.93,0.985],[-0.78,1],[0.78,1],[0.93,0.985]];
+  else if(tipo === "canino")
+    borda = [[-0.90,0.80],[-0.34,0.96],[0,1],[0.34,0.96],[0.90,0.80]];
+  else if(tipo === "premolar")
+    borda = [[-0.90,0.80],[-0.32,1],[0,0.86],[0.32,1],[0.90,0.80]];
+  else
+    /* o vale entre as duas cúspides vestibulares tem de descer o
+       bastante para aparecer: com 0,90 da altura ele some e o molar
+       vira um trapézio de topo reto */
+    borda = [[-0.92,0.80],[-0.60,1],[-0.22,0.80],[0.22,0.80],[0.60,1],[0.92,0.80]];
+  const pts = [];
+  lados.forEach(([t,k])=>pts.push([-a*k, t*h]));
+  borda.forEach(([k,t])=>pts.push([a*k, t*h]));
+  lados.slice().reverse().forEach(([t,k])=>pts.push([a*k, t*h]));
+  return pts;
+}
+
+/* ---------- vista vestibular: raízes ----------
+   Molar mostra duas raízes de frente (no superior a palatina fica
+   atrás das vestibulares e some na projeção, como na radiografia
+   periapical); os demais, uma. */
+function raizesVestibular(fdi){
+  const M = medidaDe(fdi), a = M.md/2, hr = M.hr*0.92;
+  const duas = tipoDente(fdi) === "molar";
+  const postos = duas ? [-0.46, 0.46] : [0];
+  /* raiz larga e de ápice ROMBO. Na primeira versão ela saía agulha, e
+     dezesseis agulhas na fileira pareciam um pente, não uma arcada. */
+  const rw = duas ? a*0.38 : a*0.70;
+  return postos.map(ox=>{
+    const cx = ox*a;                // deslocamento em mm
+    const ap = cx*1.25;             // o ápice diverge um pouco
+    const pa = rw*0.20;             // meia largura do ápice
+    return [[cx-rw, 0], [cx-rw*0.88, -hr*0.36], [cx-rw*0.60, -hr*0.72],
+            [ap-pa, -hr*0.985], [ap, -hr], [ap+pa, -hr*0.985],
+            [cx+rw*0.60, -hr*0.72], [cx+rw*0.88, -hr*0.36], [cx+rw, 0]];
+  });
+}
+
+/* ---------- vista oclusal ----------
+   Superelipse: n baixo aproxima o ovoide do incisivo, n alto o
+   quadrado arredondado do molar. */
+const N_OCL = {incisivo:2.2, canino:2.1, premolar:2.5, molar:3.0};
+function raioOcl(fdi, th){
+  const M = medidaDe(fdi), n = N_OCL[tipoDente(fdi)] || 2.5;
+  const a = M.md/2, b = M.vl/2;
+  const c = Math.cos(th), s = Math.sin(th);
+  let r = 1/Math.pow(Math.pow(Math.abs(c/a),n) + Math.pow(Math.abs(s/b),n), 1/n);
+  if(tipoDente(fdi) === "canino") r *= 1 + 0.22*Math.pow(Math.max(0, Math.sin(th)), 3);
   return r;
 }
 
-/* um setor do anel entre o contorno externo e o miolo */
-function setorAnel(cx, cy, L, pf, g0, g1, kIn){
-  const passo = 6, fora = [], dentro = [];
-  for(let g = g0; g <= g1 + 0.01; g += passo){
-    const th = g * Math.PI/180;
-    const r = raioPerfil(pf, th) * L;
-    fora.push([cx + r*Math.cos(th), cy - r*Math.sin(th)]);
-    dentro.push([cx + r*kIn*Math.cos(th), cy - r*kIn*Math.sin(th)]);
-  }
-  dentro.reverse();
-  return [...fora, ...dentro].map(([a,b])=>a.toFixed(1)+","+b.toFixed(1)).join(" ");
-}
-
-function miolo(cx, cy, L, pf, kIn){
-  const pts = [];
-  for(let g = 0; g < 360; g += 6){
-    const th = g * Math.PI/180;
-    const r = raioPerfil(pf, th) * L * kIn;
-    pts.push((cx + r*Math.cos(th)).toFixed(1)+","+(cy - r*Math.sin(th)).toFixed(1));
-  }
-  return pts.join(" ");
-}
-
-function contorno(cx, cy, L, pf, k){
-  const pts = [];
-  for(let g = 0; g < 360; g += 6){
-    const th = g * Math.PI/180;
-    const r = raioPerfil(pf, th) * L * (k||1);
-    pts.push((cx + r*Math.cos(th)).toFixed(1)+","+(cy - r*Math.sin(th)).toFixed(1));
-  }
-  return pts.join(" ");
-}
-
-/* cúspides e sulcos: decoração, não alvo de clique. É o que faz o molar
-   parecer um molar em vez de um círculo. */
-function relevo(cx, cy, L, pf, traco){
-  const r = L*0.5;
-  const linha = (x1,y1,x2,y2) => `<line x1="${(cx+x1).toFixed(1)}" y1="${(cy+y1).toFixed(1)}"
-    x2="${(cx+x2).toFixed(1)}" y2="${(cy+y2).toFixed(1)}" stroke="${traco}" stroke-width=".8"
-    opacity=".65" pointer-events="none"/>`;
-  const ponto = (x,y) => `<circle cx="${(cx+x).toFixed(1)}" cy="${(cy+y).toFixed(1)}" r="1.5"
-    fill="${traco}" opacity=".6" pointer-events="none"/>`;
-  if(pf.tipo === "incisivo") return linha(-r*.52, 0, r*.52, 0);            // borda incisal
-  if(pf.tipo === "canino")   return ponto(0, -r*.18);                      // ponta da cúspide
-  if(pf.tipo === "premolar") return linha(-r*.34, 0, r*.34, 0) +           // sulco central
-                                    ponto(0, -r*.3) + ponto(0, r*.3);      // 2 cúspides
-  return linha(-r*.38, 0, r*.38, 0) + linha(0, -r*.34, 0, r*.34) +         // sulco em cruz
-         ponto(-r*.26,-r*.24) + ponto(r*.26,-r*.24) +
-         ponto(-r*.26, r*.24) + ponto(r*.26, r*.24);                       // 4 cúspides
-}
-
-function svgDente(fdi, x, y, estados, esperado, nx, ny){
-  const q = Math.floor(fdi/10), p = fdi%10;
+/* ---------- o dente desenhado ----------
+   proj: leva (u,v) em milímetros para pixels na tela. u é o eixo
+   mesiodistal, v o vestíbulo-lingual (v>0 = vestibular). Quem monta a
+   fileira decide os sinais; aqui dentro o dente não sabe em que arcada
+   está, e é isso que evita o erro de espelhar mesial com distal. */
+function svgDenteVest(fdi, cx, colo, dirY, estados, esperado){
   const faces = facesDe(fdi);
-  const pf = perfilDente(fdi);
-  const L = 31 * escalaDente(fdi), kIn = 0.46;
-  const cor = f => {
-    const e = estados[fdi] && estados[fdi][f];
-    return e ? corCondicao(e.condicao) : (esperado ? "var(--surface)" : "transparent");
-  };
-  const traco = esperado ? "var(--line-2)" : "var(--line)";
+  const vest = faces[1][0];
+  const px = (u,y) => [(cx + u*ESC2D).toFixed(1), (colo + dirY*y*ESC2D).toFixed(1)].join(",");
+  const cor = f => { const e = estados[fdi] && estados[fdi][f];
+    return e ? corCondicao(e.condicao) : (esperado ? "var(--surface)" : "transparent"); };
+  const tr = traco2D(esperado);
   const g = [];
+  raizesVestibular(fdi).forEach(r=>{
+    g.push(`<polygon points="${r.map(([u,y])=>px(u,y)).join(" ")}" fill="${corRaiz2D(fdi, estados, esperado)}"
+      stroke="${tr}" stroke-width=".9" stroke-linejoin="round"
+      data-dente="${fdi}" class="face"/>`);
+  });
+  g.push(`<polygon points="${coroaVestibular(fdi).map(([u,y])=>px(u,y)).join(" ")}"
+    fill="${cor(vest)}" stroke="${tr}" stroke-width="1" stroke-linejoin="round"
+    data-f="${fdi}:${vest}" class="face"/>`);
+  // linha do colo: separa coroa de raiz como num desenho de atlas
+  const M = medidaDe(fdi), a = M.md/2*0.80;
+  g.push(`<line x1="${(cx-a*ESC2D).toFixed(1)}" y1="${colo.toFixed(1)}"
+    x2="${(cx+a*ESC2D).toFixed(1)}" y2="${colo.toFixed(1)}" stroke="${tr}"
+    stroke-width=".8" opacity=".8" pointer-events="none"/>`);
+  return g.join("");
+}
 
-  // o dente acompanha a curva: a vestibular aponta para fora do arco
-  const ang = (nx===undefined || ny===undefined)
-    ? ((q<=2||(q>=5&&q<=6)) ? 0 : 180)
-    : Math.atan2(ny, nx)*180/Math.PI + 90;
+/* A raiz ganha cor quando o que está lançado é coisa de raiz: canal,
+   implante, extração. Pintar a raiz de vermelho porque há cárie na
+   oclusal seria mentira anatômica. */
+const COND_RAIZ = new Set(["endodontia","implante","extracao_indicada","extraido","ausente","mobilidade"]);
+function corRaiz2D(fdi, estados, esperado){
+  const est = estados[fdi] || {};
+  const achou = Object.values(est).find(e=>COND_RAIZ.has(e.condicao));
+  if(achou && achou.condicao!=="ausente" && achou.condicao!=="extraido")
+    return corCondicao(achou.condicao);
+  return esperado ? "var(--surface-2)" : "transparent";
+}
 
-  if(odonto.selecionado===fdi)
-    g.push(`<circle cx="${x}" cy="${y}" r="${L*0.68}" fill="var(--accent-soft)"
-      stroke="var(--accent)" stroke-width="1.6" pointer-events="none"/>`);
+function svgDenteOcl(fdi, cx, cy, vestParaCima, estados, esperado){
+  const q = Math.floor(fdi/10);
+  const faces = facesDe(fdi);
+  const oclu = faces[0][0], vest = faces[1][0], ling = faces[2][0];
+  const mes = faces[3][0], dis = faces[4][0];
+  // nos quadrantes da esquerda do paciente a mesial fica à esquerda na tela
+  const esqTela = (q===2||q===3||q===6||q===7) ? mes : dis;
+  const dirTela = (q===2||q===3||q===6||q===7) ? dis : mes;
+  // ângulo 90° é o topo da tela; a vestibular vai para cima na arcada
+  // superior e para baixo na inferior
+  const giro = vestParaCima ? 0 : 180;
+  const cor = f => { const e = estados[fdi] && estados[fdi][f];
+    return e ? corCondicao(e.condicao) : (esperado ? "var(--surface)" : "transparent"); };
+  const tr = traco2D(esperado);
+  const K = 0.46;                       // tamanho do miolo
 
-  // Alvo de toque ATRÁS das faces. Na frente, ele roubava o clique e a
-  // face escolhida virava sempre "dente inteiro" — justamente o contrário
-  // do motivo de existir um odontograma por faces. Atrás, pega só o que
-  // sobra na borda, que é o que ajuda no celular.
-  g.push(`<circle cx="${x}" cy="${y}" r="${L*0.62}" fill="transparent"
-      data-dente="${fdi}" class="alvo"/>`);
-
-  const vest = faces[1][0], ling = faces[2][0], mes = faces[3][0], dis = faces[4][0];
-  // nos quadrantes do lado esquerdo do paciente, mesial e distal trocam de lado
-  const dirInvertida = (q===2||q===3||q===6||q===7);
-  const ladoEsq = dirInvertida ? mes : dis, ladoDir = dirInvertida ? dis : mes;
-
-  const face = (nome, g0, g1) =>
-    `<polygon points="${setorAnel(x, y, L, pf, g0, g1, kIn)}" fill="${cor(nome)}"
-      stroke="${traco}" stroke-width=".9" stroke-linejoin="round"
+  const ponto = (th, k) => {
+    const r = raioOcl(fdi, th)*(k===undefined?1:k);
+    const u = r*Math.cos(th), v = r*Math.sin(th);
+    const rad = giro*Math.PI/180, c = Math.cos(rad), sn = Math.sin(rad);
+    const u2 = u*c - v*sn, v2 = u*sn + v*c;
+    return (cx + u2*ESC2D).toFixed(1)+","+(cy - v2*ESC2D).toFixed(1);
+  };
+  const setor = (g0,g1) => {
+    const fora=[], dentro=[];
+    for(let g=g0; g<=g1+0.01; g+=7.5){
+      const th=g*Math.PI/180; fora.push(ponto(th)); dentro.push(ponto(th,K));
+    }
+    return fora.concat(dentro.reverse()).join(" ");
+  };
+  const anel = (nome,g0,g1) => `<polygon points="${setor(g0,g1)}" fill="${cor(nome)}"
+      stroke="${tr}" stroke-width=".9" stroke-linejoin="round"
       data-f="${fdi}:${nome}" class="face"/>`;
 
-  // 45°–135° é o setor vestibular; os demais seguem no sentido horário
-  g.push(face(vest,     45, 135));
-  g.push(face(ladoEsq, 135, 225));
-  g.push(face(ling,    225, 315));
-  g.push(face(ladoDir, -45,  45));
-  g.push(`<polygon points="${miolo(x, y, L, pf, kIn)}" fill="${cor(faces[0][0])}"
-      stroke="${traco}" stroke-width=".9" data-f="${fdi}:${faces[0][0]}" class="face"/>`);
-  g.push(relevo(x, y, L, pf, "var(--ink-3)"));
+  const g = [];
+  g.push(anel(vest, 45, 135));
+  g.push(anel(esqTela, 135, 225));
+  g.push(anel(ling, 225, 315));
+  g.push(anel(dirTela, -45, 45));
+  const mio=[]; for(let a=0;a<360;a+=7.5) mio.push(ponto(a*Math.PI/180, K));
+  g.push(`<polygon points="${mio.join(" ")}" fill="${cor(oclu)}" stroke="${tr}"
+    stroke-width=".9" data-f="${fdi}:${oclu}" class="face"/>`);
+  g.push(relevoOcl(fdi, cx, cy));
+  return g.join("");
+}
 
-  // dente inteiro marcado (ausente, extraído, implante…)
-  const inteiro = estados[fdi] && estados[fdi]["todo"];
-  if(inteiro){
-    const c = inteiro.condicao, r = L*0.56;
-    if(c==="ausente" || c==="extraido"){
-      g.push(`<path d="M${x-r},${y-r} L${x+r},${y+r} M${x+r},${y-r} L${x-r},${y+r}"
-        stroke="var(--crit)" stroke-width="2.4" fill="none" pointer-events="none"/>`);
-    }else{
-      g.push(`<polygon points="${contorno(x, y, L*1.16, pf, 1)}" fill="none"
-        stroke="${corCondicao(c)}" stroke-width="2.4" stroke-linejoin="round"
-        pointer-events="none"/>`);
-    }
+/* sulcos e cúspides: decoração, não alvo de clique — é o que faz o
+   molar parecer molar e o pré-molar parecer pré-molar na fileira */
+function relevoOcl(fdi, cx, cy){
+  const M = medidaDe(fdi), tipo = tipoDente(fdi);
+  const a = M.md/2*ESC2D, b = M.vl/2*ESC2D;
+  const ln = (x1,y1,x2,y2) => `<line x1="${(cx+x1).toFixed(1)}" y1="${(cy+y1).toFixed(1)}"
+    x2="${(cx+x2).toFixed(1)}" y2="${(cy+y2).toFixed(1)}" stroke="var(--ink-3)"
+    stroke-width=".8" opacity=".55" pointer-events="none"/>`;
+  const pt = (x,y) => `<circle cx="${(cx+x).toFixed(1)}" cy="${(cy+y).toFixed(1)}" r="1.3"
+    fill="var(--ink-3)" opacity=".5" pointer-events="none"/>`;
+  if(tipo === "incisivo") return ln(-a*0.52, 0, a*0.52, 0);
+  if(tipo === "canino")   return pt(0, 0);
+  if(tipo === "premolar") return ln(-a*0.30, 0, a*0.30, 0) + pt(0,-b*0.34) + pt(0,b*0.34);
+  return ln(-a*0.40, 0, a*0.40, 0) + ln(0, -b*0.38, 0, b*0.38)
+       + pt(-a*0.30,-b*0.30) + pt(a*0.30,-b*0.30)
+       + pt(-a*0.30, b*0.30) + pt(a*0.30, b*0.30);
+}
+
+/* marca de dente perdido / condição do dente inteiro, por cima das
+   duas vistas */
+function marcaDenteInteiro(fdi, estados, cx, yTopo, yBase){
+  const est = estados[fdi] || {};
+  const perdido = Object.values(est).some(e=>e.condicao==="ausente"||e.condicao==="extraido");
+  const inteiro = est["todo"];
+  const M = medidaDe(fdi), r = M.md/2*ESC2D*1.05;
+  let out = "";
+  if(perdido){
+    out += `<path d="M${(cx-r).toFixed(1)},${yTopo.toFixed(1)} L${(cx+r).toFixed(1)},${yBase.toFixed(1)}
+      M${(cx+r).toFixed(1)},${yTopo.toFixed(1)} L${(cx-r).toFixed(1)},${yBase.toFixed(1)}"
+      stroke="var(--crit)" stroke-width="2.2" fill="none" opacity=".85" pointer-events="none"/>`;
   }
-  // o número fica FORA do grupo girado, senão giraria junto e viraria de
-  // cabeça para baixo nos molares inferiores
-  const d = L*0.62 + 13;
-  const rx2 = (nx===undefined ? 0 : nx)*d, ry2 = (ny===undefined ? (q<=2||(q>=5&&q<=6) ? -1 : 1) : ny)*d;
-  const num = `<text x="${(x+rx2).toFixed(1)}" y="${(y+ry2+4).toFixed(1)}" class="numdente"
-      text-anchor="middle" opacity="${esperado?1:.35}">${fdi}</text>`;
+  if(inteiro && !perdido){
+    out += `<rect x="${(cx-r-2).toFixed(1)}" y="${(yTopo-2).toFixed(1)}"
+      width="${(2*r+4).toFixed(1)}" height="${(yBase-yTopo+4).toFixed(1)}" rx="4"
+      fill="none" stroke="${corCondicao(inteiro.condicao)}" stroke-width="2"
+      pointer-events="none"/>`;
+  }
+  return out;
+}
 
-  return `<g transform="rotate(${ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${g.join("")}</g>${num}`;
+/* ---------- a fileira ----------
+   Cada dente ocupa na linha exatamente a sua largura mesiodistal. Com
+   passo fixo o incisivo inferior sobrava espaço e o molar apertava —
+   e é no molar que mais se anota. */
+function colunas2D(lista, x0){
+  const out = []; let x = x0;
+  lista.forEach(fdi=>{
+    const w = medidaDe(fdi).md*ESC2D;
+    out.push({fdi, cx: x + w/2, w});
+    x += w + VAO2D;
+  });
+  return {cols: out, largura: x - x0 - VAO2D};
+}
+const maxDe = (lista, campo, k) =>
+  lista.length ? Math.max(...lista.map(f=>medidaDe(f)[campo]*(k||1))) : 0;
+
+function quadroOdonto(supO, infO, decSup, decInf, esperados, estados){
+  const MARG = 16;
+  const lSup = colunas2D(supO, 0).largura;
+  const lInf = colunas2D(infO, 0).largura;
+  const lDecS = colunas2D(decSup, 0).largura, lDecI = colunas2D(decInf, 0).largura;
+  const W = Math.max(lSup, lInf, lDecS, lDecI, 560) + MARG*2;
+  const centrar = (lista) => colunas2D(lista, (W - colunas2D(lista,0).largura)/2).cols;
+
+  const cSup = centrar(supO), cInf = centrar(infO);
+  const cDecS = centrar(decSup), cDecI = centrar(decInf);
+
+  const hrS = maxDe(supO,"hr",0.92), hcS = maxDe(supO,"hc"), vlS = maxDe(supO,"vl");
+  const hrI = maxDe(infO,"hr",0.92), hcI = maxDe(infO,"hc"), vlI = maxDe(infO,"vl");
+  const vlDS = maxDe(decSup,"vl"), vlDI = maxDe(decInf,"vl");
+
+  let y = 30;
+  const yColoSup  = y + hrS*ESC2D;
+  const yBordaSup = yColoSup + hcS*ESC2D;
+  const yOclSup   = yBordaSup + 11 + vlS*ESC2D/2;
+  let cur = yOclSup + vlS*ESC2D/2;
+  const yDecSup  = decSup.length ? cur + 9 + vlDS*ESC2D/2 : null;
+  if(yDecSup !== null) cur = yDecSup + vlDS*ESC2D/2 + 13;
+  const yNumSup = cur + 15;
+  const yLinha  = yNumSup + 7;
+  const yNumInf = yLinha + 19;
+  cur = yNumInf + 6;
+  const yDecInf = decInf.length ? cur + vlDI*ESC2D/2 + 9 : null;
+  if(yDecInf !== null) cur = yDecInf + vlDI*ESC2D/2 + 4;
+  const yOclInf   = cur + 9 + vlI*ESC2D/2;
+  const yBordaInf = yOclInf + vlI*ESC2D/2 + 11;
+  const yColoInf  = yBordaInf + hcI*ESC2D;
+  const H = yColoInf + hrI*ESC2D + 26;
+
+  const g = [];
+  // realce do dente selecionado, atrás de tudo
+  const realce = (cols, yTopo, yBase) => cols.filter(c=>c.fdi===odonto.selecionado)
+    .map(c=>`<rect x="${(c.cx-c.w/2-3).toFixed(1)}" y="${(yTopo-4).toFixed(1)}"
+      width="${(c.w+6).toFixed(1)}" height="${(yBase-yTopo+8).toFixed(1)}" rx="5"
+      fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.4"
+      pointer-events="none"/>`).join("");
+
+  g.push(realce(cSup, y, yNumSup+4));
+  g.push(realce(cInf, yNumInf-12, H-16));
+  if(yDecSup!==null) g.push(realce(cDecS, yDecSup-vlDS*ESC2D/2-4, yDecSup+vlDS*ESC2D/2+14));
+  if(yDecInf!==null) g.push(realce(cDecI, yDecInf-vlDI*ESC2D/2-14, yDecInf+vlDI*ESC2D/2+4));
+
+  const fileira = (cols, yColo, dirY, yOcl, vestCima, yNum, yTopoMarca, yBaseMarca) => {
+    cols.forEach(c=>{
+      const esp = esperados.has(c.fdi);
+      g.push(svgDenteVest(c.fdi, c.cx, yColo, dirY, estados, esp));
+      g.push(svgDenteOcl(c.fdi, c.cx, yOcl, vestCima, estados, esp));
+      g.push(`<text x="${c.cx.toFixed(1)}" y="${yNum.toFixed(1)}" class="numdente"
+        text-anchor="middle" opacity="${esp?1:.38}" data-dente="${c.fdi}"
+        style="cursor:pointer">${c.fdi}</text>`);
+      g.push(marcaDenteInteiro(c.fdi, estados, c.cx, yTopoMarca, yBaseMarca));
+    });
+  };
+  // só oclusal, para os decíduos que ainda não caíram na dentição mista
+  const fileiraDec = (cols, yOcl, vestCima, yNum, vl) => {
+    cols.forEach(c=>{
+      const esp = esperados.has(c.fdi);
+      g.push(svgDenteOcl(c.fdi, c.cx, yOcl, vestCima, estados, esp));
+      g.push(`<text x="${c.cx.toFixed(1)}" y="${yNum.toFixed(1)}" class="numdente"
+        text-anchor="middle" opacity="${esp?1:.38}" data-dente="${c.fdi}"
+        style="cursor:pointer;font-size:11px">${c.fdi}</text>`);
+      g.push(marcaDenteInteiro(c.fdi, estados, c.cx,
+        yOcl - vl*ESC2D/2, yOcl + vl*ESC2D/2));
+    });
+  };
+
+  fileira(cSup, yColoSup, 1, yOclSup, true,  yNumSup, y, yBordaSup);
+  fileira(cInf, yColoInf, -1, yOclInf, false, yNumInf, yBordaInf, H-16);
+  if(yDecSup!==null) fileiraDec(cDecS, yDecSup, true,  yDecSup + vlDS*ESC2D/2 + 11, vlDS);
+  if(yDecInf!==null) fileiraDec(cDecI, yDecInf, false, yDecInf - vlDI*ESC2D/2 - 4, vlDI);
+
+  return `<svg viewBox="0 0 ${Math.round(W)} ${Math.round(H)}" id="svgArcada" role="img"
+      aria-label="Odontograma — vista vestibular e oclusal das duas arcadas"
+      style="min-width:${Math.round(W*0.78)}px">
+    <text x="${MARG}" y="16" class="rotArco" text-anchor="start">direita do paciente</text>
+    <text x="${(W/2).toFixed(0)}" y="16" class="rotArco" text-anchor="middle">superior</text>
+    <text x="${(W-MARG).toFixed(0)}" y="16" class="rotArco" text-anchor="end">esquerda</text>
+    <line x1="${MARG}" y1="${yLinha}" x2="${(W-MARG).toFixed(0)}" y2="${yLinha}"
+      stroke="var(--line)" stroke-dasharray="4 5"/>
+    <text x="${(W/2).toFixed(0)}" y="${(H-6).toFixed(0)}" class="rotArco" text-anchor="middle">inferior</text>
+    ${g.join("")}
+  </svg>`;
 }
 
 let odonto = {estados:{}, historico:[], denticao:null, selecionado:null};
@@ -3155,32 +3307,17 @@ function desenharOdontograma(pac, naJanela){
   };
   const supO = ordenar(sup, true), infO = ordenar(inf, false);
 
-  // decíduos vão numa fileira interna quando a dentição é mista
-  const faixa = (lista, superior) => {
-    const perm = lista.filter(d=>Math.floor(d/10)<=4);
-    const dec  = lista.filter(d=>Math.floor(d/10)>=5);
-    let out="";
-    // cada dente ocupa uma fatia do arco proporcional à própria largura
-    const fatias = lista => {
-      const w = lista.map(larguraDente), soma = w.reduce((a,b)=>a+b,0);
-      let acum = 0;
-      return w.map(x=>{ const meio = (acum + x/2)/soma; acum += x; return meio; });
-    };
-    const base = perm.length ? perm : dec;
-    const tb = fatias(base);
-    base.forEach((d,i)=>{ const p=posArco(i, base.length, superior, 1, undefined, undefined, tb[i]);
-      out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), p.nx, p.ny); });
-    if(perm.length && dec.length){
-      // arco interno, menor: os decíduos que ainda não caíram ficam por
-      // dentro da arcada permanente, como na boca
-      // arco interno mais fechado (40°–140°), senão os molares decíduos
-      // cairiam do outro lado da linha média
-      const td = fatias(dec);
-      dec.forEach((d,i)=>{ const p=posArco(i, dec.length, superior, 0.56, 40, 140, td[i]);
-        out += svgDente(d, p.x, p.y, odonto.estados, esperados.has(d), -p.nx, -p.ny); });
-    }
-    return out;
-  };
+  /* Na dentição mista o decíduo que ainda está em boca ganha uma
+     fileira própria, só com a vista oclusal, encostada na numeração.
+     Misturá-lo na mesma fileira dos permanentes dava 40 colunas e
+     nenhuma leitura. */
+  const decSup = supO.filter(d=>Math.floor(d/10)>=5);
+  const decInf = infO.filter(d=>Math.floor(d/10)>=5);
+  const permSup = supO.filter(d=>Math.floor(d/10)<=4);
+  const permInf = infO.filter(d=>Math.floor(d/10)<=4);
+  const svg = modo==="decidua"
+    ? quadroOdonto(decSup, decInf, [], [], esperados, odonto.estados)
+    : quadroOdonto(permSup, permInf, decSup, decInf, esperados, odonto.estados);
 
   const rotuloIdade = idade===null ? "idade não informada"
     : idade<1 ? Math.round(idade*12)+" meses" : Math.floor(idade)+" anos";
@@ -3205,15 +3342,7 @@ function desenharOdontograma(pac, naJanela){
         })()}
       </div>
       <div class="arcada">
-        <svg viewBox="0 0 800 524" id="svgArcada" role="img" aria-label="Arcada dentária">
-          <text x="400" y="26" class="rotArco" text-anchor="middle">SUPERIOR</text>
-          ${faixa(supO, true)}
-          <line x1="26" y1="289" x2="774" y2="289" stroke="var(--line)" stroke-dasharray="4 5"/>
-          <text x="30" y="285" class="rotArco" text-anchor="start">direita do paciente</text>
-          <text x="770" y="285" class="rotArco" text-anchor="end">esquerda</text>
-          ${faixa(infO, false)}
-          <text x="400" y="516" class="rotArco" text-anchor="middle">INFERIOR</text>
-        </svg>
+        ${svg}
       </div>
       <div class="legenda">
         ${CONDICOES.filter(c=>c[0]!=="higido"&&c[0]!=="outro").map(([k,rot,cor])=>
@@ -4206,6 +4335,7 @@ function renderJanelaOdonto(){
    clique a mais. */
 async function aplicarPincel(alvo){
   JO.sel = {fdi:alvo.fdi, face:alvo.face || "*"};
+  odonto.selecionado = alvo.fdi;      // o 2D realça pelo mesmo estado
   O3D.sel = JO.sel;
   if(JO.pincel && alvo.face && pode("prontuario")){
     try{
@@ -6568,24 +6698,75 @@ function htmlProducao(){
    mercado entra "chutado": os valores de partida são faixas típicas, não
    as da clínica. Duas clínicas na mesma rua pagam taxas diferentes. Por
    isso a tela diz, sem rodeio, que é para conferir no extrato. */
+let maqForm = null;      // {id} quando o cadastro de maquininha está aberto
+let taxaNova = false;    // true quando a linha de taxa nova está aberta
+
 function htmlTaxas(){
   const t = tabelaTaxas();
+  const maqs = maquininhas();
   const faixa = x => Number(x.parcelas_min)===Number(x.parcelas_max)
     ? (Number(x.parcelas_min)===1 ? "à vista" : x.parcelas_min+"×")
     : x.parcelas_min+"× a "+x.parcelas_max+"×";
+  const opcoesMaq = sel => `<option value=""${sel?"":" selected"}>Tabela padrão</option>` +
+    maqs.map(m=>`<option value="${m.id}"${sel===m.id?" selected":""}>${m.apelido}</option>`).join("");
+  const opcoesBand = sel => `<option value=""${sel?"":" selected"}>Todas</option>` +
+    BANDEIRAS.map(b=>`<option${sel===b?" selected":""}>${b}</option>`).join("");
+
+  /* ordenada por máquina: ler taxa pulando de uma máquina para outra e
+     voltando é o que faz o financeiro desistir da tabela */
+  const ordem = t.slice().sort((a,b)=>
+    String(a.maquininha_id||"").localeCompare(String(b.maquininha_id||""))
+    || String(a.forma).localeCompare(String(b.forma))
+    || Number(a.parcelas_min)-Number(b.parcelas_min));
+
   return `
-    <div class="stage"><b>Confira no extrato da adquirente.</b> Os percentuais abaixo são
-      faixas típicas do mercado brasileiro, colocadas só para o sistema sair do zero.
-      A taxa real depende da adquirente, do faturamento e da negociação — e é ela que
-      determina a previsão de caixa. Quando o comprovante de uma venda traz taxa
-      diferente, digite a taxa no pagamento: ela prevalece sobre esta tabela.</div>
-    <div class="sec-h" style="margin-top:14px"><h2>Taxas e prazos</h2>
+    <div class="stage"><b>Confira no extrato da adquirente.</b> Cada maquininha tem a sua
+      taxa, e ela muda por forma de pagamento, por número de parcelas e às vezes por
+      bandeira. Cadastre as máquinas abaixo e, no pagamento, diga em qual delas passou —
+      é assim que a previsão de caixa deixa de ser chute. Quando o comprovante traz taxa
+      diferente, digite a taxa no pagamento: ela prevalece sobre a tabela.</div>
+
+    <div class="sec-h" style="margin-top:14px"><h2>Maquininhas</h2>
+      <span class="hint">o apelido é como a recepção chama</span></div>
+    <div class="row naoimprime" style="margin-bottom:8px">
+      <button class="btn" id="maqNova">+ Nova maquininha</button>
+    </div>
+    <div class="card" id="maqCard" ${maqForm?"":"hidden"}>${maqForm?formMaquininhaHtml(maqForm):""}</div>
+    ${maqs.length ? `<div class="card rolar" style="margin-top:8px"><table class="tab-rel">
+      <thead><tr><th>Apelido</th><th>Marca / banco</th><th>Modelo</th><th>Bandeiras</th>
+        <th>Série</th><th class="n">Regras</th><th class="naoimprime">&nbsp;</th></tr></thead>
+      <tbody>${maqs.map(m=>`<tr${m.ativa===false?' style="opacity:.5"':""}>
+        <td><b>${m.apelido}</b>${m.padrao?' <span class="pill neutral">padrão</span>':""}</td>
+        <td>${m.marca||'<span class="vaga">—</span>'}${m.banco&&m.banco!==m.marca?" · "+m.banco:""}</td>
+        <td>${m.modelo||'<span class="vaga">—</span>'}</td>
+        <td>${(m.bandeiras&&m.bandeiras.length)?m.bandeiras.join(", "):'<span class="vaga">todas</span>'}</td>
+        <td class="mono">${m.numero_serie||'<span class="vaga">—</span>'}</td>
+        <td class="n">${t.filter(x=>x.maquininha_id===m.id).length}</td>
+        <td class="naoimprime"><button class="minibtn" data-maqed="${m.id}">Editar</button></td>
+      </tr>`).join("")}</tbody></table></div>`
+      : `<div class="empty">Nenhuma maquininha cadastrada. Sem ela o sistema usa a tabela
+         padrão da clínica para todas as vendas.</div>`}
+
+    <div class="sec-h" style="margin-top:16px"><h2>Taxas e prazos</h2>
       <span class="hint">antecipar troca prazo por taxa</span></div>
+    <div class="row naoimprime" style="margin-bottom:8px">
+      <button class="btn" id="taxaNovaBtn">+ Nova linha de taxa</button>
+    </div>
     <div class="card rolar"><table class="tab-rel">
-      <thead><tr><th>Forma</th><th>Parcelas</th><th class="n">Taxa %</th>
+      <thead><tr><th>Maquininha</th><th>Marca / banco</th><th>Modelo</th><th>Bandeira</th>
+        <th>Forma</th><th>Parcelas</th><th class="n">Taxa %</th>
         <th class="n">Antecipado %</th><th class="n">Fixa R$</th><th class="n">Prazo</th>
         <th class="naoimprime">&nbsp;</th></tr></thead>
-      <tbody>${t.map((x,k)=>`<tr data-taxa="${x.id}">
+      <tbody>
+      ${taxaNova ? linhaTaxaNova(opcoesMaq, opcoesBand) : ""}
+      ${ordem.map(x=>{
+        const m = maquininhaPor(x.maquininha_id);
+        return `<tr data-taxa="${x.id}">
+        <td class="naoimprime-nao"><select class="taxsel" data-c="maquininha_id"
+            style="max-width:130px">${opcoesMaq(x.maquininha_id||"")}</select></td>
+        <td>${m ? (m.marca||"")+(m.banco&&m.banco!==m.marca?" · "+m.banco:"") : '<span class="vaga">—</span>'}</td>
+        <td>${m ? (m.modelo||'<span class="vaga">—</span>') : '<span class="vaga">—</span>'}</td>
+        <td><select class="taxsel" data-c="bandeira" style="max-width:104px">${opcoesBand(x.bandeira||"")}</select></td>
         <td><b>${ROTULO_FORMA[x.forma]||x.forma}</b></td>
         <td>${faixa(x)}</td>
         <td class="n"><input class="taxin" data-c="taxa_pct" inputmode="decimal"
@@ -6598,11 +6779,60 @@ function htmlTaxas(){
           value="${Number(x.taxa_fixa).toLocaleString("pt-BR")}"></td>
         <td class="n"><input class="taxin" data-c="prazo_dias" inputmode="numeric"
           style="width:48px" value="${x.prazo_dias}"></td>
-        <td class="naoimprime"><button class="minibtn" data-salvar="${x.id}">Salvar</button></td>
-      </tr>`).join("")}</tbody></table></div>
-    <div class="stage">Prazo é em dias corridos a partir do pagamento: débito D+1,
-      crédito D+30 e as parcelas seguintes de 30 em 30. Alterar a tabela muda as vendas
-      <b>novas</b>; as já lançadas guardam a taxa que valia no dia.</div>`;
+        <td class="naoimprime"><button class="minibtn" data-salvar="${x.id}">Salvar</button>${
+          x.maquininha_id?` <button class="minibtn" data-apagar="${x.id}">Excluir</button>`:""}</td>
+      </tr>`;}).join("")}</tbody></table></div>
+    <div class="stage">A linha mais específica manda: máquina <b>e</b> bandeira ganha de
+      máquina, que ganha de bandeira, que ganha da tabela padrão. Prazo é em dias corridos
+      a partir do pagamento: débito D+1, crédito D+30 e as parcelas seguintes de 30 em 30.
+      Alterar a tabela muda as vendas <b>novas</b>; as já lançadas guardam a taxa que
+      valia no dia.</div>`;
+}
+
+function linhaTaxaNova(opcoesMaq, opcoesBand){
+  return `<tr id="trTaxaNova" style="background:var(--accent-soft)">
+    <td><select class="taxnv" data-c="maquininha_id" style="max-width:130px">${opcoesMaq("")}</select></td>
+    <td colspan="2"><span class="hint">marca e modelo vêm do cadastro</span></td>
+    <td><select class="taxnv" data-c="bandeira" style="max-width:104px">${opcoesBand("")}</select></td>
+    <td><select class="taxnv" data-c="forma" style="max-width:118px">${
+      FORMAS.map(([v,r])=>`<option value="${v}"${v==="credito"?" selected":""}>${r}</option>`).join("")}</select></td>
+    <td><input class="taxnv" data-c="parcelas_min" inputmode="numeric" style="width:34px" value="1">
+        <input class="taxnv" data-c="parcelas_max" inputmode="numeric" style="width:34px" value="1"></td>
+    <td class="n"><input class="taxnv" data-c="taxa_pct" inputmode="decimal" style="width:60px" value="0"></td>
+    <td class="n"><input class="taxnv" data-c="taxa_antecip_pct" inputmode="decimal" style="width:60px" placeholder="—"></td>
+    <td class="n"><input class="taxnv" data-c="taxa_fixa" inputmode="decimal" style="width:54px" value="0"></td>
+    <td class="n"><input class="taxnv" data-c="prazo_dias" inputmode="numeric" style="width:44px" value="30"></td>
+    <td class="naoimprime"><button class="minibtn" id="taxaNvSalvar">Criar</button>
+      <button class="minibtn" id="taxaNvCancelar">Cancelar</button></td></tr>`;
+}
+
+function formMaquininhaHtml(m){
+  const e = m.id ? (maquininhaPor(m.id)||{}) : {};
+  const mk = (id,rot,val,ph) => `<div class="field"><label for="${id}">${rot}</label>
+    <input id="${id}" value="${(val||"").replace(/"/g,"&quot;")}" placeholder="${ph||""}"></div>`;
+  return `<div class="eyebrow">${m.id?"Editar maquininha":"Nova maquininha"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div class="grid2">
+        ${mk("mqApelido","Apelido (como a recepção chama)", e.apelido, "amarelinha")}
+        ${mk("mqMarca","Marca / adquirente", e.marca, "Cielo, Stone, PagBank, Safra…")}
+      </div>
+      <div class="grid2">
+        ${mk("mqModelo","Modelo do aparelho", e.modelo, "LIO V3, Ton T3…")}
+        ${mk("mqBanco","Banco que recebe", e.banco, "Bradesco, Itaú…")}
+      </div>
+      <div class="grid2">
+        ${mk("mqSerie","Número de série", e.numero_serie, "opcional — ajuda a bater o extrato")}
+        <div class="field"><label>Situação</label>
+          <label class="check"><input type="checkbox" id="mqAtiva" ${e.ativa===false?"":"checked"}>
+            <span>em uso</span></label></div>
+      </div>
+      <div class="field"><label>Bandeiras aceitas</label>
+        <div class="row" style="flex-wrap:wrap">${BANDEIRAS.map(b=>`
+          <label class="check"><input type="checkbox" class="mqBand" value="${b}"
+            ${(e.bandeiras||[]).includes(b)?"checked":""}><span>${b}</span></label>`).join("")}</div></div>
+      <div class="row"><button class="btn primary" style="flex:1" id="mqSalvar">Salvar maquininha</button>
+        <button class="btn" id="mqCancelar">Cancelar</button></div>
+    </div>`;
 }
 
 function ligarTaxas(){
@@ -6610,11 +6840,90 @@ function ligarTaxas(){
     inp.style.width = inp.style.width || "66px";
     inp.style.textAlign = "right";
   });
+
+  /* ---- cadastro de maquininha ---- */
+  const nova = $("#maqNova");
+  if(nova) nova.addEventListener("click", ()=>{ maqForm = {}; renderFinanceiro(); });
+  $$("#finPainel [data-maqed]").forEach(b=>b.addEventListener("click", ()=>{
+    maqForm = {id:b.dataset.maqed}; renderFinanceiro(); }));
+  const mqC = $("#mqCancelar");
+  if(mqC) mqC.addEventListener("click", ()=>{ maqForm = null; renderFinanceiro(); });
+  const mqS = $("#mqSalvar");
+  if(mqS) mqS.addEventListener("click", async ()=>{
+    const d = {
+      apelido: $("#mqApelido").value.trim(),
+      marca:   $("#mqMarca").value.trim()  || null,
+      modelo:  $("#mqModelo").value.trim() || null,
+      banco:   $("#mqBanco").value.trim()  || null,
+      numero_serie: $("#mqSerie").value.trim() || null,
+      ativa:   $("#mqAtiva").checked,
+      bandeiras: $$("#finPainel .mqBand").filter(c=>c.checked).map(c=>c.value)
+    };
+    if(!d.apelido){ toast("Dê um apelido à maquininha."); $("#mqApelido").focus(); return; }
+    const repetido = maquininhas().some(m=>m.id!==maqForm.id &&
+      m.apelido.toLowerCase()===d.apelido.toLowerCase());
+    if(repetido){ toast("Já existe uma maquininha com esse apelido."); return; }
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        await DB.gravarMaquininha(maqForm.id ? {...d, id:maqForm.id} : d);
+        await DB.carregarCaixa();
+      }, "maquininha");
+      if(!ok) return;
+    }else{
+      if(!S.maquininhas) S.maquininhas = JSON.parse(JSON.stringify(MAQUININHAS_SEED));
+      if(maqForm.id){
+        const i = S.maquininhas.findIndex(m=>m.id===maqForm.id);
+        if(i>=0) S.maquininhas[i] = {...S.maquininhas[i], ...d};
+      }else{
+        S.maquininhas.push({id:"mq"+Date.now(), padrao:false, ...d});
+      }
+      save();
+    }
+    maqForm = null; renderFinanceiro();
+    toast("Maquininha "+d.apelido+" salva.");
+  });
+
+  /* ---- linha de taxa nova ---- */
+  const tn = $("#taxaNovaBtn");
+  if(tn) tn.addEventListener("click", ()=>{ taxaNova = true; renderFinanceiro(); });
+  const tnc = $("#taxaNvCancelar");
+  if(tnc) tnc.addEventListener("click", ()=>{ taxaNova = false; renderFinanceiro(); });
+  const tns = $("#taxaNvSalvar");
+  if(tns) tns.addEventListener("click", async ()=>{
+    const tr = $("#trTaxaNova"), d = {};
+    tr.querySelectorAll(".taxnv").forEach(i=>{ d[i.dataset.c] = i.value; });
+    const linha = {
+      maquininha_id: d.maquininha_id || null,
+      bandeira: d.bandeira || null,
+      forma: d.forma,
+      parcelas_min: Math.max(1, Number(d.parcelas_min)||1),
+      parcelas_max: Math.max(1, Number(d.parcelas_max)||1),
+      taxa_pct: numBR(d.taxa_pct),
+      taxa_antecip_pct: String(d.taxa_antecip_pct).trim()==="" ? null : numBR(d.taxa_antecip_pct),
+      taxa_fixa: numBR(d.taxa_fixa),
+      prazo_dias: Math.max(0, Number(d.prazo_dias)||0),
+      ativa: true
+    };
+    if(linha.parcelas_max < linha.parcelas_min){ toast("A faixa de parcelas está invertida."); return; }
+    if(linha.taxa_pct>30 || (linha.taxa_antecip_pct||0)>30){ toast("Taxa acima de 30% — confira."); return; }
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{ await DB.criarTaxa(linha); await DB.carregarCaixa(); }, "taxa");
+      if(!ok) return;
+    }else{
+      if(!S.taxas) S.taxas = JSON.parse(JSON.stringify(TAXAS_SEED));
+      S.taxas.push({id:"tx"+Date.now(), ...linha}); save();
+    }
+    taxaNova = false; renderFinanceiro();
+    toast("Linha de taxa criada.");
+  });
+
+  /* ---- salvar / excluir linha existente ---- */
   $$("#finPainel button[data-salvar]").forEach(b=>b.addEventListener("click", async ()=>{
     const tr = b.closest("tr"), id = b.dataset.salvar;
     const base = tabelaTaxas().find(x=>x.id===id); if(!base) return;
     const novo = {...base};
     tr.querySelectorAll("input.taxin").forEach(i=>{ novo[i.dataset.c] = numBR(i.value); });
+    tr.querySelectorAll("select.taxsel").forEach(i=>{ novo[i.dataset.c] = i.value || null; });
     if(novo.taxa_pct>30 || (novo.taxa_antecip_pct||0)>30){
       toast("Taxa acima de 30% — confira o número."); return; }
     if(novo.prazo_dias<0 || novo.prazo_dias>365){ toast("Prazo fora do razoável."); return; }
@@ -6627,7 +6936,20 @@ function ligarTaxas(){
       if(i>=0) S.taxas[i] = novo; save();
     }
     renderFinanceiro();
-    toast(ROTULO_FORMA[novo.forma]+" atualizada — vale para as próximas vendas.");
+    toast(ROTULO_FORMA[novo.forma]+" em "+nomeMaquina(novo.maquininha_id)+" atualizada.");
+  }));
+
+  $$("#finPainel button[data-apagar]").forEach(b=>b.addEventListener("click", async ()=>{
+    const id = b.dataset.apagar;
+    if(!confirm("Excluir esta linha de taxa? As vendas já lançadas não mudam.")) return;
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{ await DB.apagarTaxa(id); await DB.carregarCaixa(); }, "taxa");
+      if(!ok) return;
+    }else{
+      if(!S.taxas) S.taxas = JSON.parse(JSON.stringify(TAXAS_SEED));
+      S.taxas = S.taxas.filter(x=>x.id!==id); save();
+    }
+    renderFinanceiro(); toast("Linha excluída.");
   }));
 }
 
@@ -6973,16 +7295,50 @@ const TAXAS_SEED = [
   {id:"t7", forma:"credito",       parcelas_min:7, parcelas_max:12, taxa_pct:5.49,  taxa_antecip_pct:7.99, taxa_fixa:0,   prazo_dias:30, ativa:true, adquirente:"padrão"},
   {id:"t8", forma:"boleto",        parcelas_min:1, parcelas_max:1,  taxa_pct:0,     taxa_antecip_pct:null, taxa_fixa:3.5, prazo_dias:3,  ativa:true, adquirente:"padrão"},
   {id:"t9", forma:"plano_saude",   parcelas_min:1, parcelas_max:1,  taxa_pct:0,     taxa_antecip_pct:null, taxa_fixa:0,   prazo_dias:30, ativa:true, adquirente:"padrão"},
-  {id:"t10",forma:"cortesia",      parcelas_min:1, parcelas_max:1,  taxa_pct:0,     taxa_antecip_pct:null, taxa_fixa:0,   prazo_dias:0,  ativa:true, adquirente:"padrão"}
+  {id:"t10",forma:"cortesia",      parcelas_min:1, parcelas_max:1,  taxa_pct:0,     taxa_antecip_pct:null, taxa_fixa:0,   prazo_dias:0,  ativa:true, adquirente:"padrão"},
+  /* linhas de uma maquininha específica: é o que o consultório negocia
+     de verdade. Elas ganham da tabela padrão quando a venda diz em qual
+     máquina passou. */
+  {id:"t11",forma:"credito",       parcelas_min:1, parcelas_max:1,  taxa_pct:3.19,  taxa_antecip_pct:3.19, taxa_fixa:0, prazo_dias:30, ativa:true, maquininha_id:"m1", bandeira:null},
+  {id:"t12",forma:"credito",       parcelas_min:1, parcelas_max:1,  taxa_pct:4.60,  taxa_antecip_pct:4.60, taxa_fixa:0, prazo_dias:30, ativa:true, maquininha_id:"m1", bandeira:"Amex"},
+  {id:"t13",forma:"debito",        parcelas_min:1, parcelas_max:1,  taxa_pct:1.49,  taxa_antecip_pct:null, taxa_fixa:0, prazo_dias:1,  ativa:true, maquininha_id:"m2", bandeira:null},
+  {id:"t14",forma:"credito",       parcelas_min:2, parcelas_max:6,  taxa_pct:4.19,  taxa_antecip_pct:5.49, taxa_fixa:0, prazo_dias:30, ativa:true, maquininha_id:"m2", bandeira:null}
 ];
+
+/* ---------- maquininhas ----------
+   A clínica não tem "uma taxa": tem a taxa DAQUELA máquina, para aquela
+   forma e aquela bandeira. Sem saber em qual máquina a venda passou, a
+   previsão de caixa é chute — e foi isso que o dentista pediu para
+   resolver. O apelido existe porque é assim que a recepção fala:
+   ninguém diz "o terminal Cielo LIO V3", diz "a amarelinha". */
+const BANDEIRAS = ["Visa","Mastercard","Elo","Amex","Hipercard","Cabal"];
+const MAQUININHAS_SEED = [
+  {id:"m1", apelido:"Amarelinha", marca:"Cielo", modelo:"LIO V3", banco:"Bradesco",
+   bandeiras:["Visa","Mastercard","Elo","Amex"], numero_serie:null, ativa:true, padrao:true},
+  {id:"m2", apelido:"Recepção", marca:"Stone", modelo:"Ton T3", banco:"Stone",
+   bandeiras:["Visa","Mastercard","Elo"], numero_serie:null, ativa:true, padrao:false}
+];
+const maquininhas = () => (S.maquininhas && S.maquininhas.length) ? S.maquininhas : MAQUININHAS_SEED;
+const maquininhaPor = id => maquininhas().find(m=>m.id===id) || null;
+const nomeMaquina = id => { const m = maquininhaPor(id);
+  return m ? m.apelido + (m.marca ? " · "+m.marca : "") : "tabela padrão"; };
 
 const cent = n => Math.round(Number(n)*100)/100;
 const tabelaTaxas = () => (S.taxas && S.taxas.length) ? S.taxas : TAXAS_SEED;
 
-function taxaPara(forma, parcelas){
+/* A linha mais ESPECÍFICA vence: máquina+bandeira, depois máquina,
+   depois bandeira, e por último a tabela padrão da clínica. Sem essa
+   ordem, cadastrar a taxa da Amex numa máquina não mudaria nada. */
+function taxaPara(forma, parcelas, maqId, bandeira){
   const n = Math.max(1, Number(parcelas)||1);
-  return tabelaTaxas().find(t=>t.ativa!==false && t.forma===forma
-    && n >= Number(t.parcelas_min) && n <= Number(t.parcelas_max)) || null;
+  const band = (bandeira||"").toLowerCase();
+  const cand = tabelaTaxas().filter(t=>t.ativa!==false && t.forma===forma
+    && n >= Number(t.parcelas_min) && n <= Number(t.parcelas_max)
+    && (!t.maquininha_id || t.maquininha_id === maqId)
+    && (!t.bandeira || (band && String(t.bandeira).toLowerCase() === band)));
+  if(!cand.length) return null;
+  const peso = t => (t.maquininha_id?2:0) + (t.bandeira?1:0);
+  return cand.slice().sort((a,b)=>peso(b)-peso(a))[0];
 }
 
 /* Espelha gerar_parcelas() do banco. Antecipar é receber tudo de uma
@@ -6990,9 +7346,10 @@ function taxaPara(forma, parcelas){
    A sobra de centavo vai na ÚLTIMA parcela — 100,00 em 3x é
    33,33 + 33,33 + 33,34. Centavo que some é centavo que não bate na
    conciliação. */
-function projetar(valor, forma, parcelas, antecipado, taxaManual, diaISO){
+function projetar(valor, forma, parcelas, antecipado, taxaManual, diaISO, opc){
   const v = cent(valor||0);
-  const t = taxaPara(forma, parcelas);
+  const o = opc || {};
+  const t = taxaPara(forma, parcelas, o.maquininha, o.bandeira);
   const pct = !t ? 0 : (antecipado ? (t.taxa_antecip_pct ?? t.taxa_pct) : t.taxa_pct);
   const fixa = t ? Number(t.taxa_fixa||0) : 0;
   const prazo = t ? Number(t.prazo_dias||0) : 0;
@@ -7015,7 +7372,8 @@ function projetar(valor, forma, parcelas, antecipado, taxaManual, diaISO){
       recebido: prazo===0 && n===1});
   }
   return {valor:v, taxa, liquido:cent(v-taxa), taxa_pct: temManual ? null : pct,
-          prazo_dias:prazo, parcelas:parcelasArr, naTabela: !!t, manual: temManual};
+          prazo_dias:prazo, parcelas:parcelasArr, naTabela: !!t, manual: temManual,
+          maquininha: t ? (t.maquininha_id||null) : null, regra: t ? t.id : null};
 }
 
 /* ---------- cobranças e pagamentos do paciente ---------- */
@@ -7211,6 +7569,13 @@ function formPagamento(pacId, cobId){
       </div>
       <div class="field"><label for="pgForma">Como o paciente pagou</label>
         <select id="pgForma">${FORMAS.map(([v,r])=>`<option value="${v}">${r}</option>`).join("")}</select></div>
+      <div id="pgMaqBox" hidden>
+        <div class="field"><label for="pgMaq">Em qual maquininha passou</label>
+          <select id="pgMaq"><option value="">— não informado (tabela padrão)</option>
+          ${maquininhas().filter(m=>m.ativa!==false).map(m=>
+            `<option value="${m.id}"${m.padrao?" selected":""}>${m.apelido}${
+              m.marca?" · "+m.marca:""}${m.modelo?" · "+m.modelo:""}</option>`).join("")}</select></div>
+      </div>
       <div id="pgCredito" hidden>
         <div class="grid2">
           <div class="field"><label for="pgParc">Parcelas</label>
@@ -7218,7 +7583,7 @@ function formPagamento(pacId, cobId){
               .map(n=>`<option value="${n}">${n}×</option>`).join("")}</select></div>
           <div class="field"><label for="pgBand">Bandeira</label>
             <select id="pgBand"><option value="">—</option>
-            ${["Visa","Mastercard","Elo","Amex","Hipercard"].map(b=>`<option>${b}</option>`).join("")}</select></div>
+            ${BANDEIRAS.map(b=>`<option>${b}</option>`).join("")}</select></div>
         </div>
         ${ver?`<label class="check" style="margin-top:6px"><input type="checkbox" id="pgAntec">
           <span>Antecipar o recebimento — recebe tudo de uma vez, com taxa maior</span></label>`:""}
@@ -7239,12 +7604,19 @@ function formPagamento(pacId, cobId){
   const atualizar = ()=>{
     const forma = $("#pgForma").value;
     const credito = forma==="credito";
+    /* a máquina só faz sentido onde o cartão encosta nela. PIX por QR da
+       maquininha também tem taxa, por isso entra na lista. */
+    const naMaquina = credito || forma==="debito" || forma==="pix";
     $("#pgCredito").hidden = !credito;
+    $("#pgMaqBox").hidden = !naMaquina;
+    const maq = naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null;
     const parc = credito ? Number($("#pgParc").value) : 1;
     const antec = credito && $("#pgAntec") && $("#pgAntec").checked;
+    const band = credito && $("#pgBand") ? ($("#pgBand").value||null) : null;
     const taxaM = $("#pgTaxa") ? ($("#pgTaxa").value.trim()===""?null:numBR($("#pgTaxa").value)) : null;
     const v = numBR($("#pgValor").value);
-    const pr = projetar(v, forma, parc, antec, taxaM, $("#pgData").value);
+    const pr = projetar(v, forma, parc, antec, taxaM, $("#pgData").value,
+                        {maquininha:maq, bandeira:band});
     if(!ver){
       $("#pgPrev").innerHTML = pr.parcelas.length>1
         ? `${pr.parcelas.length} parcelas de ${fmtBRL(pr.parcelas[0].valor_bruto)} no cartão do paciente.`
@@ -7259,7 +7631,8 @@ function formPagamento(pacId, cobId){
     const prox = pr.parcelas[0];
     $("#pgPrev").innerHTML = `
       <div><b>${fmtBRL(pr.valor)}</b> bruto · taxa <b>${fmtBRL(pr.taxa)}</b>${
-        pr.manual?" (do comprovante)":pr.taxa_pct?` (${pr.taxa_pct.toLocaleString("pt-BR")}% da tabela)`:""}
+        pr.manual?" (do comprovante)"
+        :pr.taxa_pct?` (${pr.taxa_pct.toLocaleString("pt-BR")}% · ${nomeMaquina(pr.maquininha)})`:""}
         · líquido <b>${fmtBRL(pr.liquido)}</b></div>
       <div style="margin-top:4px">${pr.parcelas.length>1
         ? `${pr.parcelas.length} créditos: ${pr.parcelas.map(x=>fmtBRL(x.valor_liquido)).join(" + ")}`
@@ -7267,7 +7640,7 @@ function formPagamento(pacId, cobId){
         ${prox.recebido?"":` · primeiro em <b>${fmtData(prox.previsao_credito)}</b>, último em <b>${
           fmtData(pr.parcelas[pr.parcelas.length-1].previsao_credito)}</b>`}</div>`;
   };
-  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa"].forEach(id=>{
+  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa","pgMaq","pgBand"].forEach(id=>{
     const el=$("#"+id); if(el){ el.addEventListener("input", atualizar); el.addEventListener("change", atualizar); }
   });
   atualizar();
@@ -7278,10 +7651,12 @@ function formPagamento(pacId, cobId){
     if(!(v>0)){ toast("Informe o valor recebido."); $("#pgValor").focus(); return; }
     if(v > falta + 0.005 && !confirm("O valor passa do que falta ("+fmtBRL(falta)+"). Registrar assim?")) return;
     const forma = $("#pgForma").value, credito = forma==="credito";
+    const naMaquina = credito || forma==="debito" || forma==="pix";
     const d = {cobranca:cobId, valor:v, forma,
       parcelas: credito ? Number($("#pgParc").value) : 1,
       antecipado: credito && $("#pgAntec") && $("#pgAntec").checked,
       bandeira: credito ? ($("#pgBand").value||null) : null,
+      maquininha: naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null,
       nsu: $("#pgNsu").value.trim()||null,
       taxa: $("#pgTaxa") && $("#pgTaxa").value.trim()!=="" ? numBR($("#pgTaxa").value) : null,
       obs: $("#pgObs").value.trim()||null, dia:$("#pgData").value};
@@ -7291,11 +7666,13 @@ function formPagamento(pacId, cobId){
       }, "pagamento");
       if(!ok) return;
     }else{
-      const pr = projetar(v, forma, d.parcelas, d.antecipado, d.taxa, d.dia);
+      const pr = projetar(v, forma, d.parcelas, d.antecipado, d.taxa, d.dia,
+                          {maquininha:d.maquininha, bandeira:d.bandeira});
       const id = "pg"+Date.now();
       S.pagamentos = S.pagamentos||[];
       S.pagamentos.push({id, cobranca_id:cobId, valor:v, forma_enum:forma,
-        parcelas:d.parcelas, antecipado:d.antecipado, bandeira:d.bandeira, nsu:d.nsu,
+        parcelas:d.parcelas, antecipado:d.antecipado, bandeira:d.bandeira,
+        maquininha_id:d.maquininha, nsu:d.nsu,
         taxa:pr.taxa, taxa_pct:pr.taxa_pct, liquido:pr.liquido,
         pago_em:d.dia+"T12:00:00", observacao:d.obs});
       S.parcelas = S.parcelas||[];
