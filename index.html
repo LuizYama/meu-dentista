@@ -384,6 +384,41 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .voice .head .txt b{display:block;font-family:var(--f-display);font-size:15px;font-weight:700}
 .voice .head .txt small{display:block;font-size:12px;color:var(--ink-2);line-height:1.35;margin-top:2px}
 .voice .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+/* ---------- agente de voz ---------- */
+.ag-grav{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r);
+  border:1px solid var(--line);background:var(--surface-2)}
+.ag-grav.ativo{border-color:var(--crit);background:var(--crit-soft)}
+.ag-bola{width:12px;height:12px;border-radius:50%;background:var(--ink-3);flex:none}
+.ag-grav.ativo .ag-bola{background:var(--crit);animation:agpulso 1.1s infinite}
+@keyframes agpulso{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+.ag-relogio{font-family:var(--f-mono);font-size:18px;font-weight:700;min-width:62px}
+.ag-nivel{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.ag-nivel i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s linear}
+.ag-falas{max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:9px;background:var(--surface);font-size:12.5px;line-height:1.6}
+.ag-fala{display:flex;gap:8px;margin-bottom:5px}
+.ag-fala .q{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:1px 6px;border-radius:5px;background:var(--line);color:var(--ink-2);height:fit-content}
+.ag-fala.dent .q{background:var(--accent);color:#fff}
+.ag-fala.dent{color:var(--ink)}
+.ag-fala:not(.dent){color:var(--ink-3)}
+.ag-campos{display:grid;gap:6px;margin-top:8px}
+.ag-campo{border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;background:var(--surface)}
+.ag-campo .rot{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.ag-campo .val{font-weight:700;font-size:13.5px}
+.ag-campo .org{font-size:11px;color:var(--ink-3);font-style:italic;margin-top:2px}
+.ag-campo.vazio{border-style:dashed;opacity:.75}
+.ag-conf{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;float:right}
+.ag-conf.alta{background:var(--ok-soft);color:var(--ok)}
+.ag-conf.media{background:var(--warn-soft);color:var(--warn)}
+.ag-conf.baixa{background:var(--crit-soft);color:var(--crit)}
+.dobra{margin-top:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+  padding:0 12px}
+.dobra > summary{cursor:pointer;padding:12px 0;font-size:14px;display:flex;gap:9px;
+  align-items:baseline;flex-wrap:wrap}
+.dobra[open] > summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+.dobra > summary .hint{font-size:11.5px;color:var(--ink-3)}
+.dobra > *:last-child{margin-bottom:12px}
 .transcript{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);
   padding:9px 11px;font-size:12.5px;color:var(--ink-2);min-height:38px}
 .transcript b{color:var(--ink)}
@@ -816,6 +851,13 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
             <div class="acoes" id="dialogoAcoes"></div>
           </div>
 
+          <div class="aba ag-abas" id="agAbas" style="margin-bottom:10px">
+            <button role="tab" aria-selected="true"  data-ag="ditado">Ditado rápido</button>
+            <button role="tab" aria-selected="false" data-ag="consulta">Gravar consulta</button>
+          </div>
+
+          <div id="agenteBox"></div>
+
           <div class="transcript" id="transcript"><span style="color:var(--ink-3)">O que você falar aparece no rascunho abaixo, e só vira ficha quando você mandar.</span></div>
 
           <div class="field">
@@ -931,11 +973,20 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <div class="card" id="entradaCard" hidden></div>
       <div class="card" id="matNovoCard" hidden></div>
 
-      <div class="sec-h"><h2>Estoque do consultório</h2><span class="hint">saldo · mínimo</span></div>
-      <div class="list" id="stockList"></div>
-      <div class="sec-h"><h2>Referência de implantodontia e prótese</h2><span class="hint">itens de uso corrente</span></div>
-      <div class="stage">Insumos de uso corrente na especialidade — toque para incluir no seu estoque com o mínimo já sugerido.</div>
-      <div class="list" id="catalogList"></div>
+      <!-- As duas listas passaram a ficar FECHADAS. A tela de estoque
+           abria com um cartão por produto e mais um catálogo inteiro de
+           referência: parede de quadradinhos antes das ações que a pessoa
+           veio usar. Continuam a um toque de distância, não sumiram. -->
+      <details id="stockDet" class="dobra">
+        <summary><b>Itens do estoque</b> <span class="hint" id="stockResumo"></span></summary>
+        <div class="list" id="stockList"></div>
+      </details>
+      <details id="catDet" class="dobra">
+        <summary><b>Referência de implantodontia e prótese</b>
+          <span class="hint">insumos de uso corrente na especialidade</span></summary>
+        <div class="stage">Toque para incluir no seu estoque com o mínimo já sugerido.</div>
+        <div class="list" id="catalogList"></div>
+      </details>
     </section>
 
     <!-- ===== AGENDA ===== -->
@@ -1122,6 +1173,51 @@ const DB = {
     return dados;
   },
 
+  /* O app evolui mais rápido do que o SQL é rodado no consultório. Quando
+     a coluna nova ainda não existe lá, o PostgREST responde
+     "Could not find the 'x' column of 'y' in the schema cache" — e o
+     lançamento INTEIRO falhava por causa de um campo acessório. Foi o que
+     derrubou o pagamento do PIX de 900,00: o app mandava maquininha_id e o
+     banco ainda não tinha a coluna.
+     Agora: tira a coluna que o banco não conhece e insiste. O que é
+     essencial (valor, forma, paciente) nunca é acessório, então se o erro
+     for em um desses a falha sobe como antes. */
+  COLUNAS_OPCIONAIS: new Set(["maquininha_id","nota_fiscal","nota_numero",
+                              "bandeira","nsu","adquirente","observacao"]),
+  async inserirTolerante(tabela, corpo, prefer){
+    let atual = {...corpo};
+    const tiradas = [];
+    for(let tentativa = 0; tentativa < 4; tentativa++){
+      try{ return await DB.rest("POST", tabela, atual, prefer); }
+      catch(e){
+        const m = /Could not find the '([^']+)' column/i.exec(e.message || "");
+        const col = m && m[1];
+        if(!col || !DB.COLUNAS_OPCIONAIS.has(col) || !(col in atual)) throw e;
+        delete atual[col]; tiradas.push(col);
+      }
+    }
+    throw new Error("O banco recusou colunas demais: "+tiradas.join(", "));
+  },
+
+  /* Chamada a uma Edge Function. Mesma credencial do PostgREST: a
+     função lê o catálogo do consultório COM o token de quem chamou, e
+     por isso a RLS continua valendo lá dentro. */
+  async funcao(nome, corpo, forma){
+    const h = {apikey:BACKEND.key};
+    if(DB.tok) h.Authorization = "Bearer "+DB.tok;
+    let body;
+    if(forma){ body = forma; }                 // FormData define o content-type sozinho
+    else { h["Content-Type"] = "application/json"; body = JSON.stringify(corpo||{}); }
+    const r = await fetch(BACKEND.url+"/functions/v1/"+nome, {method:"POST", headers:h, body});
+    const txt = await r.text();
+    let d=null; try{ d = txt ? JSON.parse(txt) : null; }catch(e){ d = txt; }
+    if(!r.ok){
+      const msg = (d && (d.erro||d.message)) || ("HTTP "+r.status);
+      const err = new Error(msg); err.status=r.status; err.detalhe=d; throw err;
+    }
+    return d;
+  },
+
   /* Três situações diferentes, e confundi-las é caro:
        · servidor responde            -> nuvem
        · servidor fora do ar / pausado -> nuvem, mas avisando (plano gratuito
@@ -1196,12 +1292,14 @@ const DB = {
 
   /* ---------------- leitura ---------------- */
   async carregarTudo(){
-    const [mats, proc, kits, est, pacs, atds] = await Promise.all([
+    const [mats, proc, kits, est, pacs, consent, atds] = await Promise.all([
       DB.rest("GET","materiais?select=id,nome,categoria,unidade,minimo,termos_voz,codigo,margem_pct&ativo=is.true&order=nome"),
       DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz&ativo=is.true"),
       DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade"),
       DB.rest("GET","estoque?select=material_id,saldo"),
       DB.rest("GET","pacientes?select=id,nome,nascimento,sexo,cpf,telefone,email,pacientes_clinico(observacao)&order=nome"),
+      DB.rest("GET","vw_consentimento_vigente?select=paciente_id,grava_consulta,texto_versao,concedido_em")
+        .catch(()=>[]),
       DB.rest("GET","atendimentos?select=id,paciente_id,procedimento,regiao,complexidade,duracao_min,realizado_em,"+
         "atendimento_notas(nota),atendimento_materiais(material_id,quantidade)&order=realizado_em.desc&limit=400")
     ]);
@@ -1217,6 +1315,11 @@ const DB = {
         cpf:p.cpf?fmtCpf(p.cpf):"", tel:p.telefone||"", email:p.email||"",
         obs:(cl&&cl.observacao)||""};
     });
+    /* consentimento de gravação: a tela precisa dele ANTES de o dentista
+       apertar "gravar a consulta". Mapeado DEPOIS dos pacientes, senão
+       UID.pacRev ainda está vazio e todo consentimento vira órfão. */
+    S.consentimentos = (consent||[]).map(c=>
+      ({...c, paciente_id: UID.pacRev[c.paciente_id] || c.paciente_id}));
     S.atendimentos = atds.map(a=>{
       const curto = "a_"+a.id.slice(0,8); UID.atd[curto]=a.id;
       const nota = Array.isArray(a.atendimento_notas)?a.atendimento_notas[0]:a.atendimento_notas;
@@ -1507,7 +1610,7 @@ const DB = {
       nsu: d.nsu || null, observacao: d.obs || null,
       registrado_por: DB.meuId};
     if(d.taxa !== null && d.taxa !== undefined && d.taxa !== "") corpo.taxa = d.taxa;
-    const r = await DB.rest("POST","pagamentos", corpo, "return=representation");
+    const r = await DB.inserirTolerante("pagamentos", corpo, "return=representation");
     return r[0].id;
   },
 
@@ -1529,6 +1632,30 @@ const DB = {
 
   /* A maquininha é cadastro de clínica, não de dentista: quem cobra é a
      clínica e o extrato chega numa conta só. */
+  /* A sessão do agente é registro de auditoria: o que foi transcrito,
+     quem o agente achou que era o dentista, o que propôs e o que o
+     dentista fez com a proposta. Sem o desfecho não dá para saber se o
+     agente ajuda ou atrapalha — e essa é a pergunta que decide se ele
+     fica. Falhar aqui NUNCA pode derrubar o atendimento: é log. */
+  async gravarSessaoVoz(r, desfecho, pacienteCurto){
+    try{
+      await DB.rest("POST","sessoes_voz", {
+        clinica_id: DB.clinica,
+        paciente_id: pacienteCurto ? (UID.pac[pacienteCurto]||null) : null,
+        dentista_id: DB.meuId,
+        modo: r.modo || "ditado",
+        duracao_s: r.duracao_audio_s || null,
+        transcricao: r.transcricao || null,
+        falas: r.falas || null,
+        locutores: r.locutores || null,
+        extracao: {ficha:r.ficha, origens:r.origens},
+        confianca: r.confianca ?? null,
+        avisos: r.avisos || [],
+        desfecho
+      });
+    }catch(e){ /* log não derruba atendimento */ }
+  },
+
   async gravarMaquininha(m){
     const corpo = {apelido:m.apelido, marca:m.marca, modelo:m.modelo, banco:m.banco,
       numero_serie:m.numero_serie, bandeiras:m.bandeiras||[], ativa:m.ativa!==false};
@@ -1710,10 +1837,12 @@ async function naNuvem(fn, oqueFalhou){
   try{ await fn(); return true; }
   catch(e){
     if(ehFaltaDeEsquema(e)){
-      toast("Esta parte ainda não existe no banco — falta rodar o SQL da atualização.");
+      /* "banco" sozinho foi lido como BANCO (o do dinheiro) por quem usa:
+         o dentista saiu procurando um campo de banco que não existe. */
+      toast("Falta rodar a atualização do banco de dados — veja a instrução na tela do módulo.");
       return false;
     }
-    toast("Não salvou no banco ("+oqueFalhou+"): "+e.message);
+    toast("Não salvou no banco de dados ("+oqueFalhou+"): "+e.message);
     try{ await DB.carregarTudo(); renderAll(); }catch(_){}
     return false;
   }
@@ -2028,6 +2157,16 @@ function renderFicha(){
     box.innerHTML='<div class="stage">Nenhum material na ficha. Fale “usei 1 implante cone morse e 2 tubetes de articaína” ou escolha abaixo.</div>';
   }
   ficha.mats.forEach((m,i)=>{
+    if(m.avulso){
+      const linha=document.createElement("div"); linha.className="matline";
+      linha.innerHTML=`<div class="nm">${m.nome}<small><span class="pill warn">fora do estoque</span>
+          não baixa saldo · entra na cobrança como avulso</small></div>
+        <div class="stepper"><button data-act="dec" data-i="${i}" aria-label="Diminuir">−</button>
+        <span class="mono">${m.q}</span><button data-act="inc" data-i="${i}" aria-label="Aumentar">+</button></div>
+        <button class="rm" data-act="rm" data-i="${i}" aria-label="Remover">✕</button>`;
+      box.appendChild(linha);
+      return;
+    }
     const c=catById(m.id), e=stockById(m.id), saldo=e?e.qtd:0;
     const sug=loteSugerido(m.id);
     const dica = sug
@@ -2070,9 +2209,23 @@ $("#segCplx").addEventListener("click", ev=>{
 });
 $("#addMat").addEventListener("change", e=>{
   const id=e.target.value; if(!id) return;
+  e.target.value="";
+  /* Material que o consultório usou mas não tem cadastrado: o dentista
+     não pode travar no meio da consulta por causa disso. Entra na ficha
+     e na cobrança como AVULSO, e NÃO mexe no estoque — dar baixa de algo
+     que nunca teve entrada deixaria saldo negativo fantasma. */
+  if(id === "__avulso"){
+    const nome = (prompt("Qual material foi usado? (ele não está no estoque)")||"").trim();
+    if(!nome) return;
+    const qtd = Math.max(1, Math.round(Number((prompt("Quantidade:", "1")||"1").replace(",","."))) || 1);
+    ficha.mats.push({avulso:true, nome, q:qtd});
+    ficha.kit=false; renderFicha();
+    toast("Lançado como material avulso — não baixa do estoque.");
+    return;
+  }
   const ex=ficha.mats.find(m=>m.id===id);
   if(ex) ex.q++; else ficha.mats.push({id,q:1});
-  e.target.value=""; ficha.kit=false; renderFicha(); conferirLotes();
+  ficha.kit=false; renderFicha(); conferirLotes();
 });
 $("#clearAtend").addEventListener("click", ()=>{ pararAssistente(); ficha=fichaVazia();
   loteAvisado.clear();
@@ -2154,6 +2307,329 @@ function interpretar(texto){
   }
   ["paciente","proc","regiao","cplx"].forEach(k=>{ if(!f[k]) f.faltando.push(k); });
   return f;
+}
+
+
+/* =====================================================================
+   O AGENTE DE VOZ
+   O ditado do navegador é um transcritor: devolve texto e acabou. Ele
+   não sabe quem falou, não distingue o que o dentista fez do que o
+   paciente contou, e repete pedaço quando a sala tem mais de uma voz.
+   Isso não é defeito de ajuste: a Web Speech API não separa locutor.
+
+   Então a captura continua no navegador, mas o entendimento sai daqui:
+   o áudio vai para uma função no Supabase do consultório, que transcreve
+   com separação de locutores, descobre qual voz é a do dentista e extrai
+   os fatos clínicos num esquema fechado, com a frase de origem de cada
+   campo. O que volta é PROPOSTA. Nada entra no prontuário sem o dentista
+   olhar e mandar — prontuário é documento legal, e modelo nenhum assina
+   documento legal sozinho.
+   ===================================================================== */
+const VOZAG = {
+  modo:"ditado", gravando:false, rec:null, pedacos:[], t0:0, relogio:null,
+  fluxo:null, audioCtx:null, analisador:null, quadro:null,
+  resultado:null, ocupado:false, blob:null, erro:null
+};
+const VOZ_TETO_S = {ditado: 180, consulta: 3600};
+
+const agDisponivel = () => MODO === "nuvem" && !!DB.tok;
+
+function agFmt(seg){
+  const m = Math.floor(seg/60), r = Math.floor(seg%60);
+  return String(m).padStart(2,"0")+":"+String(r).padStart(2,"0");
+}
+
+/* Gravar a consulta inteira significa gravar o paciente. Sem
+   consentimento registrado, o botão não grava — e a tela diz por quê,
+   em vez de falhar em silêncio. */
+function agConsentimento(){
+  const p = ficha.paciente ? acharPaciente(ficha.paciente) : null;
+  const pac = p && p.paciente;
+  if(!pac) return {ok:false, motivo:"Escolha o paciente antes: gravar a consulta exige o consentimento dele registrado na ficha."};
+  const c = (S.consentimentos||[]).find(x=>x.paciente_id===pac.id && x.grava_consulta);
+  if(!c) return {ok:false, motivo:`${pac.nome} ainda não autorizou a gravação da consulta. Registre o consentimento na ficha do paciente.`, pac};
+  return {ok:true, pac};
+}
+
+function renderAgente(){
+  const box = $("#agenteBox"); if(!box) return;
+  $$("#agAbas button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.ag===VOZAG.modo)));
+
+  if(!agDisponivel()){
+    box.innerHTML = `<div class="stage">O agente de voz roda no Supabase do consultório e precisa
+      de sessão na nuvem. Aqui, no modo demonstração, vale o ditado do navegador — que transcreve,
+      mas não separa vozes.</div>`;
+    return;
+  }
+
+  if(VOZAG.ocupado){
+    box.innerHTML = `<div class="ag-grav"><span class="ag-bola"></span>
+      <b>Transcrevendo e lendo o que foi dito…</b></div>`;
+    return;
+  }
+
+  if(VOZAG.gravando){
+    const teto = VOZ_TETO_S[VOZAG.modo];
+    box.innerHTML = `
+      <div class="ag-grav ativo">
+        <span class="ag-bola"></span>
+        <span class="ag-relogio" id="agRelogio">00:00</span>
+        <span class="ag-nivel"><i id="agNivel"></i></span>
+        <button class="btn primary" id="agParar">Parar e ler</button>
+      </div>
+      <div class="stage" style="margin-top:6px">${VOZAG.modo==="consulta"
+        ? "Gravando a consulta. O agente vai separar a sua voz da do paciente."
+        : "Fale o atendimento: paciente, procedimento, dente, complexidade e materiais."}
+        Para em ${agFmt(teto)} sozinho.</div>`;
+    $("#agParar").addEventListener("click", ()=>agParar());
+    return;
+  }
+
+  if(VOZAG.erro){
+    box.innerHTML = `<div class="stage" style="border-color:var(--crit)">
+      <b>O agente não respondeu.</b> ${VOZAG.erro}
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="agTentar">Tentar de novo</button>
+        <button class="btn ghost" id="agDesistir">Usar o ditado do navegador</button>
+      </div></div>`;
+    $("#agTentar").addEventListener("click", ()=>{ VOZAG.erro=null; if(VOZAG.blob) agEnviar(VOZAG.blob); else renderAgente(); });
+    $("#agDesistir").addEventListener("click", ()=>{ VOZAG.erro=null; VOZAG.blob=null; renderAgente(); });
+    return;
+  }
+
+  if(VOZAG.resultado){ box.innerHTML = agHtmlResultado(VOZAG.resultado); agLigarResultado(); return; }
+
+  const cons = VOZAG.modo==="consulta" ? agConsentimento() : {ok:true};
+  box.innerHTML = `
+    <div class="row">
+      <button class="btn primary" id="agGravar" style="flex:1" ${cons.ok?"":"disabled"}>
+        ${VOZAG.modo==="consulta" ? "Gravar a consulta" : "Gravar o ditado"}</button>
+    </div>
+    ${cons.ok ? "" : `<div class="stage" style="margin-top:6px">${cons.motivo}</div>`}`;
+  const g = $("#agGravar"); if(g) g.addEventListener("click", ()=>agGravar());
+}
+
+async function agGravar(){
+  if(VOZAG.gravando) return;
+  let fluxo;
+  try{
+    fluxo = await navigator.mediaDevices.getUserMedia({audio:{
+      echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
+  }catch(e){
+    toast("Microfone negado — libere no cadeado da barra de endereço."); return;
+  }
+  VOZAG.fluxo = fluxo; VOZAG.pedacos = []; VOZAG.blob = null; VOZAG.resultado = null; VOZAG.erro = null;
+
+  /* opus em webm é o que todo Chrome grava e a transcrição aceita; sem
+     o tipo explícito, alguns navegadores entregam um container que o
+     servidor não lê */
+  const tipos = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"];
+  const tipo = tipos.find(t=>window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+  try{ VOZAG.rec = new MediaRecorder(fluxo, tipo?{mimeType:tipo}:undefined); }
+  catch(e){ toast("Este navegador não grava áudio."); agSoltar(); return; }
+
+  VOZAG.rec.ondataavailable = ev => { if(ev.data && ev.data.size) VOZAG.pedacos.push(ev.data); };
+  VOZAG.rec.onstop = () => {
+    const blob = new Blob(VOZAG.pedacos, {type: VOZAG.rec.mimeType || "audio/webm"});
+    agSoltar();
+    VOZAG.gravando = false;
+    if(blob.size < 2000){ VOZAG.erro = "A gravação saiu vazia — o microfone não captou nada."; renderAgente(); return; }
+    agEnviar(blob);
+  };
+  VOZAG.rec.start(1000);
+  VOZAG.gravando = true; VOZAG.t0 = Date.now();
+  renderAgente();
+  agMedidor(fluxo);
+  VOZAG.relogio = setInterval(()=>{
+    const seg = (Date.now()-VOZAG.t0)/1000;
+    const el = $("#agRelogio"); if(el) el.textContent = agFmt(seg);
+    if(seg >= VOZ_TETO_S[VOZAG.modo]){ toast("Tempo máximo de gravação atingido."); agParar(); }
+  }, 250);
+}
+
+/* Barra de nível: sem ela, ninguém sabe se o microfone está pegando —
+   e descobrir que a gravação saiu muda depois de uma consulta inteira é
+   o pior momento possível. */
+function agMedidor(fluxo){
+  try{
+    VOZAG.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = VOZAG.audioCtx.createMediaStreamSource(fluxo);
+    VOZAG.analisador = VOZAG.audioCtx.createAnalyser();
+    VOZAG.analisador.fftSize = 512;
+    src.connect(VOZAG.analisador);
+    const dados = new Uint8Array(VOZAG.analisador.frequencyBinCount);
+    const tique = () => {
+      if(!VOZAG.gravando || !VOZAG.analisador) return;
+      VOZAG.analisador.getByteTimeDomainData(dados);
+      let pico = 0;
+      for(const v of dados) pico = Math.max(pico, Math.abs(v-128));
+      const el = $("#agNivel");
+      if(el) el.style.width = Math.min(100, Math.round(pico/128*260))+"%";
+      VOZAG.quadro = requestAnimationFrame(tique);
+    };
+    tique();
+  }catch(e){ /* medidor é conforto, não requisito */ }
+}
+
+function agSoltar(){
+  if(VOZAG.relogio){ clearInterval(VOZAG.relogio); VOZAG.relogio=null; }
+  if(VOZAG.quadro){ cancelAnimationFrame(VOZAG.quadro); VOZAG.quadro=null; }
+  if(VOZAG.audioCtx){ try{ VOZAG.audioCtx.close(); }catch(e){} VOZAG.audioCtx=null; VOZAG.analisador=null; }
+  if(VOZAG.fluxo){ VOZAG.fluxo.getTracks().forEach(t=>t.stop()); VOZAG.fluxo=null; }
+}
+
+function agParar(){
+  if(!VOZAG.rec || VOZAG.rec.state === "inactive") return;
+  try{ VOZAG.rec.stop(); }catch(e){ agSoltar(); VOZAG.gravando=false; renderAgente(); }
+}
+
+async function agEnviar(blob){
+  VOZAG.blob = blob; VOZAG.ocupado = true; VOZAG.erro = null; renderAgente();
+  const fd = new FormData();
+  fd.append("audio", blob, "ditado.webm");
+  fd.append("modo", VOZAG.modo);
+  try{
+    const r = await DB.funcao("agente-voz", null, fd);
+    VOZAG.resultado = r;
+  }catch(e){
+    VOZAG.erro = e.message === "Failed to fetch"
+      ? "Não alcancei a função agente-voz. Ela já foi publicada no Supabase?"
+      : e.message;
+  }
+  VOZAG.ocupado = false; renderAgente();
+}
+
+/* Trocar quem é o dentista não pode custar outra transcrição: manda as
+   falas que já vieram e o agente só reextrai. */
+async function agTrocarDentista(falante){
+  VOZAG.ocupado = true; renderAgente();
+  try{
+    VOZAG.resultado = await DB.funcao("agente-voz",
+      {modo:VOZAG.modo, falas:VOZAG.resultado.falas, dentista:falante});
+  }catch(e){ VOZAG.erro = e.message; }
+  VOZAG.ocupado = false; renderAgente();
+}
+
+const agNivelConf = c => c>=0.8 ? "alta" : c>=0.5 ? "media" : "baixa";
+
+function agHtmlResultado(r){
+  const o = r.origens||{}, f = r.ficha||{};
+  const campo = (rot, valor, chave) => {
+    const org = o[chave]||{};
+    const c = org.confianca;
+    return `<div class="ag-campo ${valor?"":"vazio"}">
+      ${c!=null?`<span class="ag-conf ${agNivelConf(c)}">${Math.round(c*100)}%</span>`:""}
+      <div class="rot">${rot}</div>
+      <div class="val">${valor || '<span style="color:var(--ink-3);font-weight:400">não foi dito</span>'}</div>
+      ${org.frase?`<div class="org">“${org.frase}”</div>`:""}
+    </div>`;
+  };
+  const loc = r.locutores||{};
+  const vozes = (loc.resumo||[]).map(a=>`
+    <button class="minibtn" data-voz="${a.falante}" aria-pressed="${a.falante===loc.dentista}"
+      title="${a.segundos}s de fala, ${a.termos_clinicos} termos clínicos">Voz ${a.falante+1}${
+      a.falante===loc.dentista?" · dentista":""}</button>`).join(" ");
+
+  return `
+    <div class="sec-h"><h2>O que o agente entendeu</h2>
+      <span class="hint">confiança ${Math.round((r.confianca||0)*100)}%</span></div>
+
+    ${(loc.resumo||[]).length>1 ? `
+      <div class="stage" style="margin-bottom:8px">
+        <b>Quem é o dentista:</b> ${loc.motivo}.
+        <div class="row" style="margin-top:6px">${vozes}</div>
+      </div>` : ""}
+
+    ${(r.avisos||[]).length ? `<div class="stage" style="border-color:var(--warn);margin-bottom:8px">
+      ${r.avisos.map(a=>"• "+a).join("<br>")}</div>` : ""}
+
+    <div class="ag-campos">
+      ${campo("Paciente", f.paciente, "paciente")}
+      ${campo("Procedimento", f.proc, "proc")}
+      ${campo("Dente(s)", (f.dentes||[]).join(", "), "dentes")}
+      ${campo("Complexidade", f.cplx, "cplx")}
+      ${campo("Duração", f.dur ? f.dur+" min" : "", "dur")}
+      ${campo("Queixa do paciente", f.queixa, "queixa")}
+    </div>
+
+    ${(f.mats||[]).length ? `<div class="ag-campo" style="margin-top:6px">
+      <div class="rot">Materiais</div>
+      ${f.mats.map(m=>`<div class="val" style="font-size:12.5px">${m.q}× ${m.nome}
+        ${m.origem?`<span class="org">“${m.origem}”</span>`:""}</div>`).join("")}
+    </div>` : ""}
+
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-size:12px;color:var(--ink-3)">Ver a transcrição com quem falou</summary>
+      <div class="ag-falas" style="margin-top:6px">${(r.falas||[]).map(x=>`
+        <div class="ag-fala ${x.falante===loc.dentista?"dent":""}">
+          <span class="q">${x.falante===loc.dentista?"Dentista":"Voz "+(x.falante+1)}</span>
+          <span>${x.texto}</span></div>`).join("") || "<i>(sem fala reconhecida)</i>"}</div>
+    </details>
+
+    <button class="btn primary wide" style="margin-top:10px" id="agUsar">Usar esta ficha</button>
+    <div class="row" style="margin-top:6px">
+      <button class="btn" style="flex:1" id="agRascunho">Jogar no rascunho</button>
+      <button class="btn ghost" id="agDescartar">Descartar</button>
+    </div>`;
+}
+
+function agLigarResultado(){
+  $$("#agenteBox [data-voz]").forEach(b=>b.addEventListener("click", ()=>{
+    if(Number(b.dataset.voz) !== VOZAG.resultado.locutores.dentista)
+      agTrocarDentista(Number(b.dataset.voz));
+  }));
+  const u = $("#agUsar");
+  if(u) u.addEventListener("click", ()=>agAplicar());
+  const ra = $("#agRascunho");
+  if(ra) ra.addEventListener("click", ()=>{
+    const falas = (VOZAG.resultado.falas||[]).filter(x=>x.falante===VOZAG.resultado.locutores.dentista);
+    $("#inFala").value = falas.map(x=>x.texto).join(" ").trim() || VOZAG.resultado.transcricao || "";
+    VOZAG.resultado = null; renderAgente();
+    toast("Transcrição do dentista no rascunho — edite e interprete.");
+  });
+  const d = $("#agDescartar");
+  if(d) d.addEventListener("click", ()=>{
+    if(MODO==="nuvem") DB.gravarSessaoVoz(VOZAG.resultado, "descartada", null);
+    VOZAG.resultado=null; VOZAG.blob=null; renderAgente();
+  });
+}
+
+/* A proposta vira ficha — e só a ficha, que ainda passa pela conferência
+   de sempre antes de virar atendimento. */
+function agAplicar(){
+  const f = VOZAG.resultado.ficha||{};
+  if(f.paciente) ficha.paciente = f.paciente;
+  if(f.proc) ficha.proc = f.proc;
+  if(f.cplx) ficha.cplx = f.cplx;
+  if(f.dur) ficha.dur = f.dur;
+  if((f.dentes||[]).length) ficha.regiao = f.dentes.join(", ");
+  else if(f.regiao) ficha.regiao = f.regiao;
+  /* O agente devolve o id do BANCO; a ficha trabalha com o id curto do
+     app. Sem traduzir, o material entra como fantasma e a tela quebra
+     ao desenhar a linha — foi exatamente o que aconteceu no teste. */
+  const perdidos = [];
+  if((f.mats||[]).length){
+    ficha.mats = f.mats.map(m=>{
+      const curto = UID.matRev[m.id]
+        || (CATALOGO.find(x=>norm(x.nome)===norm(m.nome||""))||{}).id;
+      if(!curto){ perdidos.push(m.nome || m.id); return null; }
+      return {id:curto, q:m.q};
+    }).filter(Boolean);
+    ficha.kit = false;
+  }
+  const extras = [f.queixa ? "Queixa: "+f.queixa : "", f.obs||""].filter(Boolean).join(" · ");
+  if(extras) ficha.obs = (ficha.obs ? ficha.obs+" · " : "") + extras;
+  ficha.faltando = ["paciente","proc","regiao","cplx"].filter(k=>!ficha[k]);
+  const res = VOZAG.resultado;
+  if(MODO==="nuvem"){
+    const alvo = ficha.paciente ? acharPaciente(ficha.paciente) : null;
+    DB.gravarSessaoVoz(res, "aceita", alvo && alvo.paciente && alvo.paciente.id);
+  }
+  VOZAG.resultado = null; VOZAG.blob = null;
+  renderAgente(); renderFicha();
+  toast(perdidos.length
+    ? "Ficha preenchida. Não achei no estoque: "+perdidos.join(", ")+" — lance à mão."
+    : "Ficha preenchida pelo agente — confira antes de registrar.");
 }
 
 /* ===================== voz: reconhecimento + fala =====================
@@ -2512,25 +2988,33 @@ async function pedirMicrofone(){
 function criarRec(){
   const r=new SR();
   r.lang="pt-BR"; r.interimResults=true; r.continuous=true;
+  /* Quantos resultados FINAIS desta sessão já viraram rascunho.
+     O Chrome reemite resultados antigos: um trecho que já era final
+     volta num evento posterior com resultIndex menor, e quem só confia
+     no resultIndex escreve a mesma frase duas vezes. Era a causa número
+     um da "repetição de palavras". Zera a cada sessão nova. */
+  r._consumidos = 0;
   r.onresult=e=>{
     if(falando) return;                      // ignora a própria voz do Charles
     let interim="", finais="";
-    for(let i=e.resultIndex;i<e.results.length;i++){
+    for(let i=Math.max(e.resultIndex, r._consumidos); i<e.results.length; i++){
       const res=e.results[i];
-      if(res.isFinal) finais+=res[0].transcript+" "; else interim+=res[0].transcript;
+      if(res.isFinal){ finais+=res[0].transcript+" "; r._consumidos = i+1; }
+      else interim+=res[0].transcript+" ";
     }
     if(modo==="wake"){
       const ouvido=norm(finais+" "+interim);
-      if(WAKE.test(ouvido)){
-        const resto=(finais+" "+interim).replace(WAKE_LIMPA,"").trim();
-        modo="ditado";
-        if(resto) acrescentarRascunho(resto);
-        adiarSilencio();
-        setVoice("listening","Anotando…","Fale à vontade. Diga “pode parar” para encerrar.");
-      }else{
+      if(!WAKE.test(ouvido)){
         $("#transcript").innerHTML='<span style="color:var(--ink-3)">Em escuta · aguardando “hei Charles”…</span>';
+        return;
       }
-      return;
+      /* Não aproveita o texto PROVISÓRIO que veio junto com a palavra de
+         ativação: ele ainda vai chegar como final e seria escrito de
+         novo. Só troca de modo e deixa o ditado, logo abaixo, cuidar do
+         que já é final neste mesmo evento. */
+      modo="ditado";
+      adiarSilencio();
+      setVoice("listening","Anotando…","Fale à vontade. Diga “pode parar” para encerrar.");
     }
     if(modo==="resposta"){
       if(finais.trim()){ const dito=finais.trim(); pararEscuta();
@@ -2565,6 +3049,7 @@ function criarRec(){
     setVoice("idle","Não consegui ouvir", m); toast(m);
   };
   r.onend=()=>{
+    r._consumidos = 0;                       // sessão nova, contagem nova
     if(!desligando && modo!=="off"){ try{ r.start(); }catch(e){} return; }
     desligando=false;
     if(modo==="off") setVoice("idle","Toque e fale o atendimento","Paciente, procedimento, dente, complexidade e materiais.");
@@ -2572,13 +3057,62 @@ function criarRec(){
   return r;
 }
 // o comando de ativação nunca entra no rascunho
+/* ---------- repetição: a segunda linha de defesa ----------
+   Mesmo consumindo cada final uma vez só, o reconhecedor às vezes
+   devolve a mesma frase duas vezes — eco da sala, o motor refazendo o
+   trecho, ou a sessão reiniciando no meio de uma palavra. Aqui a gente
+   corta a sobreposição em vez de empilhar.
+
+   Duas coisas diferentes:
+     1. a emenda — o fim do que já está escrito é igual ao começo do que
+        chegou ("...cárie na oclusal" + "na oclusal do 36");
+     2. a gagueira — um trecho que se repete grudado dentro da própria
+        frase ("usei anestésico anestésico tubete").
+   Em nota clínica, apagar uma repetição é sempre mais seguro do que
+   deixar duas: ninguém dita "36 36" querendo dois dentes. */
+const _pal = t => norm(t).split(/\s+/).filter(Boolean);
+
+function cortarEmenda(jaEscrito, novo){
+  const a = _pal(jaEscrito), b = _pal(novo);
+  if(!a.length || !b.length) return novo;
+  const teto = Math.min(14, a.length, b.length);
+  for(let k = teto; k >= 1; k--){
+    let bate = true;
+    for(let i = 0; i < k; i++) if(a[a.length-k+i] !== b[i]){ bate = false; break; }
+    if(bate){
+      // devolve o texto ORIGINAL sem as k primeiras palavras (preserva acentos e caixa)
+      const bruto = novo.trim().split(/\s+/);
+      return bruto.slice(k).join(" ");
+    }
+  }
+  return novo;
+}
+
+function colapsarGagueira(txt){
+  let bruto = txt.trim().split(/\s+/);
+  const nrm = bruto.map(w=>norm(w));
+  for(let n = 4; n >= 1; n--){           // dos trechos maiores para os menores
+    let i = 0;
+    while(i + 2*n <= bruto.length){
+      let igual = true;
+      for(let j = 0; j < n; j++) if(nrm[i+j] !== nrm[i+n+j]){ igual = false; break; }
+      if(igual){ bruto.splice(i+n, n); nrm.splice(i+n, n); }
+      else i++;
+    }
+  }
+  return bruto.join(" ");
+}
+
 function acrescentarRascunho(txt){
-  const limpo = txt.replace(WAKE_LIMPA,"")
+  let limpo = txt.replace(WAKE_LIMPA,"")
     // \b do JavaScript é ASCII: "ô" não conta como fronteira e sobraria solto
     .replace(/^\s*(?:hei|hey|hai|rei|ei|ô|o|oi|ol[aá]|opa|e)(?=[\s,.]|$)[,.\s]*/i,"")
     .replace(/\s+/g," ").trim();
   if(!limpo) return;
+  limpo = colapsarGagueira(limpo);
   const el=$("#inFala");
+  limpo = cortarEmenda(el.value, limpo);
+  if(!limpo.trim()) return;
   el.value = (el.value+" "+limpo).replace(/\s+/g," ").trim();
   el.scrollTop = el.scrollHeight;
 }
@@ -2592,6 +3126,7 @@ async function iniciar(novoModo){
   }
   if(!rec) rec=criarRec();
   modo=novoModo;
+  rec._consumidos = 0;
   try{ rec.start(); }catch(e){}
   return true;
 }
@@ -2636,6 +3171,11 @@ function interpretarDigitado(){
 $("#interpretarBtn").addEventListener("click", interpretarDigitado);
 $("#limparFalaBtn").addEventListener("click", ()=>{ $("#inFala").value=""; $("#inFala").focus(); });
 $("#inFala").addEventListener("keydown", e=>{ if(e.key==="Enter" && (e.metaKey||e.ctrlKey)) interpretarDigitado(); });
+
+$$("#agAbas button").forEach(b=>b.addEventListener("click", ()=>{
+  if(VOZAG.gravando){ toast("Pare a gravação antes de trocar de modo."); return; }
+  VOZAG.modo = b.dataset.ag; VOZAG.resultado = null; VOZAG.erro = null; renderAgente();
+}));
 
 /* ===================== diagnóstico do ditado =====================*/
 async function diagnosticar(){
@@ -4262,7 +4802,9 @@ function renderJanelaOdonto(){
             <button class="minibtn" id="odRaiz" aria-pressed="${O3D.raizes}"
               title="Mostra a raiz por baixo da gengiva">Raiz</button>
           </div>
-          <div class="od-dica">arraste para girar · roda ou pinça para aproximar · toque na face para marcar</div>
+          <div class="od-dica">arraste para girar · roda ou pinça para aproximar · toque na face para marcar
+            <br><span style="opacity:.8">O odontograma registra o que o profissional lança.
+            Não detecta lesão nem sugere tratamento.</span></div>
         ` : `<div class="od-2d">${desenharOdontograma(pac, true)}</div>`}
       </div>
 
@@ -4689,7 +5231,7 @@ document.addEventListener("keydown", ev=>{
    volta a avisar mesmo já tendo aparecido. */
 function conferirLotes(){
   if(!pode("atender")) return;
-  const novos = ficha.mats.map(m=>m.id)
+  const novos = ficha.mats.filter(m=>!m.avulso).map(m=>m.id)
     .filter(id=>{
       const s=loteSugerido(id);
       if(s && s.vencido) return true;             // vencido avisa sempre
@@ -4697,7 +5239,7 @@ function conferirLotes(){
     });
   if(!novos.length) return;
   novos.forEach(id=>loteAvisado.add(id));
-  abrirAvisoLote(ficha.mats.map(m=>m.id));
+  abrirAvisoLote(ficha.mats.filter(m=>!m.avulso).map(m=>m.id));
 }
 
 /* ===================== estoque e salvamento =====================*/
@@ -4715,8 +5257,10 @@ function registrarMov(matId, qtd, tipo, obs, atd, loteId){
 
 function ajustaEstoque(antigos, novos, atdId){
   const delta={};
-  (antigos||[]).forEach(m=> delta[m.id]=(delta[m.id]||0)+m.q);
-  (novos ||[]).forEach(m=> delta[m.id]=(delta[m.id]||0)-m.q);
+  // material avulso não tem saldo para mexer: dar baixa do que nunca
+  // entrou deixaria saldo negativo fantasma no relatório
+  (antigos||[]).filter(m=>!m.avulso).forEach(m=> delta[m.id]=(delta[m.id]||0)+m.q);
+  (novos ||[]).filter(m=>!m.avulso).forEach(m=> delta[m.id]=(delta[m.id]||0)-m.q);
   const criticos=[];
   Object.keys(delta).forEach(id=>{
     if(!delta[id]) return;
@@ -4762,6 +5306,15 @@ $("#saveAtend").addEventListener("click", async ()=>{
     if(!ok) return;
     const m = criticos.length ? "Alterações salvas. Atenção: "+criticos[0]+" abaixo do mínimo." : "Alterações salvas e estoque reajustado.";
     toast(m); await falar(m); return;
+  }
+  /* O avulso não tem linha em atendimento_materiais (não existe material
+     para referenciar), então ele é escrito na nota do atendimento — senão
+     some do prontuário e ninguém sabe o que foi usado. */
+  const avulsos = ficha.mats.filter(m=>m.avulso);
+  if(avulsos.length){
+    const txt = "Materiais fora do estoque: " + avulsos.map(m=>m.q+"× "+m.nome).join(", ");
+    if(!(ficha.obs||"").includes("Materiais fora do estoque:"))
+      ficha.obs = (ficha.obs ? ficha.obs+" · " : "") + txt;
   }
   const novoId = "a"+Date.now();
   const criticos=ajustaEstoque([], ficha.mats, novoId);
@@ -5318,6 +5871,10 @@ function renderEstoque(){
   }
   $("#stockTiles").innerHTML=tiles;
 
+  const res = $("#stockResumo");
+  if(res) res.textContent = S.estoque.length
+    ? `${S.estoque.length} itens · ${abaixo.length} abaixo do mínimo`
+    : "nenhum item lançado";
   $("#estoqueAcoes").hidden = !pode("estoque");
   renderValidade(); renderEntrada(); renderMatNovo();
 
@@ -5379,7 +5936,8 @@ function renderEstoque(){
     cl.appendChild(b);
   });
   $("#addMat").innerHTML='<option value="">+ adicionar material do estoque…</option>'+
-    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("");
+    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("")+
+    '<option value="__avulso">+ outro material — não está no estoque</option>';
 }
 
 function painelLotes(matId){
@@ -6576,6 +7134,8 @@ function renderFinanceiro(){
             || (b.dataset.fin==="precos" && !pode("precos"));
   });
   const imp = $("#fluxoImprimir"); if(imp) imp.addEventListener("click", ()=>window.print());
+  const cc = $("#confCsv");
+  if(cc) cc.addEventListener("click", ()=>baixarCSV("conferencia-por-cliente", linhasConferenciaCSV()));
   const csv = $("#fluxoCsv");
   if(csv) csv.addEventListener("click", ()=>baixarCSV("fluxo-de-caixa",
     [["Mês","Bruto","Taxas","Líquido","Recebido","Previsto","Parcelas","Atrasadas"]].concat(
@@ -6595,8 +7155,8 @@ function htmlFluxo(){
   const topo = Math.max(...meses.map(m=>m.liquido), 1);
   return `
     <div class="tiles q4">
-      <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>já caiu este mês</span></div>
-      <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>ainda cai este mês</span></div>
+      <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>total recebido no mês</span></div>
+      <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>aguardando pagamento</span></div>
       <div class="tile"><b>${fmtBRL(aReceber)}</b><span>a receber (${futuros.length} meses)</span></div>
       <div class="tile ${atrasadas?"crit":"warn"}"><b>${atrasadas||"—"}</b><span>parcelas atrasadas</span></div>
     </div>
@@ -6604,14 +7164,14 @@ function htmlFluxo(){
       <b>${fmtBRL(totalTaxas)}</b>. É dinheiro que foi faturado e não entra —
       vale conferir contra o extrato da adquirente e corrigir a tabela de taxas.</div>
     <div class="sec-h" style="margin-top:14px"><h2>Previsão mês a mês</h2>
-      <span class="hint">verde: já na conta · azul: previsto</span></div>
+      <span class="hint">verde: recebido · azul: aguardando</span></div>
     <div class="row naoimprime" style="margin-bottom:8px">
       <button class="btn" id="fluxoImprimir">Imprimir</button>
       <button class="btn" id="fluxoCsv">Exportar CSV</button>
     </div>
     <div class="card rolar"><table class="tab-rel">
       <thead><tr><th>Mês</th><th class="n">Bruto</th><th class="n">Taxas</th>
-        <th class="n">Líquido</th><th class="n">Já caiu</th><th class="n">Previsto</th>
+        <th class="n">Líquido</th><th class="n">Recebido</th><th class="n">Aguardando</th>
         <th style="width:90px">&nbsp;</th><th class="n">Parc.</th></tr></thead>
       <tbody>${meses.map(m=>{
         const rec = Math.round(100*m.recebido/Math.max(m.liquido,0.01));
@@ -6634,9 +7194,81 @@ function htmlFluxo(){
         <td class="n">${fmtBRL(meses.reduce((a,m)=>a+m.previsto,0))}</td>
         <td></td><td class="n">${meses.reduce((a,m)=>a+m.parcelas,0)}</td></tr></tfoot>
     </table></div>
+    ${htmlConferenciaPaciente()}
     <div class="stage">A projeção soma as parcelas pela data prevista de crédito, não pela
       data da venda. Prazo e taxa saem da tabela de taxas; quando a taxa do comprovante é
       digitada no pagamento, é ela que vale.</div>`;
+}
+
+/* ---------- conferência: quem foi lançado ----------
+   Pedido do Dr. Leonardo, e o motivo dele é o que define o formato: bater
+   o olho na lista de nomes e ver se falta alguém. Por isso é SÓ nome e
+   dinheiro — sem procedimento, que além de ruído é dado clínico num
+   relatório que circula pelo financeiro. */
+function htmlConferenciaPaciente(){
+  const linhas = [];
+  (S.pacientes||[]).forEach(p=>{
+    const cobs = cobrancasDe(p.id);
+    if(!cobs.length) return;
+    let cobrado=0, pago=0;
+    cobs.forEach(c=>{
+      cobrado += Number(c.valor||0);
+      pagamentosDe(c.id).forEach(pg=>{ pago += Number(pg.valor||0); });
+    });
+    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
+    linhas.push({nome:p.nome, cobrado:cent(cobrado), pago:cent(pago),
+                 aberto:cent(cobrado-pago), cobs:cobs.length, atds});
+  });
+  /* atendido e nunca cobrado é justamente o que ele quer enxergar */
+  (S.pacientes||[]).forEach(p=>{
+    if(linhas.some(l=>l.nome===p.nome)) return;
+    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
+    if(atds) linhas.push({nome:p.nome, cobrado:0, pago:0, aberto:0, cobs:0, atds});
+  });
+  if(!linhas.length) return "";
+  linhas.sort((a,b)=> (a.cobs?1:0)-(b.cobs?1:0) || a.nome.localeCompare(b.nome,"pt-BR"));
+  const semLancar = linhas.filter(l=>!l.cobs).length;
+  return `
+    <div class="sec-h" style="margin-top:16px"><h2>Conferência por cliente</h2>
+      <span class="hint">para ver num relance se alguém ficou sem lançar</span></div>
+    <div class="row naoimprime" style="margin-bottom:8px">
+      <button class="btn" id="confCsv">Exportar CSV</button>
+    </div>
+    ${semLancar?`<div class="stage" style="border-color:var(--warn)">
+      <b>${semLancar} cliente(s) com atendimento e nenhuma cobrança lançada.</b>
+      Aparecem no topo da lista.</div>`:""}
+    <div class="card rolar"><table class="tab-rel">
+      <thead><tr><th>Cliente</th><th class="n">Atend.</th><th class="n">Cobrado</th>
+        <th class="n">Recebido</th><th class="n">Em aberto</th></tr></thead>
+      <tbody>${linhas.map(l=>`<tr${l.cobs?"":' style="background:var(--warn-soft)"'}>
+        <td><b>${l.nome}</b>${l.cobs?"":' <span class="pill warn">sem cobrança</span>'}</td>
+        <td class="n">${l.atds||'<span class="vaga">—</span>'}</td>
+        <td class="n">${l.cobs?fmtBRL(l.cobrado):'<span class="vaga">—</span>'}</td>
+        <td class="n">${l.pago?fmtBRL(l.pago):'<span class="vaga">—</span>'}</td>
+        <td class="n">${l.aberto>0?`<b style="color:var(--warn)">${fmtBRL(l.aberto)}</b>`:
+          (l.cobs?'<span class="pill ok">quitado</span>':'<span class="vaga">—</span>')}</td>
+      </tr>`).join("")}</tbody>
+      <tfoot><tr><td>Total · ${linhas.length} cliente(s)</td>
+        <td class="n">${linhas.reduce((a,l)=>a+l.atds,0)}</td>
+        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.cobrado,0))}</td>
+        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.pago,0))}</td>
+        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.aberto,0))}</td></tr></tfoot>
+    </table></div>`;
+}
+
+function linhasConferenciaCSV(){
+  const out = [["Cliente","Atendimentos","Cobrado","Recebido","Em aberto","Situação"]];
+  (S.pacientes||[]).forEach(p=>{
+    const cobs = cobrancasDe(p.id);
+    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
+    if(!cobs.length && !atds) return;
+    let cobrado=0, pago=0;
+    cobs.forEach(c=>{ cobrado += Number(c.valor||0);
+      pagamentosDe(c.id).forEach(pg=>{ pago += Number(pg.valor||0); }); });
+    out.push([p.nome, atds, cent(cobrado), cent(pago), cent(cobrado-pago),
+              !cobs.length ? "SEM COBRANÇA LANÇADA" : (cobrado-pago>0.005 ? "em aberto" : "quitado")]);
+  });
+  return out;
 }
 
 function htmlRecebidos(){
@@ -7069,6 +7701,8 @@ $$("#loginAbas button").forEach(b=>b.addEventListener("click", ()=>{
    clínica ou numa demonstração. Confundir os dois é o pior erro possível
    aqui: alguém anota um atendimento real achando que gravou. */
 function pintarModo(){
+  // o agente depende de sessão na nuvem: redesenha sempre que isso muda
+  if(typeof renderAgente === "function") renderAgente();
   const h=$("#modoHint"), d=$("#demoHint");
   if(!nuvemTestada){ h.innerHTML="Verificando conexão com o banco…"; return; }
   if(MODO==="nuvem"){
@@ -7097,7 +7731,7 @@ $("#demoHint").innerHTML = "<b>Acessos de demonstração</b><br>"+
 
 function entrarNoApp(){
   $("#loginScreen").hidden=true; $("#appRoot").hidden=false;
-  aplicarPermissoes(); renderAll();
+  aplicarPermissoes(); renderAll(); renderAgente();
   // a mini agenda da lateral precisa dos compromissos de hoje já no
   // primeiro segundo; sem isso o atalho abre vazio e parece quebrado
   carregarAgenda();
@@ -7318,13 +7952,18 @@ const MAQUININHAS_SEED = [
   {id:"m2", apelido:"Recepção", marca:"Stone", modelo:"Ton T3", banco:"Stone",
    bandeiras:["Visa","Mastercard","Elo"], numero_serie:null, ativa:true, padrao:false}
 ];
-const maquininhas = () => (S.maquininhas && S.maquininhas.length) ? S.maquininhas : MAQUININHAS_SEED;
+const maquininhas = () => (S.maquininhas && S.maquininhas.length) ? S.maquininhas
+  : (MODO === "nuvem" ? [] : MAQUININHAS_SEED);
 const maquininhaPor = id => maquininhas().find(m=>m.id===id) || null;
 const nomeMaquina = id => { const m = maquininhaPor(id);
   return m ? m.apelido + (m.marca ? " · "+m.marca : "") : "tabela padrão"; };
 
 const cent = n => Math.round(Number(n)*100)/100;
-const tabelaTaxas = () => (S.taxas && S.taxas.length) ? S.taxas : TAXAS_SEED;
+/* Na nuvem, NUNCA cair na semente: taxa de demonstração na tela de um
+   consultório de verdade é número errado com cara de certo. Vazio é
+   honesto — a tela diz que falta cadastrar. */
+const tabelaTaxas = () => (S.taxas && S.taxas.length) ? S.taxas
+  : (MODO === "nuvem" ? [] : TAXAS_SEED);
 
 /* A linha mais ESPECÍFICA vence: máquina+bandeira, depois máquina,
    depois bandeira, e por último a tabela padrão da clínica. Sem essa
@@ -7569,13 +8208,6 @@ function formPagamento(pacId, cobId){
       </div>
       <div class="field"><label for="pgForma">Como o paciente pagou</label>
         <select id="pgForma">${FORMAS.map(([v,r])=>`<option value="${v}">${r}</option>`).join("")}</select></div>
-      <div id="pgMaqBox" hidden>
-        <div class="field"><label for="pgMaq">Em qual maquininha passou</label>
-          <select id="pgMaq"><option value="">— não informado (tabela padrão)</option>
-          ${maquininhas().filter(m=>m.ativa!==false).map(m=>
-            `<option value="${m.id}"${m.padrao?" selected":""}>${m.apelido}${
-              m.marca?" · "+m.marca:""}${m.modelo?" · "+m.modelo:""}</option>`).join("")}</select></div>
-      </div>
       <div id="pgCredito" hidden>
         <div class="grid2">
           <div class="field"><label for="pgParc">Parcelas</label>
@@ -7587,6 +8219,28 @@ function formPagamento(pacId, cobId){
         </div>
         ${ver?`<label class="check" style="margin-top:6px"><input type="checkbox" id="pgAntec">
           <span>Antecipar o recebimento — recebe tudo de uma vez, com taxa maior</span></label>`:""}
+      </div>
+      <!-- a maquininha vem DEPOIS do parcelamento: no celular ela empurrava
+           "Parcelas" para 1.100px abaixo da dobra e o dentista concluía, com
+           razão, que o campo não existia. E só aparece quando há máquina
+           cadastrada — seletor com uma opção só é ruído. -->
+      <div id="pgMaqBox" hidden>
+        <div class="field"><label for="pgMaq">Em qual maquininha passou</label>
+          <select id="pgMaq"><option value="">— não informado (tabela padrão)</option>
+          ${maquininhas().filter(m=>m.ativa!==false).map(m=>
+            `<option value="${m.id}"${m.padrao?" selected":""}>${m.apelido}${
+              m.marca?" · "+m.marca:""}${m.modelo?" · "+m.modelo:""}</option>`).join("")}</select></div>
+      </div>
+      <!-- Nota fiscal: pedido do Dr. Leonardo. Fica junto do pagamento
+           porque é ali que se sabe se emitiu, não depois. -->
+      <div class="grid2">
+        <div class="field"><label for="pgNF">Nota fiscal</label>
+          <select id="pgNF">
+            <option value="nao">Não emitida</option>
+            <option value="sim">Emitida</option>
+          </select></div>
+        <div class="field" id="pgNFNumBox" hidden><label for="pgNFNum">Número da nota</label>
+          <input id="pgNFNum" class="mono" placeholder="opcional"></div>
       </div>
       <div class="grid2">
         <div class="field"><label for="pgNsu">NSU / comprovante</label>
@@ -7606,9 +8260,20 @@ function formPagamento(pacId, cobId){
     const credito = forma==="credito";
     /* a máquina só faz sentido onde o cartão encosta nela. PIX por QR da
        maquininha também tem taxa, por isso entra na lista. */
-    const naMaquina = credito || forma==="debito" || forma==="pix";
+    const temMaquina = maquininhas().filter(m=>m.ativa!==false).length > 0;
+    const naMaquina = temMaquina && (credito || forma==="debito" || forma==="pix");
+    const abriuCredito = credito && $("#pgCredito").hidden;
     $("#pgCredito").hidden = !credito;
     $("#pgMaqBox").hidden = !naMaquina;
+    const nf = $("#pgNF");
+    if(nf) $("#pgNFNumBox").hidden = nf.value !== "sim";
+    /* No celular o bloco do cartão nasce bem abaixo da dobra: sem trazer
+       ele para a tela, o dentista escolhe "crédito" e conclui que não
+       existe parcelamento. Foi exatamente o que aconteceu no teste. */
+    if(abriuCredito) setTimeout(()=>{
+      const el = $("#pgCredito");
+      if(el && !el.hidden) el.scrollIntoView({block:"nearest", behavior:"smooth"});
+    }, 60);
     const maq = naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null;
     const parc = credito ? Number($("#pgParc").value) : 1;
     const antec = credito && $("#pgAntec") && $("#pgAntec").checked;
@@ -7640,7 +8305,7 @@ function formPagamento(pacId, cobId){
         ${prox.recebido?"":` · primeiro em <b>${fmtData(prox.previsao_credito)}</b>, último em <b>${
           fmtData(pr.parcelas[pr.parcelas.length-1].previsao_credito)}</b>`}</div>`;
   };
-  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa","pgMaq","pgBand"].forEach(id=>{
+  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa","pgMaq","pgBand","pgNF"].forEach(id=>{
     const el=$("#"+id); if(el){ el.addEventListener("input", atualizar); el.addEventListener("change", atualizar); }
   });
   atualizar();
@@ -7651,12 +8316,15 @@ function formPagamento(pacId, cobId){
     if(!(v>0)){ toast("Informe o valor recebido."); $("#pgValor").focus(); return; }
     if(v > falta + 0.005 && !confirm("O valor passa do que falta ("+fmtBRL(falta)+"). Registrar assim?")) return;
     const forma = $("#pgForma").value, credito = forma==="credito";
-    const naMaquina = credito || forma==="debito" || forma==="pix";
+    const temMaquina = maquininhas().filter(m=>m.ativa!==false).length > 0;
+    const naMaquina = temMaquina && (credito || forma==="debito" || forma==="pix");
     const d = {cobranca:cobId, valor:v, forma,
       parcelas: credito ? Number($("#pgParc").value) : 1,
       antecipado: credito && $("#pgAntec") && $("#pgAntec").checked,
       bandeira: credito ? ($("#pgBand").value||null) : null,
       maquininha: naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null,
+      nf: $("#pgNF") ? $("#pgNF").value === "sim" : false,
+      nfNum: $("#pgNFNum") ? ($("#pgNFNum").value.trim()||null) : null,
       nsu: $("#pgNsu").value.trim()||null,
       taxa: $("#pgTaxa") && $("#pgTaxa").value.trim()!=="" ? numBR($("#pgTaxa").value) : null,
       obs: $("#pgObs").value.trim()||null, dia:$("#pgData").value};
@@ -7672,7 +8340,7 @@ function formPagamento(pacId, cobId){
       S.pagamentos = S.pagamentos||[];
       S.pagamentos.push({id, cobranca_id:cobId, valor:v, forma_enum:forma,
         parcelas:d.parcelas, antecipado:d.antecipado, bandeira:d.bandeira,
-        maquininha_id:d.maquininha, nsu:d.nsu,
+        maquininha_id:d.maquininha, nota_fiscal:d.nf, nota_numero:d.nfNum, nsu:d.nsu,
         taxa:pr.taxa, taxa_pct:pr.taxa_pct, liquido:pr.liquido,
         pago_em:d.dia+"T12:00:00", observacao:d.obs});
       S.parcelas = S.parcelas||[];
@@ -7780,14 +8448,28 @@ function composicaoLocal(atd){
       valor_unitario:Number(fechado.valor), valor_total:Number(fechado.valor),
       origem:"tabela_procedimento"});
   }else{
+    /* A hora NÃO vira "quantidade × unitário" na tela. Com 50 min e
+       R$ 300,00/h, a quantidade arredondada dá 0,83 e 0,83 × 300 = 249,00,
+       enquanto a conta certa é 250,00. O dentista conferia, via que não
+       multiplicava e — com razão — dizia que o total não batia. Pior: o
+       banco gravava 249,00 porque o gatilho recalcula qtd × unitário.
+       Agora é uma linha fechada: quantidade 1, valor exato, e a hora
+       aparece na descrição, que é onde ela informa sem confundir. */
     const h = valorHoraDe(dent);
-    const horas = cent(atd.dur/60);
-    itens.push({tipo:"servico", descricao:atd.proc+" — "+atd.dur+" min", material_id:null,
-      quantidade:horas, valor_unitario:h===null?0:h,
-      valor_total:h===null?0:cent(horas*h), origem:"valor_hora",
-      semPreco:h===null});
+    const bruto = h===null ? 0 : cent(atd.dur/60*h);
+    itens.push({tipo:"servico", material_id:null,
+      descricao: atd.proc+" — "+atd.dur+" min"+(h===null?"":" a "+fmtBRL(h)+"/h"),
+      quantidade:1, valor_unitario:bruto, valor_total:bruto,
+      origem:"valor_hora", semPreco:h===null});
   }
   (atd.mats||[]).forEach(m=>{
+    if(m.avulso){
+      itens.push({tipo:"material", descricao:m.nome+" (fora do estoque)", material_id:null,
+        quantidade:Number(m.q), valor_unitario:Number(m.valor||0),
+        valor_total:cent(Number(m.q)*Number(m.valor||0)), origem:"manual",
+        semPreco:!Number(m.valor)});
+      return;
+    }
     const c = catById(m.id); if(!c) return;
     const pr = precoMaterial(dent, m.id);
     itens.push({tipo:"material", descricao:c.nome, material_id:m.id, quantidade:Number(m.q),
@@ -8723,6 +9405,7 @@ window.MD = {
   relatorio(){ return rel; },
   /* o odontograma 3D fica acessível para os testes: sem isso não dá
      para conferir a orientação das faces fora do olho humano */
+  cortarEmenda, colapsarGagueira,
   odo3d: {O3D, dentesDaCena, malhaDente, paraMundo, medidaDe, facesDe,
           get estados(){ return odonto.estados; }}
 };
