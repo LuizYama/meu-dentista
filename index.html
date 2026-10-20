@@ -412,13 +412,6 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .ag-conf.alta{background:var(--ok-soft);color:var(--ok)}
 .ag-conf.media{background:var(--warn-soft);color:var(--warn)}
 .ag-conf.baixa{background:var(--crit-soft);color:var(--crit)}
-.dobra{margin-top:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
-  padding:0 12px}
-.dobra > summary{cursor:pointer;padding:12px 0;font-size:14px;display:flex;gap:9px;
-  align-items:baseline;flex-wrap:wrap}
-.dobra[open] > summary{border-bottom:1px solid var(--line);margin-bottom:10px}
-.dobra > summary .hint{font-size:11.5px;color:var(--ink-3)}
-.dobra > *:last-child{margin-bottom:12px}
 .transcript{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);
   padding:9px 11px;font-size:12.5px;color:var(--ink-2);min-height:38px}
 .transcript b{color:var(--ink)}
@@ -973,20 +966,11 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <div class="card" id="entradaCard" hidden></div>
       <div class="card" id="matNovoCard" hidden></div>
 
-      <!-- As duas listas passaram a ficar FECHADAS. A tela de estoque
-           abria com um cartão por produto e mais um catálogo inteiro de
-           referência: parede de quadradinhos antes das ações que a pessoa
-           veio usar. Continuam a um toque de distância, não sumiram. -->
-      <details id="stockDet" class="dobra">
-        <summary><b>Itens do estoque</b> <span class="hint" id="stockResumo"></span></summary>
-        <div class="list" id="stockList"></div>
-      </details>
-      <details id="catDet" class="dobra">
-        <summary><b>Referência de implantodontia e prótese</b>
-          <span class="hint">insumos de uso corrente na especialidade</span></summary>
-        <div class="stage">Toque para incluir no seu estoque com o mínimo já sugerido.</div>
-        <div class="list" id="catalogList"></div>
-      </details>
+      <div class="sec-h"><h2>Estoque do consultório</h2><span class="hint">saldo · mínimo</span></div>
+      <div class="list" id="stockList"></div>
+      <div class="sec-h"><h2>Referência de implantodontia e prótese</h2><span class="hint">itens de uso corrente</span></div>
+      <div class="stage">Insumos de uso corrente na especialidade — toque para incluir no seu estoque com o mínimo já sugerido.</div>
+      <div class="list" id="catalogList"></div>
     </section>
 
     <!-- ===== AGENDA ===== -->
@@ -1171,32 +1155,6 @@ const DB = {
       const err = new Error(msg); err.status=r.status; err.detalhe=dados; throw err;
     }
     return dados;
-  },
-
-  /* O app evolui mais rápido do que o SQL é rodado no consultório. Quando
-     a coluna nova ainda não existe lá, o PostgREST responde
-     "Could not find the 'x' column of 'y' in the schema cache" — e o
-     lançamento INTEIRO falhava por causa de um campo acessório. Foi o que
-     derrubou o pagamento do PIX de 900,00: o app mandava maquininha_id e o
-     banco ainda não tinha a coluna.
-     Agora: tira a coluna que o banco não conhece e insiste. O que é
-     essencial (valor, forma, paciente) nunca é acessório, então se o erro
-     for em um desses a falha sobe como antes. */
-  COLUNAS_OPCIONAIS: new Set(["maquininha_id","nota_fiscal","nota_numero",
-                              "bandeira","nsu","adquirente","observacao"]),
-  async inserirTolerante(tabela, corpo, prefer){
-    let atual = {...corpo};
-    const tiradas = [];
-    for(let tentativa = 0; tentativa < 4; tentativa++){
-      try{ return await DB.rest("POST", tabela, atual, prefer); }
-      catch(e){
-        const m = /Could not find the '([^']+)' column/i.exec(e.message || "");
-        const col = m && m[1];
-        if(!col || !DB.COLUNAS_OPCIONAIS.has(col) || !(col in atual)) throw e;
-        delete atual[col]; tiradas.push(col);
-      }
-    }
-    throw new Error("O banco recusou colunas demais: "+tiradas.join(", "));
   },
 
   /* Chamada a uma Edge Function. Mesma credencial do PostgREST: a
@@ -1610,7 +1568,7 @@ const DB = {
       nsu: d.nsu || null, observacao: d.obs || null,
       registrado_por: DB.meuId};
     if(d.taxa !== null && d.taxa !== undefined && d.taxa !== "") corpo.taxa = d.taxa;
-    const r = await DB.inserirTolerante("pagamentos", corpo, "return=representation");
+    const r = await DB.rest("POST","pagamentos", corpo, "return=representation");
     return r[0].id;
   },
 
@@ -1837,12 +1795,10 @@ async function naNuvem(fn, oqueFalhou){
   try{ await fn(); return true; }
   catch(e){
     if(ehFaltaDeEsquema(e)){
-      /* "banco" sozinho foi lido como BANCO (o do dinheiro) por quem usa:
-         o dentista saiu procurando um campo de banco que não existe. */
-      toast("Falta rodar a atualização do banco de dados — veja a instrução na tela do módulo.");
+      toast("Esta parte ainda não existe no banco — falta rodar o SQL da atualização.");
       return false;
     }
-    toast("Não salvou no banco de dados ("+oqueFalhou+"): "+e.message);
+    toast("Não salvou no banco ("+oqueFalhou+"): "+e.message);
     try{ await DB.carregarTudo(); renderAll(); }catch(_){}
     return false;
   }
@@ -2157,16 +2113,6 @@ function renderFicha(){
     box.innerHTML='<div class="stage">Nenhum material na ficha. Fale “usei 1 implante cone morse e 2 tubetes de articaína” ou escolha abaixo.</div>';
   }
   ficha.mats.forEach((m,i)=>{
-    if(m.avulso){
-      const linha=document.createElement("div"); linha.className="matline";
-      linha.innerHTML=`<div class="nm">${m.nome}<small><span class="pill warn">fora do estoque</span>
-          não baixa saldo · entra na cobrança como avulso</small></div>
-        <div class="stepper"><button data-act="dec" data-i="${i}" aria-label="Diminuir">−</button>
-        <span class="mono">${m.q}</span><button data-act="inc" data-i="${i}" aria-label="Aumentar">+</button></div>
-        <button class="rm" data-act="rm" data-i="${i}" aria-label="Remover">✕</button>`;
-      box.appendChild(linha);
-      return;
-    }
     const c=catById(m.id), e=stockById(m.id), saldo=e?e.qtd:0;
     const sug=loteSugerido(m.id);
     const dica = sug
@@ -2209,23 +2155,9 @@ $("#segCplx").addEventListener("click", ev=>{
 });
 $("#addMat").addEventListener("change", e=>{
   const id=e.target.value; if(!id) return;
-  e.target.value="";
-  /* Material que o consultório usou mas não tem cadastrado: o dentista
-     não pode travar no meio da consulta por causa disso. Entra na ficha
-     e na cobrança como AVULSO, e NÃO mexe no estoque — dar baixa de algo
-     que nunca teve entrada deixaria saldo negativo fantasma. */
-  if(id === "__avulso"){
-    const nome = (prompt("Qual material foi usado? (ele não está no estoque)")||"").trim();
-    if(!nome) return;
-    const qtd = Math.max(1, Math.round(Number((prompt("Quantidade:", "1")||"1").replace(",","."))) || 1);
-    ficha.mats.push({avulso:true, nome, q:qtd});
-    ficha.kit=false; renderFicha();
-    toast("Lançado como material avulso — não baixa do estoque.");
-    return;
-  }
   const ex=ficha.mats.find(m=>m.id===id);
   if(ex) ex.q++; else ficha.mats.push({id,q:1});
-  ficha.kit=false; renderFicha(); conferirLotes();
+  e.target.value=""; ficha.kit=false; renderFicha(); conferirLotes();
 });
 $("#clearAtend").addEventListener("click", ()=>{ pararAssistente(); ficha=fichaVazia();
   loteAvisado.clear();
@@ -4802,9 +4734,7 @@ function renderJanelaOdonto(){
             <button class="minibtn" id="odRaiz" aria-pressed="${O3D.raizes}"
               title="Mostra a raiz por baixo da gengiva">Raiz</button>
           </div>
-          <div class="od-dica">arraste para girar · roda ou pinça para aproximar · toque na face para marcar
-            <br><span style="opacity:.8">O odontograma registra o que o profissional lança.
-            Não detecta lesão nem sugere tratamento.</span></div>
+          <div class="od-dica">arraste para girar · roda ou pinça para aproximar · toque na face para marcar</div>
         ` : `<div class="od-2d">${desenharOdontograma(pac, true)}</div>`}
       </div>
 
@@ -5231,7 +5161,7 @@ document.addEventListener("keydown", ev=>{
    volta a avisar mesmo já tendo aparecido. */
 function conferirLotes(){
   if(!pode("atender")) return;
-  const novos = ficha.mats.filter(m=>!m.avulso).map(m=>m.id)
+  const novos = ficha.mats.map(m=>m.id)
     .filter(id=>{
       const s=loteSugerido(id);
       if(s && s.vencido) return true;             // vencido avisa sempre
@@ -5239,7 +5169,7 @@ function conferirLotes(){
     });
   if(!novos.length) return;
   novos.forEach(id=>loteAvisado.add(id));
-  abrirAvisoLote(ficha.mats.filter(m=>!m.avulso).map(m=>m.id));
+  abrirAvisoLote(ficha.mats.map(m=>m.id));
 }
 
 /* ===================== estoque e salvamento =====================*/
@@ -5257,10 +5187,8 @@ function registrarMov(matId, qtd, tipo, obs, atd, loteId){
 
 function ajustaEstoque(antigos, novos, atdId){
   const delta={};
-  // material avulso não tem saldo para mexer: dar baixa do que nunca
-  // entrou deixaria saldo negativo fantasma no relatório
-  (antigos||[]).filter(m=>!m.avulso).forEach(m=> delta[m.id]=(delta[m.id]||0)+m.q);
-  (novos ||[]).filter(m=>!m.avulso).forEach(m=> delta[m.id]=(delta[m.id]||0)-m.q);
+  (antigos||[]).forEach(m=> delta[m.id]=(delta[m.id]||0)+m.q);
+  (novos ||[]).forEach(m=> delta[m.id]=(delta[m.id]||0)-m.q);
   const criticos=[];
   Object.keys(delta).forEach(id=>{
     if(!delta[id]) return;
@@ -5306,15 +5234,6 @@ $("#saveAtend").addEventListener("click", async ()=>{
     if(!ok) return;
     const m = criticos.length ? "Alterações salvas. Atenção: "+criticos[0]+" abaixo do mínimo." : "Alterações salvas e estoque reajustado.";
     toast(m); await falar(m); return;
-  }
-  /* O avulso não tem linha em atendimento_materiais (não existe material
-     para referenciar), então ele é escrito na nota do atendimento — senão
-     some do prontuário e ninguém sabe o que foi usado. */
-  const avulsos = ficha.mats.filter(m=>m.avulso);
-  if(avulsos.length){
-    const txt = "Materiais fora do estoque: " + avulsos.map(m=>m.q+"× "+m.nome).join(", ");
-    if(!(ficha.obs||"").includes("Materiais fora do estoque:"))
-      ficha.obs = (ficha.obs ? ficha.obs+" · " : "") + txt;
   }
   const novoId = "a"+Date.now();
   const criticos=ajustaEstoque([], ficha.mats, novoId);
@@ -5871,10 +5790,6 @@ function renderEstoque(){
   }
   $("#stockTiles").innerHTML=tiles;
 
-  const res = $("#stockResumo");
-  if(res) res.textContent = S.estoque.length
-    ? `${S.estoque.length} itens · ${abaixo.length} abaixo do mínimo`
-    : "nenhum item lançado";
   $("#estoqueAcoes").hidden = !pode("estoque");
   renderValidade(); renderEntrada(); renderMatNovo();
 
@@ -5936,8 +5851,7 @@ function renderEstoque(){
     cl.appendChild(b);
   });
   $("#addMat").innerHTML='<option value="">+ adicionar material do estoque…</option>'+
-    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("")+
-    '<option value="__avulso">+ outro material — não está no estoque</option>';
+    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("");
 }
 
 function painelLotes(matId){
@@ -7134,8 +7048,6 @@ function renderFinanceiro(){
             || (b.dataset.fin==="precos" && !pode("precos"));
   });
   const imp = $("#fluxoImprimir"); if(imp) imp.addEventListener("click", ()=>window.print());
-  const cc = $("#confCsv");
-  if(cc) cc.addEventListener("click", ()=>baixarCSV("conferencia-por-cliente", linhasConferenciaCSV()));
   const csv = $("#fluxoCsv");
   if(csv) csv.addEventListener("click", ()=>baixarCSV("fluxo-de-caixa",
     [["Mês","Bruto","Taxas","Líquido","Recebido","Previsto","Parcelas","Atrasadas"]].concat(
@@ -7155,8 +7067,8 @@ function htmlFluxo(){
   const topo = Math.max(...meses.map(m=>m.liquido), 1);
   return `
     <div class="tiles q4">
-      <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>total recebido no mês</span></div>
-      <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>aguardando pagamento</span></div>
+      <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>já caiu este mês</span></div>
+      <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>ainda cai este mês</span></div>
       <div class="tile"><b>${fmtBRL(aReceber)}</b><span>a receber (${futuros.length} meses)</span></div>
       <div class="tile ${atrasadas?"crit":"warn"}"><b>${atrasadas||"—"}</b><span>parcelas atrasadas</span></div>
     </div>
@@ -7164,14 +7076,14 @@ function htmlFluxo(){
       <b>${fmtBRL(totalTaxas)}</b>. É dinheiro que foi faturado e não entra —
       vale conferir contra o extrato da adquirente e corrigir a tabela de taxas.</div>
     <div class="sec-h" style="margin-top:14px"><h2>Previsão mês a mês</h2>
-      <span class="hint">verde: recebido · azul: aguardando</span></div>
+      <span class="hint">verde: já na conta · azul: previsto</span></div>
     <div class="row naoimprime" style="margin-bottom:8px">
       <button class="btn" id="fluxoImprimir">Imprimir</button>
       <button class="btn" id="fluxoCsv">Exportar CSV</button>
     </div>
     <div class="card rolar"><table class="tab-rel">
       <thead><tr><th>Mês</th><th class="n">Bruto</th><th class="n">Taxas</th>
-        <th class="n">Líquido</th><th class="n">Recebido</th><th class="n">Aguardando</th>
+        <th class="n">Líquido</th><th class="n">Já caiu</th><th class="n">Previsto</th>
         <th style="width:90px">&nbsp;</th><th class="n">Parc.</th></tr></thead>
       <tbody>${meses.map(m=>{
         const rec = Math.round(100*m.recebido/Math.max(m.liquido,0.01));
@@ -7194,81 +7106,9 @@ function htmlFluxo(){
         <td class="n">${fmtBRL(meses.reduce((a,m)=>a+m.previsto,0))}</td>
         <td></td><td class="n">${meses.reduce((a,m)=>a+m.parcelas,0)}</td></tr></tfoot>
     </table></div>
-    ${htmlConferenciaPaciente()}
     <div class="stage">A projeção soma as parcelas pela data prevista de crédito, não pela
       data da venda. Prazo e taxa saem da tabela de taxas; quando a taxa do comprovante é
       digitada no pagamento, é ela que vale.</div>`;
-}
-
-/* ---------- conferência: quem foi lançado ----------
-   Pedido do Dr. Leonardo, e o motivo dele é o que define o formato: bater
-   o olho na lista de nomes e ver se falta alguém. Por isso é SÓ nome e
-   dinheiro — sem procedimento, que além de ruído é dado clínico num
-   relatório que circula pelo financeiro. */
-function htmlConferenciaPaciente(){
-  const linhas = [];
-  (S.pacientes||[]).forEach(p=>{
-    const cobs = cobrancasDe(p.id);
-    if(!cobs.length) return;
-    let cobrado=0, pago=0;
-    cobs.forEach(c=>{
-      cobrado += Number(c.valor||0);
-      pagamentosDe(c.id).forEach(pg=>{ pago += Number(pg.valor||0); });
-    });
-    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
-    linhas.push({nome:p.nome, cobrado:cent(cobrado), pago:cent(pago),
-                 aberto:cent(cobrado-pago), cobs:cobs.length, atds});
-  });
-  /* atendido e nunca cobrado é justamente o que ele quer enxergar */
-  (S.pacientes||[]).forEach(p=>{
-    if(linhas.some(l=>l.nome===p.nome)) return;
-    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
-    if(atds) linhas.push({nome:p.nome, cobrado:0, pago:0, aberto:0, cobs:0, atds});
-  });
-  if(!linhas.length) return "";
-  linhas.sort((a,b)=> (a.cobs?1:0)-(b.cobs?1:0) || a.nome.localeCompare(b.nome,"pt-BR"));
-  const semLancar = linhas.filter(l=>!l.cobs).length;
-  return `
-    <div class="sec-h" style="margin-top:16px"><h2>Conferência por cliente</h2>
-      <span class="hint">para ver num relance se alguém ficou sem lançar</span></div>
-    <div class="row naoimprime" style="margin-bottom:8px">
-      <button class="btn" id="confCsv">Exportar CSV</button>
-    </div>
-    ${semLancar?`<div class="stage" style="border-color:var(--warn)">
-      <b>${semLancar} cliente(s) com atendimento e nenhuma cobrança lançada.</b>
-      Aparecem no topo da lista.</div>`:""}
-    <div class="card rolar"><table class="tab-rel">
-      <thead><tr><th>Cliente</th><th class="n">Atend.</th><th class="n">Cobrado</th>
-        <th class="n">Recebido</th><th class="n">Em aberto</th></tr></thead>
-      <tbody>${linhas.map(l=>`<tr${l.cobs?"":' style="background:var(--warn-soft)"'}>
-        <td><b>${l.nome}</b>${l.cobs?"":' <span class="pill warn">sem cobrança</span>'}</td>
-        <td class="n">${l.atds||'<span class="vaga">—</span>'}</td>
-        <td class="n">${l.cobs?fmtBRL(l.cobrado):'<span class="vaga">—</span>'}</td>
-        <td class="n">${l.pago?fmtBRL(l.pago):'<span class="vaga">—</span>'}</td>
-        <td class="n">${l.aberto>0?`<b style="color:var(--warn)">${fmtBRL(l.aberto)}</b>`:
-          (l.cobs?'<span class="pill ok">quitado</span>':'<span class="vaga">—</span>')}</td>
-      </tr>`).join("")}</tbody>
-      <tfoot><tr><td>Total · ${linhas.length} cliente(s)</td>
-        <td class="n">${linhas.reduce((a,l)=>a+l.atds,0)}</td>
-        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.cobrado,0))}</td>
-        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.pago,0))}</td>
-        <td class="n">${fmtBRL(linhas.reduce((a,l)=>a+l.aberto,0))}</td></tr></tfoot>
-    </table></div>`;
-}
-
-function linhasConferenciaCSV(){
-  const out = [["Cliente","Atendimentos","Cobrado","Recebido","Em aberto","Situação"]];
-  (S.pacientes||[]).forEach(p=>{
-    const cobs = cobrancasDe(p.id);
-    const atds = (S.atendimentos||[]).filter(a=>a.pac===p.id).length;
-    if(!cobs.length && !atds) return;
-    let cobrado=0, pago=0;
-    cobs.forEach(c=>{ cobrado += Number(c.valor||0);
-      pagamentosDe(c.id).forEach(pg=>{ pago += Number(pg.valor||0); }); });
-    out.push([p.nome, atds, cent(cobrado), cent(pago), cent(cobrado-pago),
-              !cobs.length ? "SEM COBRANÇA LANÇADA" : (cobrado-pago>0.005 ? "em aberto" : "quitado")]);
-  });
-  return out;
 }
 
 function htmlRecebidos(){
@@ -7952,18 +7792,13 @@ const MAQUININHAS_SEED = [
   {id:"m2", apelido:"Recepção", marca:"Stone", modelo:"Ton T3", banco:"Stone",
    bandeiras:["Visa","Mastercard","Elo"], numero_serie:null, ativa:true, padrao:false}
 ];
-const maquininhas = () => (S.maquininhas && S.maquininhas.length) ? S.maquininhas
-  : (MODO === "nuvem" ? [] : MAQUININHAS_SEED);
+const maquininhas = () => (S.maquininhas && S.maquininhas.length) ? S.maquininhas : MAQUININHAS_SEED;
 const maquininhaPor = id => maquininhas().find(m=>m.id===id) || null;
 const nomeMaquina = id => { const m = maquininhaPor(id);
   return m ? m.apelido + (m.marca ? " · "+m.marca : "") : "tabela padrão"; };
 
 const cent = n => Math.round(Number(n)*100)/100;
-/* Na nuvem, NUNCA cair na semente: taxa de demonstração na tela de um
-   consultório de verdade é número errado com cara de certo. Vazio é
-   honesto — a tela diz que falta cadastrar. */
-const tabelaTaxas = () => (S.taxas && S.taxas.length) ? S.taxas
-  : (MODO === "nuvem" ? [] : TAXAS_SEED);
+const tabelaTaxas = () => (S.taxas && S.taxas.length) ? S.taxas : TAXAS_SEED;
 
 /* A linha mais ESPECÍFICA vence: máquina+bandeira, depois máquina,
    depois bandeira, e por último a tabela padrão da clínica. Sem essa
@@ -8208,6 +8043,13 @@ function formPagamento(pacId, cobId){
       </div>
       <div class="field"><label for="pgForma">Como o paciente pagou</label>
         <select id="pgForma">${FORMAS.map(([v,r])=>`<option value="${v}">${r}</option>`).join("")}</select></div>
+      <div id="pgMaqBox" hidden>
+        <div class="field"><label for="pgMaq">Em qual maquininha passou</label>
+          <select id="pgMaq"><option value="">— não informado (tabela padrão)</option>
+          ${maquininhas().filter(m=>m.ativa!==false).map(m=>
+            `<option value="${m.id}"${m.padrao?" selected":""}>${m.apelido}${
+              m.marca?" · "+m.marca:""}${m.modelo?" · "+m.modelo:""}</option>`).join("")}</select></div>
+      </div>
       <div id="pgCredito" hidden>
         <div class="grid2">
           <div class="field"><label for="pgParc">Parcelas</label>
@@ -8219,28 +8061,6 @@ function formPagamento(pacId, cobId){
         </div>
         ${ver?`<label class="check" style="margin-top:6px"><input type="checkbox" id="pgAntec">
           <span>Antecipar o recebimento — recebe tudo de uma vez, com taxa maior</span></label>`:""}
-      </div>
-      <!-- a maquininha vem DEPOIS do parcelamento: no celular ela empurrava
-           "Parcelas" para 1.100px abaixo da dobra e o dentista concluía, com
-           razão, que o campo não existia. E só aparece quando há máquina
-           cadastrada — seletor com uma opção só é ruído. -->
-      <div id="pgMaqBox" hidden>
-        <div class="field"><label for="pgMaq">Em qual maquininha passou</label>
-          <select id="pgMaq"><option value="">— não informado (tabela padrão)</option>
-          ${maquininhas().filter(m=>m.ativa!==false).map(m=>
-            `<option value="${m.id}"${m.padrao?" selected":""}>${m.apelido}${
-              m.marca?" · "+m.marca:""}${m.modelo?" · "+m.modelo:""}</option>`).join("")}</select></div>
-      </div>
-      <!-- Nota fiscal: pedido do Dr. Leonardo. Fica junto do pagamento
-           porque é ali que se sabe se emitiu, não depois. -->
-      <div class="grid2">
-        <div class="field"><label for="pgNF">Nota fiscal</label>
-          <select id="pgNF">
-            <option value="nao">Não emitida</option>
-            <option value="sim">Emitida</option>
-          </select></div>
-        <div class="field" id="pgNFNumBox" hidden><label for="pgNFNum">Número da nota</label>
-          <input id="pgNFNum" class="mono" placeholder="opcional"></div>
       </div>
       <div class="grid2">
         <div class="field"><label for="pgNsu">NSU / comprovante</label>
@@ -8260,20 +8080,9 @@ function formPagamento(pacId, cobId){
     const credito = forma==="credito";
     /* a máquina só faz sentido onde o cartão encosta nela. PIX por QR da
        maquininha também tem taxa, por isso entra na lista. */
-    const temMaquina = maquininhas().filter(m=>m.ativa!==false).length > 0;
-    const naMaquina = temMaquina && (credito || forma==="debito" || forma==="pix");
-    const abriuCredito = credito && $("#pgCredito").hidden;
+    const naMaquina = credito || forma==="debito" || forma==="pix";
     $("#pgCredito").hidden = !credito;
     $("#pgMaqBox").hidden = !naMaquina;
-    const nf = $("#pgNF");
-    if(nf) $("#pgNFNumBox").hidden = nf.value !== "sim";
-    /* No celular o bloco do cartão nasce bem abaixo da dobra: sem trazer
-       ele para a tela, o dentista escolhe "crédito" e conclui que não
-       existe parcelamento. Foi exatamente o que aconteceu no teste. */
-    if(abriuCredito) setTimeout(()=>{
-      const el = $("#pgCredito");
-      if(el && !el.hidden) el.scrollIntoView({block:"nearest", behavior:"smooth"});
-    }, 60);
     const maq = naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null;
     const parc = credito ? Number($("#pgParc").value) : 1;
     const antec = credito && $("#pgAntec") && $("#pgAntec").checked;
@@ -8305,7 +8114,7 @@ function formPagamento(pacId, cobId){
         ${prox.recebido?"":` · primeiro em <b>${fmtData(prox.previsao_credito)}</b>, último em <b>${
           fmtData(pr.parcelas[pr.parcelas.length-1].previsao_credito)}</b>`}</div>`;
   };
-  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa","pgMaq","pgBand","pgNF"].forEach(id=>{
+  ["pgForma","pgValor","pgData","pgParc","pgAntec","pgTaxa","pgMaq","pgBand"].forEach(id=>{
     const el=$("#"+id); if(el){ el.addEventListener("input", atualizar); el.addEventListener("change", atualizar); }
   });
   atualizar();
@@ -8316,15 +8125,12 @@ function formPagamento(pacId, cobId){
     if(!(v>0)){ toast("Informe o valor recebido."); $("#pgValor").focus(); return; }
     if(v > falta + 0.005 && !confirm("O valor passa do que falta ("+fmtBRL(falta)+"). Registrar assim?")) return;
     const forma = $("#pgForma").value, credito = forma==="credito";
-    const temMaquina = maquininhas().filter(m=>m.ativa!==false).length > 0;
-    const naMaquina = temMaquina && (credito || forma==="debito" || forma==="pix");
+    const naMaquina = credito || forma==="debito" || forma==="pix";
     const d = {cobranca:cobId, valor:v, forma,
       parcelas: credito ? Number($("#pgParc").value) : 1,
       antecipado: credito && $("#pgAntec") && $("#pgAntec").checked,
       bandeira: credito ? ($("#pgBand").value||null) : null,
       maquininha: naMaquina && $("#pgMaq") ? ($("#pgMaq").value||null) : null,
-      nf: $("#pgNF") ? $("#pgNF").value === "sim" : false,
-      nfNum: $("#pgNFNum") ? ($("#pgNFNum").value.trim()||null) : null,
       nsu: $("#pgNsu").value.trim()||null,
       taxa: $("#pgTaxa") && $("#pgTaxa").value.trim()!=="" ? numBR($("#pgTaxa").value) : null,
       obs: $("#pgObs").value.trim()||null, dia:$("#pgData").value};
@@ -8340,7 +8146,7 @@ function formPagamento(pacId, cobId){
       S.pagamentos = S.pagamentos||[];
       S.pagamentos.push({id, cobranca_id:cobId, valor:v, forma_enum:forma,
         parcelas:d.parcelas, antecipado:d.antecipado, bandeira:d.bandeira,
-        maquininha_id:d.maquininha, nota_fiscal:d.nf, nota_numero:d.nfNum, nsu:d.nsu,
+        maquininha_id:d.maquininha, nsu:d.nsu,
         taxa:pr.taxa, taxa_pct:pr.taxa_pct, liquido:pr.liquido,
         pago_em:d.dia+"T12:00:00", observacao:d.obs});
       S.parcelas = S.parcelas||[];
@@ -8448,28 +8254,14 @@ function composicaoLocal(atd){
       valor_unitario:Number(fechado.valor), valor_total:Number(fechado.valor),
       origem:"tabela_procedimento"});
   }else{
-    /* A hora NÃO vira "quantidade × unitário" na tela. Com 50 min e
-       R$ 300,00/h, a quantidade arredondada dá 0,83 e 0,83 × 300 = 249,00,
-       enquanto a conta certa é 250,00. O dentista conferia, via que não
-       multiplicava e — com razão — dizia que o total não batia. Pior: o
-       banco gravava 249,00 porque o gatilho recalcula qtd × unitário.
-       Agora é uma linha fechada: quantidade 1, valor exato, e a hora
-       aparece na descrição, que é onde ela informa sem confundir. */
     const h = valorHoraDe(dent);
-    const bruto = h===null ? 0 : cent(atd.dur/60*h);
-    itens.push({tipo:"servico", material_id:null,
-      descricao: atd.proc+" — "+atd.dur+" min"+(h===null?"":" a "+fmtBRL(h)+"/h"),
-      quantidade:1, valor_unitario:bruto, valor_total:bruto,
-      origem:"valor_hora", semPreco:h===null});
+    const horas = cent(atd.dur/60);
+    itens.push({tipo:"servico", descricao:atd.proc+" — "+atd.dur+" min", material_id:null,
+      quantidade:horas, valor_unitario:h===null?0:h,
+      valor_total:h===null?0:cent(horas*h), origem:"valor_hora",
+      semPreco:h===null});
   }
   (atd.mats||[]).forEach(m=>{
-    if(m.avulso){
-      itens.push({tipo:"material", descricao:m.nome+" (fora do estoque)", material_id:null,
-        quantidade:Number(m.q), valor_unitario:Number(m.valor||0),
-        valor_total:cent(Number(m.q)*Number(m.valor||0)), origem:"manual",
-        semPreco:!Number(m.valor)});
-      return;
-    }
     const c = catById(m.id); if(!c) return;
     const pr = precoMaterial(dent, m.id);
     itens.push({tipo:"material", descricao:c.nome, material_id:m.id, quantidade:Number(m.q),
