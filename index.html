@@ -1119,11 +1119,18 @@ const PERFIS = {
     telas:["hoje","pacientes","estoque","agenda","financeiro"],
     atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true, admin:true,
     valores:true, lancaLote:true, caixa:true, projecao:true, relatorios:true,
+    lancaPagamento:true,
     precos:true, precoTodos:true, soMinhas:false},
   Dentista:{rotulo:"Dentista", desc:"Atende, edita prontuário e agenda",
     telas:["hoje","pacientes","estoque","agenda","financeiro"],
     atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:true, cadastro:true, admin:false,
     valores:false, lancaLote:false, caixa:true, projecao:true, relatorios:false,
+    /* lancaPagamento:false espelha a política do banco: só
+       administrador, financeiro e secretaria inserem em pagamentos. O
+       dentista vê o que foi pago nas cobranças dele e lança cobrança,
+       mas recebimento é função de caixa. Sem este alinhamento o botão
+       aparecia e o banco recusava com erro cru de RLS. */
+    lancaPagamento:false,
     // precoTodos:false e soMinhas:true são o "só o que é meu": tabela
     // própria, cobranças próprias, recebimento próprio
     precos:true, precoTodos:false, soMinhas:true},
@@ -1131,17 +1138,20 @@ const PERFIS = {
     telas:["pacientes","agenda"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
     valores:false, lancaLote:false, caixa:true, projecao:false, relatorios:false,
+    lancaPagamento:true,
     // lê a tabela de todos para cobrar certo, mas não tabela preço de ninguém
     precos:"ler", precoTodos:true, soMinhas:false},
   Financeiro:{rotulo:"Financeiro", desc:"Faturamento e agenda",
     telas:["financeiro","agenda"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false, admin:false,
     valores:true, lancaLote:false, caixa:true, projecao:true, relatorios:true,
+    lancaPagamento:true,
     precos:true, precoTodos:true, soMinhas:false},
   Estoque:{rotulo:"Estoque", desc:"Entradas, baixas e reposição",
     telas:["estoque"],
     atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false, admin:false,
     valores:true, lancaLote:true, caixa:false, projecao:false, relatorios:true,
+    lancaPagamento:false,
     precos:false, precoTodos:false, soMinhas:false}
 };
 const USUARIOS_SEED = [
@@ -1167,7 +1177,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v32 · 23/10/2026";
+const VERSAO = "v33 · 23/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -8224,8 +8234,11 @@ function renderCaixa(pacId){
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn primary" id="novaCobBtn">+ Lançar cobrança</button>
-      ${cobs.length?`<button class="btn" id="novoPagBtn">+ Registrar pagamento</button>`:""}
+      ${cobs.length&&pode("lancaPagamento")?`<button class="btn" id="novoPagBtn">+ Registrar pagamento</button>`:""}
     </div>
+    ${cobs.length&&!pode("lancaPagamento")?`<div class="stage" style="margin-top:8px">
+      Recebimento é lançado pelo caixa — secretaria, financeiro ou administrador.
+      Aqui você acompanha o que já foi pago nas suas cobranças.</div>`:""}
     <div class="card" id="caixaCard" hidden></div>
     <div class="list" style="margin-top:10px">${cobs.map(c=>{
       const pgs = pagamentosDe(c.id);
@@ -9716,6 +9729,11 @@ window.MD = {
   /* o odontograma 3D fica acessível para os testes: sem isso não dá
      para conferir a orientação das faces fora do olho humano */
   cortarEmenda, colapsarGagueira,
+  /* pode() e PERFIS expostos para o teste comparar, perfil por perfil, o
+     que a tela oferece com o que o RLS do banco de fato aceita. Sem
+     isso, "o botão aparece mas o banco recusa" só se descobre com o
+     dentista na frente do paciente. */
+  pode, perfis: PERFIS,
   odo3d: {O3D, dentesDaCena, malhaDente, paraMundo, medidaDe, facesDe,
           get estados(){ return odonto.estados; }}
 };
