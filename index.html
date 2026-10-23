@@ -539,6 +539,29 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 /* ---------- caixa e relatórios ---------- */
 .check{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-2);cursor:pointer}
 .check input{margin-top:2px;flex:0 0 auto}
+
+/* ---------- escolha de bandeiras ----------
+   Era uma .row com flex-wrap e .check soltos: sem largura mínima, os
+   rótulos encavalavam uns nos outros ("MASTERCARD" por cima de "HIPER")
+   e virava borrão. Grade de largura fixa resolve, e de quebra dá alvo
+   de toque de verdade no celular, que é onde isso é preenchido. */
+.band-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+.band-grid label{display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer;
+  border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);
+  font-size:13px;color:var(--ink-2);min-width:0;
+  /* sem isto o rótulo herda o text-transform e o letter-spacing do
+     .field, fica em caixa-alta espaçada e "MASTERCARD" não cabe no
+     celular — truncava em "MASTERCAR…" */
+  text-transform:none;letter-spacing:normal;font-weight:500}
+.band-grid label span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.band-grid input{flex:0 0 auto;width:16px;height:16px;margin:0}
+.band-grid label:has(input:checked){border-color:var(--accent);background:var(--accent-soft);
+  color:var(--ink);font-weight:600}
+
+/* a linha nova de taxa: forma e parcelas lado a lado, sem quebrar */
+.linha-forma{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;white-space:nowrap}
+.linha-forma select{min-width:132px}
+.linha-forma input{width:52px;text-align:center}
 .tab-rel{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
 .tab-rel th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em;
   color:var(--ink-3);font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -1207,7 +1230,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v34 · 23/10/2026";
+const VERSAO = "v35 · 23/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -7652,6 +7675,14 @@ function htmlTaxas(){
         <td class="naoimprime acoes"><button class="minibtn" data-salvar="${x.id}">Salvar</button>${
           x.maquininha_id?` <button class="minibtn" data-apagar="${x.id}">Excluir</button>`:""}</td>
       </tr>`;}).join("")}</tbody></table></div>
+    ${maqs.length ? "" : `<div class="stage" style="margin-bottom:8px">
+      <b>Por que a coluna "Maquininha" só oferece "Tabela padrão"?</b> Porque nenhuma
+      maquininha foi cadastrada ainda. "Tabela padrão" quer dizer <i>vale para qualquer
+      máquina da clínica</i> — e enquanto houver só ela, é ela que o sistema usa em todas
+      as vendas. Cadastre uma máquina em <b>Maquininhas</b>, aqui em cima, e o apelido
+      dela ("amarelinha", "Cielo da recepção") passa a aparecer nesta lista. Só vale a
+      pena quando duas máquinas cobram taxas diferentes: com uma máquina só, a tabela
+      padrão basta.</div>`}
     <div class="stage">A linha mais específica manda: máquina <b>e</b> bandeira ganha de
       máquina, que ganha de bandeira, que ganha da tabela padrão. Prazo é em dias corridos
       a partir do pagamento: débito D+1, crédito D+30 e as parcelas seguintes de 30 em 30.
@@ -7662,13 +7693,12 @@ function htmlTaxas(){
 function linhaTaxaNova(opcoesMaq, opcoesBand){
   return `<tr id="trTaxaNova" style="background:var(--accent-soft)">
     <td class="destaque" data-rot="Forma">
-      <select class="taxnv" data-c="forma" style="max-width:118px">${
-        FORMAS.map(([v,r])=>`<option value="${v}"${v==="credito"?" selected":""}>${r}</option>`).join("")}</select>
-      <span class="hint" style="margin-left:6px">de</span>
-      <input class="taxnv" data-c="parcelas_min" inputmode="numeric" style="width:38px" value="1">
-      <span class="hint">a</span>
-      <input class="taxnv" data-c="parcelas_max" inputmode="numeric" style="width:38px" value="1">
-      <span class="hint">×</span></td>
+      <div class="linha-forma">
+        <select class="taxnv" data-c="forma">${
+          FORMAS.map(([v,r])=>`<option value="${v}"${v==="credito"?" selected":""}>${r}</option>`).join("")}</select>
+        <input class="taxnv" data-c="parcelas" inputmode="numeric" value="1" aria-label="Parcelas">
+        <span class="hint">parcela(s)</span>
+      </div></td>
     <td data-rot="Maquininha"><select class="taxnv" data-c="maquininha_id" style="max-width:130px">${opcoesMaq("")}</select></td>
     <td colspan="2" data-rot=""><span class="hint">marca e modelo vêm do cadastro</span></td>
     <td data-rot="Bandeira"><select class="taxnv" data-c="bandeira" style="max-width:104px">${opcoesBand("")}</select></td>
@@ -7696,14 +7726,20 @@ function formMaquininhaHtml(m){
       </div>
       <div class="grid2">
         ${mk("mqSerie","Número de série", e.numero_serie, "opcional — ajuda a bater o extrato")}
-        <div class="field"><label>Situação</label>
-          <label class="check"><input type="checkbox" id="mqAtiva" ${e.ativa===false?"":"checked"}>
-            <span>em uso</span></label></div>
+        <div class="field"><label for="mqSituacao">Situação</label>
+          <select id="mqSituacao">
+            <option value="ativa" ${e.ativa===false?"":"selected"}>Em uso</option>
+            <option value="inativa" ${e.ativa===false?"selected":""}>Fora de uso</option>
+          </select>
+          <div class="hint" style="margin-top:4px">Fora de uso some do pagamento, mas as
+            vendas antigas dela continuam no histórico.</div></div>
       </div>
       <div class="field"><label>Bandeiras aceitas</label>
-        <div class="row" style="flex-wrap:wrap">${BANDEIRAS.map(b=>`
-          <label class="check"><input type="checkbox" class="mqBand" value="${b}"
-            ${(e.bandeiras||[]).includes(b)?"checked":""}><span>${b}</span></label>`).join("")}</div></div>
+        <div class="band-grid">${BANDEIRAS.map(b=>`
+          <label><input type="checkbox" class="mqBand" value="${b}"
+            ${(e.bandeiras||[]).includes(b)?"checked":""}><span>${b}</span></label>`).join("")}</div>
+        <div class="hint" style="margin-top:6px">Deixe tudo desmarcado se a máquina aceita
+          qualquer bandeira.</div></div>
       <div class="row"><button class="btn primary" style="flex:1" id="mqSalvar">Salvar maquininha</button>
         <button class="btn" id="mqCancelar">Cancelar</button></div>
     </div>`;
@@ -7730,7 +7766,7 @@ function ligarTaxas(){
       modelo:  $("#mqModelo").value.trim() || null,
       banco:   $("#mqBanco").value.trim()  || null,
       numero_serie: $("#mqSerie").value.trim() || null,
-      ativa:   $("#mqAtiva").checked,
+      ativa:   $("#mqSituacao").value === "ativa",
       bandeiras: $$("#finPainel .mqBand").filter(c=>c.checked).map(c=>c.value)
     };
     if(!d.apelido){ toast("Dê um apelido à maquininha."); $("#mqApelido").focus(); return; }
@@ -7770,15 +7806,20 @@ function ligarTaxas(){
       maquininha_id: d.maquininha_id || null,
       bandeira: d.bandeira || null,
       forma: d.forma,
-      parcelas_min: Math.max(1, Number(d.parcelas_min)||1),
-      parcelas_max: Math.max(1, Number(d.parcelas_max)||1),
+      /* uma linha por número de parcelas. O par min/max continua no
+         banco porque as regras que vieram prontas cobrem faixas (2× a
+         6×, por exemplo), mas pedir duas pontas para criar uma regra só
+         confundia: "de 1 a 1" não quer dizer nada para quem está
+         cadastrando a taxa do crédito em 3×. */
+      parcelas_min: Math.max(1, Number(d.parcelas)||1),
+      parcelas_max: Math.max(1, Number(d.parcelas)||1),
       taxa_pct: numBR(d.taxa_pct),
       taxa_antecip_pct: String(d.taxa_antecip_pct).trim()==="" ? null : numBR(d.taxa_antecip_pct),
       taxa_fixa: numBR(d.taxa_fixa),
       prazo_dias: Math.max(0, Number(d.prazo_dias)||0),
       ativa: true
     };
-    if(linha.parcelas_max < linha.parcelas_min){ toast("A faixa de parcelas está invertida."); return; }
+    if(linha.parcelas_min > 24){ toast("Parcelas acima de 24 — confira."); return; }
     if(linha.taxa_pct>30 || (linha.taxa_antecip_pct||0)>30){ toast("Taxa acima de 30% — confira."); return; }
     if(MODO==="nuvem"){
       const ok = await naNuvem(async ()=>{ await DB.criarTaxa(linha); await DB.carregarCaixa(); }, "taxa");
