@@ -272,6 +272,14 @@ a{color:var(--accent)}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- login ---------- */
+/* [hidden] tem de vencer qualquer display: de componente. Várias telas
+   (login, cartões, formulários) são escondidas com o atributo hidden e
+   também declaram display:grid/flex — sem esta regra o atributo não tem
+   efeito nenhum e a tela de login fica por cima do sistema inteiro. O
+   empacotador do GitHub Pages já injetava isto; passa a valer também
+   quando o arquivo é aberto direto. */
+[hidden]{display:none!important}
+
 .login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px 16px;overflow:auto;
   background:
     radial-gradient(1000px 520px at 50% -10%, var(--accent-soft), transparent 70%),
@@ -596,6 +604,34 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
 .stage{font-size:11.5px;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:var(--r-sm);
   padding:9px 11px;line-height:1.5}
 
+/* ---------- explicador "como funciona" ----------
+   Dr. Leonardo escreveu "não entendi" duas vezes, sobre Preços e sobre
+   Taxas. Documentação não resolve isso: ninguém lê manual com o paciente
+   na cadeira. A explicação tem de estar na própria tela, com exemplo
+   numérico, e tem de poder ser fechada para não atrapalhar quem já sabe. */
+.comofunc{background:var(--surface-2);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:var(--r-sm);padding:0;margin-bottom:12px;overflow:hidden}
+.comofunc>summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:12.5px;
+  font-weight:600;display:flex;align-items:center;gap:8px}
+.comofunc>summary::-webkit-details-marker{display:none}
+.comofunc>summary::after{content:"mostrar";margin-left:auto;font-weight:400;font-size:11px;color:var(--ink-3)}
+.comofunc[open]>summary::after{content:"ocultar"}
+.comofunc .corpo{padding:0 12px 12px;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.comofunc ol{margin:0 0 10px;padding-left:20px}
+.comofunc ol li{margin-bottom:6px}
+.comofunc .ex{background:var(--surface);border:1px dashed var(--line-2);border-radius:var(--r-sm);
+  padding:9px 11px;margin-top:8px}
+/* só o rótulo do exemplo vira caixa-alta. Sem o >b:first-child, todo
+   negrito dentro do exemplo era maiusculizado e virava bloco — o nome do
+   procedimento e o valor saíam quebrando a linha no meio da frase. */
+.comofunc .ex > b:first-child{display:block;font-size:11.5px;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.comofunc .ex p b{color:var(--ink)}
+.comofunc .ex p{margin:0 0 4px;font-size:12.5px}
+.comofunc .ex p:last-child{margin-bottom:0}
+.comofunc code{font-family:var(--f-mono);font-size:11.5px;background:var(--line-2);
+  padding:1px 4px;border-radius:3px}
+
 /* ---------- diagnóstico ---------- */
 .diag{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;
   display:flex;flex-direction:column;gap:9px;text-align:left}
@@ -756,6 +792,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <button class="btn primary wide" id="entrarBtn">Entrar</button>
         <div class="hint-demo" id="modoHint">Verificando conexão com o banco…</div>
         <div class="hint-demo" id="demoHint"></div>
+        <div style="margin-top:10px;font-size:11px;color:var(--ink-3);text-align:center"
+          id="versaoLogin">—</div>
       </div>
 
       <div class="painel" id="pn-recuperar">
@@ -820,6 +858,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
     <div class="userchip" id="userChip" hidden>
       <b id="userNome">—</b><span id="userPerfil"></span>
       <button id="acessosBtn" title="Configurações" aria-label="Configurações" hidden>⚙</button>
+      <button id="trocarBtn" title="Trocar usuário" aria-label="Trocar usuário">⇄</button>
       <button id="sairBtn" title="Sair" aria-label="Sair">⏻</button>
     </div>
     <button class="iconbtn" id="themeBtn" aria-label="Alternar tema">◐</button>
@@ -949,6 +988,7 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
           <button role="tab" aria-selected="true"  data-por="nome">Nome</button>
           <button role="tab" aria-selected="false" data-por="proc">Procedimento</button>
         </div>
+        <button class="btn" id="novoPacBtn">+ Novo paciente</button>
         <button class="btn primary" id="novaConsultaBtn">+ Nova consulta</button>
       </div>
       <div class="list" id="pacList2"></div>
@@ -1037,7 +1077,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
         Financeiro</button>
       <div class="mini-agenda" id="miniAgenda" hidden></div>
-      <div class="navfoot"><span id="dispLabel"></span> · <span class="pill" id="modoBadge">—</span></div>
+      <div class="navfoot"><span id="dispLabel"></span> · <span class="pill" id="modoBadge">—</span>
+        <br><span id="versaoSel" style="opacity:.7">—</span></div>
     </div>
   </nav>
 </div>
@@ -1123,6 +1164,11 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
    Sem rede (ou dentro de visualizador que bloqueia chamada externa) o
    app cai em MODO DEMO e grava no próprio navegador, como antes.
    ===================================================================== */
+/* Versão visível na tela. Sem isso, "troquei isso semana passada" e
+   "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
+   para saber qual cópia a pessoa está usando. */
+const VERSAO = "v32 · 23/10/2026";
+
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
   key: "sb_publishable_IbplZEQzGEJOqnuGfoyFuA_iQsaahtz"
@@ -5564,11 +5610,21 @@ function cpfValido(v){
     const r=11-(s%11); return r>=10?0:r; };
   return dig(9)===Number(d[9]) && dig(10)===Number(d[10]);
 }
+/* id nulo = paciente NOVO. Antes disso, o único jeito de um paciente
+   entrar no sistema era o dentista registrar um atendimento com um nome
+   desconhecido — ou seja, a secretária, cuja função é cadastrar, não
+   tinha por onde. Ela batia na agenda ("cadastre antes de agendar") e
+   não achava onde cadastrar. */
 function editarPaciente(id){
-  const p=pacById(id), clinico=pode("verClinico"), card=$("#pacCard");
+  const novo = !id;
+  const p = novo ? {id:"p"+Date.now(), nome:"", nasc:"", sexo:"", cpf:"", tel:"", email:"", obs:""}
+                 : pacById(id);
+  if(!p) return;
+  const clinico=pode("verClinico"), card=$("#pacCard");
+  if(novo){ pacAberto = null; $("#pacDetail").hidden = false; }
   const esc=v=>(v||"").replace(/"/g,"&quot;");
   card.innerHTML=`
-    <div class="eyebrow">Editando ficha do paciente</div>
+    <div class="eyebrow">${novo?"Cadastrar paciente":"Editando ficha do paciente"}</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
       <div class="field"><label for="edNome">Nome completo</label><input id="edNome" value="${esc(p.nome)}"></div>
       <div class="grid2">
@@ -5581,10 +5637,14 @@ function editarPaciente(id){
       <div class="field"><label for="edEmail">E-mail</label><input id="edEmail" type="email" placeholder="nome@email.com" value="${esc(p.email)}"></div>
       ${clinico?`<div class="field"><label for="edObs">Observação clínica</label><input id="edObs" value="${esc(p.obs)}"></div>`
                :`<div class="stage">A observação clínica é editada pelo dentista.</div>`}
-      <div class="row"><button class="btn primary" style="flex:1" id="edSalvar">Salvar ficha</button>
+      <div class="row"><button class="btn primary" style="flex:1" id="edSalvar">${
+        novo?"Cadastrar paciente":"Salvar ficha"}</button>
         <button class="btn" id="edCancelar">Cancelar</button></div>
     </div>`;
-  $("#edCancelar").addEventListener("click", ()=>abrirPaciente(id));
+  if(novo) setTimeout(()=>{ const n=$("#edNome"); if(n) n.focus(); }, 60);
+  $("#edCancelar").addEventListener("click", ()=>{
+    if(novo){ pacAberto=null; renderPacientes(); } else abrirPaciente(id);
+  });
   $("#edSalvar").addEventListener("click", ()=>{
     const nome=$("#edNome").value.trim();
     if(!nome){ toast("O nome não pode ficar vazio."); return; }
@@ -5594,8 +5654,14 @@ function editarPaciente(id){
     if(nasc && nasc>ISO(hoje)){ toast("Data de nascimento no futuro."); return; }
     const cpf=$("#edCpf").value.trim();
     if(cpf && !cpfValido(cpf)){ toast("CPF inválido — confira os números."); $("#edCpf").focus(); return; }
-    if(cpf){ const dono=S.pacientes.find(x=>x.id!==id && x.cpf && x.cpf.replace(/\D/g,"")===cpf.replace(/\D/g,""));
+    if(cpf){ const dono=S.pacientes.find(x=>x.id!==p.id && x.cpf && x.cpf.replace(/\D/g,"")===cpf.replace(/\D/g,""));
       if(dono){ toast("Este CPF já está no cadastro de "+dono.nome+"."); return; } }
+    // nome repetido não bloqueia (há homônimo de verdade), mas avisa
+    if(novo){
+      const igual = S.pacientes.find(x=>norm(x.nome)===norm(nome));
+      if(igual && !confirm("Já existe \""+igual.nome+"\" no cadastro. Cadastrar outro com o mesmo nome?")) return;
+      S.pacientes.push(p);
+    }
     p.nome=nome; p.nasc=nasc; p.sexo=$("#edSexo").value; p.cpf=fmtCpf(cpf);
     p.tel=fmtTel($("#edTel").value); p.email=email;
     if(clinico) p.obs=$("#edObs").value.trim();
@@ -5606,7 +5672,10 @@ function editarPaciente(id){
         if(clinico) await DB.gravarClinico(p);
       }, "ficha do paciente");
       renderAll();
-      if(ok) toast("Ficha do paciente atualizada.");
+      if(ok){
+        toast(novo ? "Paciente "+p.nome+" cadastrado." : "Ficha do paciente atualizada.");
+        if(novo) abrirPaciente(p.id);
+      }
     })();
   });
 }
@@ -6396,7 +6465,20 @@ function abrirForm(tipo, minuto){
       pacienteNome = $("#agPac").value.trim();
       if(!pacienteNome){ toast("Informe o paciente."); $("#agPac").focus(); return; }
       const p = S.pacientes.find(x=>norm(x.nome)===norm(pacienteNome));
-      if(!p){ toast("Paciente não encontrado no cadastro — cadastre antes de agendar."); return; }
+      if(!p){
+        /* Mandar "cadastre antes" sem dizer ONDE é beco sem saída: foi
+           exatamente onde a secretária parou. Agora leva para a tela de
+           cadastro com o nome já preenchido. */
+        if(pode("cadastro") && confirm('"'+pacienteNome+'" não está no cadastro.\n\nCadastrar agora?')){
+          document.querySelector(".tab[data-scr='pacientes']").click();
+          setTimeout(()=>{ editarPaciente(null);
+            setTimeout(()=>{ const n=$("#edNome"); if(n){ n.value = pacienteNome; n.focus(); } }, 80);
+          }, 120);
+        }else if(!pode("cadastro")){
+          toast("Paciente não cadastrado — peça à recepção para cadastrar antes de agendar.");
+        }
+        return;
+      }
       pacienteId = UID.pac[p.id] || null;
       pacienteNome = p.nome;
       proc = $("#agProc").value.trim() || null;
@@ -7359,11 +7441,46 @@ function htmlTaxas(){
     || Number(a.parcelas_min)-Number(b.parcelas_min));
 
   return `
-    <div class="stage"><b>Confira no extrato da adquirente.</b> Cada maquininha tem a sua
-      taxa, e ela muda por forma de pagamento, por número de parcelas e às vezes por
-      bandeira. Cadastre as máquinas abaixo e, no pagamento, diga em qual delas passou —
-      é assim que a previsão de caixa deixa de ser chute. Quando o comprovante traz taxa
-      diferente, digite a taxa no pagamento: ela prevalece sobre a tabela.</div>
+    <details class="comofunc" open><summary>Como lançar taxas e prazos</summary>
+      <div class="corpo">
+        <p style="margin:0 0 8px">Uma linha para cada combinação de <b>forma de pagamento</b> e
+          <b>faixa de parcelas</b>. Cada linha responde duas perguntas: <b>quanto a operadora
+          desconta</b> e <b>em quantos dias o dinheiro cai</b>.</p>
+        <ol>
+          <li>Cadastre a maquininha em <b>Maquininhas</b> (apelido, marca/banco, modelo). Marque
+            uma como <b>padrão</b> — é a que o sistema assume quando ninguém escolhe.</li>
+          <li>Em <b>Regras de taxa</b>, crie a linha: forma, de quantas a quantas parcelas,
+            <b>taxa %</b> (percentual sobre o valor), <b>taxa fixa R$</b> (valor por transação,
+            quando houver) e <b>prazo em dias</b> até cair na conta. Prazo <code>0</code> = cai no
+            mesmo dia.</li>
+          <li>Copie os números do <b>extrato da adquirente</b>, não do que foi combinado na
+            proposta comercial. É o extrato que o banco cumpre.</li>
+          <li>No pagamento, escolha em qual máquina passou. O sistema aplica a linha certa, mostra
+            o líquido e a data prevista. Se o comprovante vier com taxa diferente, digite a taxa
+            ali no pagamento — ela prevalece sobre a tabela.</li>
+        </ol>
+        <div class="ex"><b>Exemplo 1 — crédito à vista</b>
+          <p>Linha: Crédito · 1× a 1× · taxa <b>3,19%</b> · fixa R$ 0,00 · prazo <b>30</b> dias.</p>
+          <p>Cobrança de R$ 900,00 → desconto de R$ 28,71 → <b>R$ 871,29</b> caem em 30 dias.</p>
+        </div>
+        <div class="ex"><b>Exemplo 2 — boleto</b>
+          <p>Boleto não passa em maquininha: deixe a máquina em <b>Tabela padrão</b>.</p>
+          <p>Linha: Boleto · 1× a 1× · taxa <b>0%</b> · fixa <b>R$ 3,50</b> · prazo <b>3</b> dias.</p>
+          <p>Cobrança de R$ 900,00 → <b>R$ 896,50</b> em 3 dias. A tarifa do boleto é por
+            documento, não percentual — por isso vai em taxa fixa.</p>
+        </div>
+        <div class="ex"><b>Exemplo 3 — cortesia</b>
+          <p>Linha: Cortesia · 1× a 1× · taxa <b>0%</b> · fixa <b>R$ 0,00</b> · prazo <b>0</b>.</p>
+          <p>Serve para fechar o atendimento sem cobrar — retoque, garantia, cortesia a
+            indicação — mantendo o procedimento no histórico do paciente e no consumo do estoque,
+            sem entrar como valor a receber nem como inadimplência.</p>
+        </div>
+        <div class="ex"><b>PIX e dinheiro</b>
+          <p>Normalmente taxa <b>0%</b> e prazo <b>0</b>. Se o PIX for de maquininha com taxa,
+            cadastre a linha na máquina correspondente.</p>
+        </div>
+      </div>
+    </details>
 
     <div class="sec-h" style="margin-top:14px"><h2>Maquininhas</h2>
       <span class="hint">o apelido é como a recepção chama</span></div>
@@ -7725,13 +7842,26 @@ function pintarModo(){
       "Use o endereço publicado da clínica para trabalhar de verdade.";
     if(d){
       d.hidden=false;
-      d.innerHTML = "<b>Acessos de demonstração</b><br>"+
-        USUARIOS_SEED.map(u=>`${u.email} · senha <b>${u.senha}</b> — ${PERFIS[u.perfil].rotulo}`).join("<br>");
+      /* Entrar com um toque em cada perfil: quem está testando a
+         permissão de cinco perfis não deveria digitar e-mail e senha
+         cinco vezes. Só na demonstração — na nuvem, senha é senha. */
+      d.innerHTML = "<b>Acessos de demonstração</b> — toque para entrar<br>"+
+        `<div class="row" style="flex-wrap:wrap;margin-top:6px">` +
+        USUARIOS_SEED.map(u=>`<button class="minibtn" data-demo="${u.email}"
+          data-senha="${u.senha}">${PERFIS[u.perfil].rotulo}</button>`).join("") +
+        `</div><div style="margin-top:6px;font-size:11px;opacity:.75">`+
+        USUARIOS_SEED.map(u=>`${u.email} · <b>${u.senha}</b>`).join(" · ")+`</div>`;
+      d.querySelectorAll("[data-demo]").forEach(b=>b.addEventListener("click", ()=>{
+        $("#inUser").value = b.dataset.demo; $("#inSenha").value = b.dataset.senha;
+        $("#entrarBtn").click();
+      }));
     }
   }
   const sel=$("#modoBadge");
   if(sel){ sel.textContent = MODO==="nuvem" ? "nuvem" : "demo";
     sel.className = "pill "+(MODO==="nuvem"?"ok":"warn"); }
+  const vs=$("#versaoSel"); if(vs) vs.textContent = VERSAO;
+  const vl=$("#versaoLogin"); if(vl) vl.textContent = "IDente " + VERSAO;
 }
 $("#demoHint").innerHTML = "<b>Acessos de demonstração</b><br>"+
   USUARIOS_SEED.map(u=>`${u.email} · senha <b>${u.senha}</b> — ${PERFIS[u.perfil].rotulo}`).join("<br>");
@@ -7821,7 +7951,11 @@ $("#novoBtn").addEventListener("click", ()=>{
     'ele já vê a solicitação no painel dele.</div>';
   ["inNovoNome","inNovoEmail","inNovoSenha"].forEach(i=>document.getElementById(i).value="");
 });
-$("#sairBtn").addEventListener("click", ()=>{
+/* Trocar de usuário é sair e entrar de novo — a diferença é que a
+   pessoa NÃO precisa fechar nada: volta para o login com o campo pronto.
+   O botão existe porque "⏻ Sair" é lido como "fechar o sistema", e quem
+   só queria ver outro perfil não clicava. */
+function encerrarSessao(trocar){
   pararAssistente(); pararEscuta(); if(TTS) TTS.cancel();
   usuario=null; pacAberto=null; sairDaEdicao();
   try{ sessionStorage.removeItem("md-user"); }catch(e){}
@@ -7834,8 +7968,15 @@ $("#sairBtn").addEventListener("click", ()=>{
   }
   $("#appRoot").hidden=true; $("#loginScreen").hidden=false;
   $("#inSenha").value=""; $("#inUser").value="";
+  if(trocar){
+    toast("Entre com o outro usuário.");
+    setTimeout(()=>{ const u=$("#inUser"); if(u) u.focus(); }, 80);
+  }
+}
+$("#trocarBtn").addEventListener("click", ()=>encerrarSessao(true));
+$("#sairBtn").addEventListener("click", ()=>{
+  encerrarSessao(false);
 });
-
 function aplicarPermissoes(){
   const P=PERFIS[usuario.perfil];
   $("#userChip").hidden=false;
@@ -7847,6 +7988,8 @@ function aplicarPermissoes(){
   $$(".tab").forEach(t=>{ const ok=P.telas.includes(t.dataset.scr); t.hidden=!ok; if(ok&&!primeira) primeira=t; });
   document.querySelector(".tabs .inner").style.setProperty("--tabs", P.telas.length);
   if(primeira) primeira.click();
+  const bnp = $("#novoPacBtn"); if(bnp) bnp.hidden = !P.cadastro;
+  const bnc = $("#novaConsultaBtn"); if(bnc) bnc.hidden = !P.atender;
   $("#saveAtend").disabled=!P.atender;
   $("#saveAtend").textContent = P.atender ? "Registrar atendimento" : "Somente o dentista registra atendimento";
 
@@ -7867,6 +8010,10 @@ $$("#pacFiltro button").forEach(b=>b.addEventListener("click", ()=>{
   pacPor = b.dataset.por; pacAberto = null; renderPacientes();
 }));
 $("#novaConsultaBtn").addEventListener("click", ()=>novaConsulta(pacAberto));
+$("#novoPacBtn").addEventListener("click", ()=>{
+  if(!pode("cadastro")){ toast("Seu perfil não cadastra paciente."); return; }
+  editarPaciente(null);
+});
 $("#themeBtn").addEventListener("click", ()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const dark = cur ? cur==="dark" : matchMedia("(prefers-color-scheme: dark)").matches;
@@ -8658,6 +8805,36 @@ function htmlPrecos(){
   const procs = (S.precoProc||[]).filter(x=>x.dentista_id===alvo);
 
   return `
+    <details class="comofunc" open><summary>Como estes valores viram a cobrança</summary>
+      <div class="corpo">
+        <p style="margin:0 0 8px">São duas formas de precificar, e o sistema escolhe sozinho
+          qual usar em cada atendimento:</p>
+        <ol>
+          <li><b>Valor da hora</b> — usado quando o procedimento <u>não</u> tem preço fechado.
+            O sistema multiplica pela duração real do atendimento, minuto a minuto.</li>
+          <li><b>Preço fechado por procedimento</b> — quando o procedimento está nesta lista,
+            vale este valor e a hora é ignorada, não importa se levou 20 ou 80 minutos.</li>
+        </ol>
+        <p style="margin:0 0 8px">A regra é só esta: <b>tem preço fechado → usa o preço fechado;
+          não tem → usa duração × valor da hora</b>. Os materiais do estoque entram somados por
+          cima, nos dois casos.</p>
+        <div class="ex"><b>Exemplo 1 — pela hora</b>
+          <p>Valor da hora R$ 300,00. Atendimento de <b>50 min</b> → 50 ÷ 60 × 300 =
+            <b>R$ 250,00</b> de serviço.</p>
+          <p>Mais 1 tubete de anestésico a R$ 4,20 → cobrança de <b>R$ 254,20</b>.</p>
+        </div>
+        <div class="ex"><b>Exemplo 2 — preço fechado</b>
+          <p>Cadastrando <b>Raspagem por sextante = R$ 220,00</b>: toda raspagem fecha em
+            R$ 220,00, tenha durado 30 ou 70 minutos. A hora não entra.</p>
+        </div>
+        <div class="ex"><b>Deixar a hora em branco</b>
+          <p>O serviço entra como <b>sem preço</b> na conferência da cobrança — nunca como
+            R$ 0,00. É proposital: zero some no relatório, "sem preço" aparece e cobra
+            uma decisão sua.</p>
+        </div>
+      </div>
+    </details>
+
     ${pode("soMinhas") ? `<div class="stage">Esta é a <b>sua</b> tabela. Cada dentista
       monta a dele, e nenhum vê a do outro.</div>`
     : ds.length>1 ? `<div class="field" style="margin-bottom:12px">
