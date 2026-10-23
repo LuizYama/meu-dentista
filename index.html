@@ -280,6 +280,36 @@ a{color:var(--accent)}
    quando o arquivo é aberto direto. */
 [hidden]{display:none!important}
 
+/* ---------- tabela editável em tela estreita ----------
+   A tabela de taxas tem 11 colunas e os campos editáveis ficam nas
+   últimas. Medido num celular de 390 px: a tabela ocupa 988 px dentro
+   de uma caixa de 358, e o primeiro campo nasce a 626 px — 268 px fora
+   da tela. Quem abre essa tela no celular vê os rótulos, não alcança
+   nenhum campo, e conclui, com razão, que não dá para lançar taxa.
+   Abaixo de 900 px cada regra passa a ser um cartão com os campos
+   empilhados e rotulados. */
+@media (max-width: 900px){
+  .tab-edit, .tab-edit thead, .tab-edit tbody, .tab-edit tr, .tab-edit td{display:block;width:auto}
+  .tab-edit thead{display:none}
+  .tab-edit{min-width:0}
+  .tab-edit tbody tr{background:var(--surface-2);border:1px solid var(--line);
+    border-radius:var(--r-sm);padding:10px 12px;margin-bottom:10px}
+  .tab-edit tbody td{border:0;padding:4px 0;display:flex;align-items:center;gap:10px;
+    text-align:left!important;min-height:30px}
+  .tab-edit tbody td::before{content:attr(data-rot);flex:0 0 118px;font-size:11px;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:600}
+  .tab-edit tbody td:empty{display:none}
+  .tab-edit tbody td[data-rot=""]::before{display:none}
+  .tab-edit tbody td input, .tab-edit tbody td select{flex:1 1 auto;max-width:none!important;
+    width:auto!important;min-width:0}
+  .tab-edit tbody td.destaque{border-bottom:1px solid var(--line);margin-bottom:6px;
+    padding-bottom:8px;font-size:15px}
+  .tab-edit tbody td.acoes{justify-content:flex-start;gap:8px;padding-top:9px;
+    border-top:1px solid var(--line);margin-top:6px}
+  .tab-edit tbody td.acoes::before{display:none}
+  .rolar:has(.tab-edit){overflow:visible}
+}
+
 .login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px 16px;overflow:auto;
   background:
     radial-gradient(1000px 520px at 50% -10%, var(--accent-soft), transparent 70%),
@@ -1177,7 +1207,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v33 · 23/10/2026";
+const VERSAO = "v34 · 23/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -1628,19 +1658,35 @@ const DB = {
         "banco,bandeiras,numero_serie,ativa,padrao&order=apelido");
     }catch(e){ S.maquininhas = null; }
 
-    S.taxas=null; S.fluxo=null; S.parcelas=null;
+    S.taxas=null; S.fluxo=null; S.parcelas=null; S.falhouFluxo=null;
     if(!pode("projecao")) return;
-    try{
-      const [tx, fx, pr] = await Promise.all([
-        DB.rest("GET","taxas_adquirente?select=id,adquirente,maquininha_id,bandeira,forma,"+
-          "parcelas_min,parcelas_max,taxa_pct,taxa_antecip_pct,taxa_fixa,prazo_dias,ativa"+
-          "&order=forma,parcelas_min"),
-        DB.rest("GET","vw_fluxo_caixa?select=mes,bruto,taxas,liquido,recebido,previsto,parcelas,atrasadas&order=mes"),
-        DB.rest("GET","parcelas_recebimento?select=id,pagamento_id,numero,total,valor_bruto,taxa,"+
-          "valor_liquido,previsao_credito,recebido_em,conciliado&order=previsao_credito")
-      ]);
-      S.taxas=tx; S.fluxo=fx; S.parcelas=pr;
-    }catch(e){ S.taxas=null; S.fluxo=null; S.parcelas=null; }
+
+    /* Antes isto era um Promise.all dentro de um try só: se UMA das três
+       consultas falhasse, o catch zerava as três. A tela do Financeiro
+       então mostrava R$ 0,00 em tudo — indistinguível de "não entrou
+       dinheiro nenhum". Erro de carga não pode ter a mesma cara que
+       caixa vazio. Agora cada uma cai sozinha, e a que cair fica
+       registrada para a tela poder dizer o que falhou. */
+    const buscar = async (rotulo, caminho) => {
+      try{ return await DB.rest("GET", caminho); }
+      catch(e){
+        S.falhouFluxo = S.falhouFluxo || [];
+        S.falhouFluxo.push({rotulo, motivo: (e && e.message) || "falha de rede"});
+        return null;
+      }
+    };
+    const [tx, fx, pr] = await Promise.all([
+      buscar("taxas da maquininha",
+        "taxas_adquirente?select=id,adquirente,maquininha_id,bandeira,forma,"+
+        "parcelas_min,parcelas_max,taxa_pct,taxa_antecip_pct,taxa_fixa,prazo_dias,ativa"+
+        "&order=forma,parcelas_min"),
+      buscar("fluxo de caixa",
+        "vw_fluxo_caixa?select=mes,bruto,taxas,liquido,recebido,previsto,parcelas,atrasadas&order=mes"),
+      buscar("parcelas a receber",
+        "parcelas_recebimento?select=id,pagamento_id,numero,total,valor_bruto,taxa,"+
+        "valor_liquido,previsao_credito,recebido_em,conciliado&order=previsao_credito")
+    ]);
+    S.taxas=tx; S.fluxo=fx; S.parcelas=pr;
   },
 
   async gravarCobranca(d){
@@ -5630,8 +5676,29 @@ function editarPaciente(id){
   const p = novo ? {id:"p"+Date.now(), nome:"", nasc:"", sexo:"", cpf:"", tel:"", email:"", obs:""}
                  : pacById(id);
   if(!p) return;
-  const clinico=pode("verClinico"), card=$("#pacCard");
-  if(novo){ pacAberto = null; $("#pacDetail").hidden = false; }
+  const clinico=pode("verClinico");
+
+  /* #pacCard só existe dentro da ficha de um paciente ABERTO, e paciente
+     novo não tem ficha para abrir. Antes disso, "+ Novo paciente" vindo
+     da lista achava card = null, estourava em card.innerHTML e o
+     formulário nunca aparecia: para a secretária, o botão simplesmente
+     não fazia nada. O caso novo monta o seu próprio container. */
+  if(novo){
+    pacAberto = null;
+    const d = $("#pacDetail"); d.hidden = false;
+    if($("#pacBusca")) $("#pacBusca").hidden = true;
+    if($("#pacList2")) $("#pacList2").hidden = true;
+    d.innerHTML = `
+      <div class="ficha-topo">
+        <button class="backlink" id="voltarPac">← Todos os pacientes</button>
+      </div>
+      <div class="ficha" style="margin-top:8px">
+        <div class="card" id="pacCard"></div>
+      </div>`;
+    $("#voltarPac").addEventListener("click", ()=>{ pacAberto=null; renderPacientes(); });
+  }
+  const card = $("#pacCard");
+  if(!card) return;
   const esc=v=>(v||"").replace(/"/g,"&quot;");
   card.innerHTML=`
     <div class="eyebrow">${novo?"Cadastrar paciente":"Editando ficha do paciente"}</div>
@@ -7206,6 +7273,33 @@ const nomeMes = iso => {
     .toLocaleDateString("pt-BR",{month:"short",year:"numeric"}).replace(".","");
 };
 
+/* "Quando lanço um pagamento ele vai automaticamente para o
+   financeiro?" — a pergunta do Dr. Leonardo, depois de lançar PIX e
+   crédito e achar que o valor não refletiu. Ia, sim: o PIX caiu em
+   Total recebido no mesmo dia, e o crédito foi para A receber, porque a
+   adquirente paga em 30, 60 e 90 dias. Os dois números estavam na tela;
+   o que faltava era alguém dizer qual é qual. Agora o próprio
+   lançamento diz, no momento em que a dúvida nasce. */
+function destinoDoPagamento(pagId){
+  const ps = (S.parcelas||[]).filter(x=>x.pagamento_id===pagId);
+  if(!ps.length) return "Já está no Financeiro.";
+  const recebidas = ps.filter(x=>x.recebido_em || x.recebido);
+  const aReceber  = ps.filter(x=>!(x.recebido_em || x.recebido));
+  const soma = l => cent(l.reduce((a,x)=>a+Number(x.valor_liquido||0),0));
+
+  if(!aReceber.length)
+    return "Entrou em Total recebido de "+nomeMes(hojeISO().slice(0,7)+"-01")+".";
+
+  const prim = aReceber.slice().sort((a,b)=>
+    String(a.previsao_credito).localeCompare(String(b.previsao_credito)))[0];
+  const quando = prim && prim.previsao_credito ? fmtData(prim.previsao_credito) : null;
+  const partes = [];
+  if(recebidas.length) partes.push(fmtBRL(soma(recebidas))+" em Total recebido");
+  partes.push(fmtBRL(soma(aReceber))+" em A receber"+(quando?", a partir de "+quando:""));
+  return partes.join(" e ")+". Dinheiro de cartão só entra em Total recebido quando a "+
+         "adquirente paga.";
+}
+
 function renderFinanceiro(){
   const alvo = $("#finPainel"); if(!alvo) return;
   $$("#finAbas button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.fin===finAba)));
@@ -7253,13 +7347,24 @@ function htmlFluxo(){
   const totalTaxas = cent(meses.reduce((a,m)=>a+m.taxas,0));
   const topo = Math.max(...meses.map(m=>m.liquido), 1);
   return `
+    ${(S.falhouFluxo && S.falhouFluxo.length) ? `<div class="banner">
+      <b>Não consegui carregar ${S.falhouFluxo.map(f=>f.rotulo).join(" e ")}.</b>
+      <p>Os números abaixo estão incompletos — não leia como caixa vazio. Recarregue a
+      página; se continuar, me diga esta mensagem: ${
+        S.falhouFluxo.map(f=>f.motivo).join(" · ")}</p></div>` : ""}
     <div class="tiles q4">
       <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>total recebido no mês</span></div>
       <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>aguardando pagamento</span></div>
       <div class="tile"><b>${fmtBRL(aReceber)}</b><span>a receber (${futuros.length} meses)</span></div>
       <div class="tile ${atrasadas?"crit":"warn"}"><b>${atrasadas||"—"}</b><span>parcelas atrasadas</span></div>
     </div>
-    <div class="stage" style="margin-top:10px">Taxa de maquininha no período:
+    <div class="stage" style="margin-top:10px"><b>Onde cada pagamento aparece:</b>
+      PIX, dinheiro e débito entram em <b>Total recebido</b> no dia. Cartão de crédito
+      entra em <b>A receber</b> e só migra para Total recebido quando a adquirente paga —
+      à vista em 30 dias, parcelado de 30 em 30. Um crédito de R$ 1.000,00 em 3× lançado
+      hoje não aparece em Total recebido deste mês: aparece em A receber, dividido nos
+      três meses seguintes.</div>
+    <div class="stage" style="margin-top:8px">Taxa de maquininha no período:
       <b>${fmtBRL(totalTaxas)}</b>. É dinheiro que foi faturado e não entra —
       vale conferir contra o extrato da adquirente e corrigir a tabela de taxas.</div>
     <div class="sec-h" style="margin-top:14px"><h2>Previsão mês a mês</h2>
@@ -7498,17 +7603,17 @@ function htmlTaxas(){
       <button class="btn" id="maqNova">+ Nova maquininha</button>
     </div>
     <div class="card" id="maqCard" ${maqForm?"":"hidden"}>${maqForm?formMaquininhaHtml(maqForm):""}</div>
-    ${maqs.length ? `<div class="card rolar" style="margin-top:8px"><table class="tab-rel">
+    ${maqs.length ? `<div class="card rolar" style="margin-top:8px"><table class="tab-rel tab-edit">
       <thead><tr><th>Apelido</th><th>Marca / banco</th><th>Modelo</th><th>Bandeiras</th>
         <th>Série</th><th class="n">Regras</th><th class="naoimprime">&nbsp;</th></tr></thead>
       <tbody>${maqs.map(m=>`<tr${m.ativa===false?' style="opacity:.5"':""}>
-        <td><b>${m.apelido}</b>${m.padrao?' <span class="pill neutral">padrão</span>':""}</td>
-        <td>${m.marca||'<span class="vaga">—</span>'}${m.banco&&m.banco!==m.marca?" · "+m.banco:""}</td>
-        <td>${m.modelo||'<span class="vaga">—</span>'}</td>
-        <td>${(m.bandeiras&&m.bandeiras.length)?m.bandeiras.join(", "):'<span class="vaga">todas</span>'}</td>
-        <td class="mono">${m.numero_serie||'<span class="vaga">—</span>'}</td>
-        <td class="n">${t.filter(x=>x.maquininha_id===m.id).length}</td>
-        <td class="naoimprime"><button class="minibtn" data-maqed="${m.id}">Editar</button></td>
+        <td class="destaque" data-rot=""><b>${m.apelido}</b>${m.padrao?' <span class="pill neutral">padrão</span>':""}</td>
+        <td data-rot="Marca / banco">${m.marca||'<span class="vaga">—</span>'}${m.banco&&m.banco!==m.marca?" · "+m.banco:""}</td>
+        <td data-rot="Modelo">${m.modelo||'<span class="vaga">—</span>'}</td>
+        <td data-rot="Bandeiras">${(m.bandeiras&&m.bandeiras.length)?m.bandeiras.join(", "):'<span class="vaga">todas</span>'}</td>
+        <td class="mono" data-rot="Série">${m.numero_serie||'<span class="vaga">—</span>'}</td>
+        <td class="n" data-rot="Regras">${t.filter(x=>x.maquininha_id===m.id).length}</td>
+        <td class="naoimprime acoes"><button class="minibtn" data-maqed="${m.id}">Editar</button></td>
       </tr>`).join("")}</tbody></table></div>`
       : `<div class="empty">Nenhuma maquininha cadastrada. Sem ela o sistema usa a tabela
          padrão da clínica para todas as vendas.</div>`}
@@ -7518,9 +7623,9 @@ function htmlTaxas(){
     <div class="row naoimprime" style="margin-bottom:8px">
       <button class="btn" id="taxaNovaBtn">+ Nova linha de taxa</button>
     </div>
-    <div class="card rolar"><table class="tab-rel">
-      <thead><tr><th>Maquininha</th><th>Marca / banco</th><th>Modelo</th><th>Bandeira</th>
-        <th>Forma</th><th>Parcelas</th><th class="n">Taxa %</th>
+    <div class="card rolar"><table class="tab-rel tab-edit">
+      <thead><tr><th>Forma · parcelas</th><th>Maquininha</th><th>Marca / banco</th>
+        <th>Modelo</th><th>Bandeira</th><th class="n">Taxa %</th>
         <th class="n">Antecipado %</th><th class="n">Fixa R$</th><th class="n">Prazo</th>
         <th class="naoimprime">&nbsp;</th></tr></thead>
       <tbody>
@@ -7528,24 +7633,23 @@ function htmlTaxas(){
       ${ordem.map(x=>{
         const m = maquininhaPor(x.maquininha_id);
         return `<tr data-taxa="${x.id}">
-        <td class="naoimprime-nao"><select class="taxsel" data-c="maquininha_id"
+        <td class="destaque" data-rot=""><b>${ROTULO_FORMA[x.forma]||x.forma}</b> · ${faixa(x)}</td>
+        <td class="naoimprime-nao" data-rot="Maquininha"><select class="taxsel" data-c="maquininha_id"
             style="max-width:130px">${opcoesMaq(x.maquininha_id||"")}</select></td>
-        <td>${m ? (m.marca||"")+(m.banco&&m.banco!==m.marca?" · "+m.banco:"") : '<span class="vaga">—</span>'}</td>
-        <td>${m ? (m.modelo||'<span class="vaga">—</span>') : '<span class="vaga">—</span>'}</td>
-        <td><select class="taxsel" data-c="bandeira" style="max-width:104px">${opcoesBand(x.bandeira||"")}</select></td>
-        <td><b>${ROTULO_FORMA[x.forma]||x.forma}</b></td>
-        <td>${faixa(x)}</td>
-        <td class="n"><input class="taxin" data-c="taxa_pct" inputmode="decimal"
+        <td data-rot="Marca / banco">${m ? (m.marca||"")+(m.banco&&m.banco!==m.marca?" · "+m.banco:"") : '<span class="vaga">—</span>'}</td>
+        <td data-rot="Modelo">${m ? (m.modelo||'<span class="vaga">—</span>') : '<span class="vaga">—</span>'}</td>
+        <td data-rot="Bandeira"><select class="taxsel" data-c="bandeira" style="max-width:104px">${opcoesBand(x.bandeira||"")}</select></td>
+        <td class="n" data-rot="Taxa %"><input class="taxin" data-c="taxa_pct" inputmode="decimal"
           value="${Number(x.taxa_pct).toLocaleString("pt-BR")}"></td>
-        <td class="n">${x.taxa_antecip_pct===null||x.taxa_antecip_pct===undefined
+        <td class="n" data-rot="Antecipado %">${x.taxa_antecip_pct===null||x.taxa_antecip_pct===undefined
           ? '<span class="vaga">não antecipa</span>'
           : `<input class="taxin" data-c="taxa_antecip_pct" inputmode="decimal"
              value="${Number(x.taxa_antecip_pct).toLocaleString("pt-BR")}">`}</td>
-        <td class="n"><input class="taxin" data-c="taxa_fixa" inputmode="decimal"
+        <td class="n" data-rot="Fixa R$"><input class="taxin" data-c="taxa_fixa" inputmode="decimal"
           value="${Number(x.taxa_fixa).toLocaleString("pt-BR")}"></td>
-        <td class="n"><input class="taxin" data-c="prazo_dias" inputmode="numeric"
+        <td class="n" data-rot="Prazo (dias)"><input class="taxin" data-c="prazo_dias" inputmode="numeric"
           style="width:48px" value="${x.prazo_dias}"></td>
-        <td class="naoimprime"><button class="minibtn" data-salvar="${x.id}">Salvar</button>${
+        <td class="naoimprime acoes"><button class="minibtn" data-salvar="${x.id}">Salvar</button>${
           x.maquininha_id?` <button class="minibtn" data-apagar="${x.id}">Excluir</button>`:""}</td>
       </tr>`;}).join("")}</tbody></table></div>
     <div class="stage">A linha mais específica manda: máquina <b>e</b> bandeira ganha de
@@ -7557,18 +7661,22 @@ function htmlTaxas(){
 
 function linhaTaxaNova(opcoesMaq, opcoesBand){
   return `<tr id="trTaxaNova" style="background:var(--accent-soft)">
-    <td><select class="taxnv" data-c="maquininha_id" style="max-width:130px">${opcoesMaq("")}</select></td>
-    <td colspan="2"><span class="hint">marca e modelo vêm do cadastro</span></td>
-    <td><select class="taxnv" data-c="bandeira" style="max-width:104px">${opcoesBand("")}</select></td>
-    <td><select class="taxnv" data-c="forma" style="max-width:118px">${
-      FORMAS.map(([v,r])=>`<option value="${v}"${v==="credito"?" selected":""}>${r}</option>`).join("")}</select></td>
-    <td><input class="taxnv" data-c="parcelas_min" inputmode="numeric" style="width:34px" value="1">
-        <input class="taxnv" data-c="parcelas_max" inputmode="numeric" style="width:34px" value="1"></td>
-    <td class="n"><input class="taxnv" data-c="taxa_pct" inputmode="decimal" style="width:60px" value="0"></td>
-    <td class="n"><input class="taxnv" data-c="taxa_antecip_pct" inputmode="decimal" style="width:60px" placeholder="—"></td>
-    <td class="n"><input class="taxnv" data-c="taxa_fixa" inputmode="decimal" style="width:54px" value="0"></td>
-    <td class="n"><input class="taxnv" data-c="prazo_dias" inputmode="numeric" style="width:44px" value="30"></td>
-    <td class="naoimprime"><button class="minibtn" id="taxaNvSalvar">Criar</button>
+    <td class="destaque" data-rot="Forma">
+      <select class="taxnv" data-c="forma" style="max-width:118px">${
+        FORMAS.map(([v,r])=>`<option value="${v}"${v==="credito"?" selected":""}>${r}</option>`).join("")}</select>
+      <span class="hint" style="margin-left:6px">de</span>
+      <input class="taxnv" data-c="parcelas_min" inputmode="numeric" style="width:38px" value="1">
+      <span class="hint">a</span>
+      <input class="taxnv" data-c="parcelas_max" inputmode="numeric" style="width:38px" value="1">
+      <span class="hint">×</span></td>
+    <td data-rot="Maquininha"><select class="taxnv" data-c="maquininha_id" style="max-width:130px">${opcoesMaq("")}</select></td>
+    <td colspan="2" data-rot=""><span class="hint">marca e modelo vêm do cadastro</span></td>
+    <td data-rot="Bandeira"><select class="taxnv" data-c="bandeira" style="max-width:104px">${opcoesBand("")}</select></td>
+    <td class="n" data-rot="Taxa %"><input class="taxnv" data-c="taxa_pct" inputmode="decimal" style="width:60px" value="0"></td>
+    <td class="n" data-rot="Antecipado %"><input class="taxnv" data-c="taxa_antecip_pct" inputmode="decimal" style="width:60px" placeholder="—"></td>
+    <td class="n" data-rot="Fixa R$"><input class="taxnv" data-c="taxa_fixa" inputmode="decimal" style="width:54px" value="0"></td>
+    <td class="n" data-rot="Prazo (dias)"><input class="taxnv" data-c="prazo_dias" inputmode="numeric" style="width:44px" value="30"></td>
+    <td class="naoimprime acoes"><button class="minibtn" id="taxaNvSalvar">Criar</button>
       <button class="minibtn" id="taxaNvCancelar">Cancelar</button></td></tr>`;
 }
 
@@ -8495,9 +8603,10 @@ function formPagamento(pacId, cobId){
       nsu: $("#pgNsu").value.trim()||null,
       taxa: $("#pgTaxa") && $("#pgTaxa").value.trim()!=="" ? numBR($("#pgTaxa").value) : null,
       obs: $("#pgObs").value.trim()||null, dia:$("#pgData").value};
+    let novoPagId = null;
     if(MODO==="nuvem"){
       const ok = await naNuvem(async ()=>{
-        await DB.gravarPagamento(d); await DB.carregarCaixa();
+        novoPagId = await DB.gravarPagamento(d); await DB.carregarCaixa();
       }, "pagamento");
       if(!ok) return;
     }else{
@@ -8514,9 +8623,10 @@ function formPagamento(pacId, cobId){
       pr.parcelas.forEach(x=>S.parcelas.push({id:id+"-"+x.numero, pagamento_id:id, ...x,
         recebido_em: x.recebido ? d.dia : null, conciliado: x.recebido}));
       save();
+      novoPagId = id;
     }
     c.hidden=true; renderCaixa(pacId); renderFinanceiro();
-    toast("Pagamento de "+fmtBRL(v)+" registrado.");
+    toast("Pagamento de "+fmtBRL(v)+" registrado. "+destinoDoPagamento(novoPagId));
   });
 }
 
@@ -8840,6 +8950,18 @@ function htmlPrecos(){
           <p>Cadastrando <b>Raspagem por sextante = R$ 220,00</b>: toda raspagem fecha em
             R$ 220,00, tenha durado 30 ou 70 minutos. A hora não entra.</p>
         </div>
+        <div class="ex"><b>Onde o paciente entra</b>
+          <p>Em lugar nenhum desta tela — e isso é de propósito. Aqui é a <b>tabela de
+            preço da clínica</b>, não a cobrança de alguém: cadastra-se o procedimento
+            uma vez e ele vale para todos os pacientes.</p>
+          <p>O paciente aparece depois, na <b>ficha dele</b>: ao registrar o atendimento
+            e tocar em <b>Lançar cobrança</b>, o sistema já traz o preço daqui preenchido,
+            com o nome do paciente e os materiais usados. É ali que preço e paciente se
+            encontram.</p>
+          <p>Se um paciente tiver preço diferente do da tabela — desconto, acordo, pacote
+            — você muda o valor na própria cobrança dele. A tabela continua intacta para
+            os outros.</p>
+        </div>
         <div class="ex"><b>Deixar a hora em branco</b>
           <p>O serviço entra como <b>sem preço</b> na conferência da cobrança — nunca como
             R$ 0,00. É proposital: zero some no relatório, "sem preço" aparece e cobra
@@ -8876,6 +8998,10 @@ function htmlPrecos(){
 
     <div class="sec-h" style="margin-top:14px"><h2>Preço fechado por procedimento</h2>
       <span class="hint">${procs.length} cadastrado(s) · ignora a hora</span></div>
+    <div class="stage" style="margin-bottom:8px">Esta lista vale para <b>todos os
+      pacientes</b> — não se vincula paciente aqui. O nome do paciente entra na ficha
+      dele, em <b>Lançar cobrança</b>, onde este preço já chega preenchido e pode ser
+      ajustado caso a caso.</div>
     <div class="card rolar"><table class="tab-rel">
       <thead><tr><th>Procedimento</th><th class="n">Valor</th>
         ${edita?'<th class="naoimprime">&nbsp;</th>':""}</tr></thead>
