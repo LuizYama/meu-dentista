@@ -23,25 +23,41 @@
      O ouro é ACENTO, não cor de ação: em tela, dourado sobre claro tem
      contraste ruim demais para botão e para texto corrido. Ele marca o
      que é da marca — a assinatura e o filete — e nada mais. */
-  --marca:#274156;
-  --marca-escura:#1B2D3C;
+  /* O cliente pediu LOGO DOURADO e FUNDO PASTEL. O ouro puro da marca
+     (#B8912F) reprova em tela: medido, dá 2,95 sobre branco e 2,69
+     sobre o pastel — abaixo do mínimo de 3,0 para elemento gráfico, e
+     o dente viraria uma mancha amarela lavada. O ouro ESCURO do relevo
+     da fachada (#7B5803), que já está na identidade, é dourado de
+     verdade e mede 6,48 sobre branco e 5,91 sobre o pastel. É ele que
+     desenha a marca. O #B8912F fica só no filete fino, que é
+     decoração e não informação. */
+  --marca:#7B5803;
+  --marca-escura:#5A4002;
   --ouro:#B8912F;
   --ouro-claro:#DDC99C;
 
-  --ground:#F4F4F3;
-  --shell:#E8E8E7;
+  /* Pastel quente, da mesma família do ouro — não um cinza com um
+     pingo de cor. O cartão continua branco para o conteúdo saltar do
+     fundo; o pastel é o papel, não a folha. */
+  --ground:#F8F4EC;
+  --shell:#F1EADE;
   --surface:#FFFFFF;
-  --surface-2:#F3F4F5;
+  --surface-2:#F7F3EA;
   --ink:#121212;        /* o preto do nome no logo */
   --ink-2:#4B5661;
-  --ink-3:#848D96;
-  --line:#DFE1E3;
-  --line-2:#C6CBD0;
+  /* escurecido de #848D96: sobre o pastel da lateral o tom antigo caía
+     para 2,79 e o texto auxiliar sumia */
+  --ink-3:#7C848D;
+  --line:#E6DFD1;
+  --line-2:#D2C9B8;
   --accent:#274156;
   --accent-2:#355873;
   --accent-ink:#FFFFFF;
   --accent-soft:#DFE6EC;
   --ok:#1C7048;        --ok-soft:#DCEFE4;
+  /* laranja de atraso: separado do amarelo de "bloqueado" para que as
+     duas situações não se confundam num relance */
+  --atraso:#9A4A12;    --atraso-soft:#FBE4D3;
   --warn:#8A6410;      --warn-soft:#F6EAD1;
   --crit:#A3281F;      --crit-soft:#F7DEDB;
   --shadow-sm:0 1px 2px rgba(18,24,30,.05);
@@ -60,12 +76,14 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --marca:#8FB3CC; --marca-escura:#101A22; --ouro:#D7B45C; --ouro-claro:#EADCB8;
-    --ground:#111A21; --shell:#0A1116; --surface:#18232C; --surface-2:#1F2D38;
-    --ink:#ECEFF1; --ink-2:#AEBCC7; --ink-3:#7E8D99;
-    --line:#26323C; --line-2:#364653;
+    /* no escuro o ouro pode ser claro: #E3C372 mede 10,8 sobre o fundo */
+    --marca:#E3C372; --marca-escura:#2A2110; --ouro:#D7B45C; --ouro-claro:#EADCB8;
+    --ground:#17150F; --shell:#0F0E0A; --surface:#211D15; --surface-2:#2A251B;
+    --ink:#F3F0E8; --ink-2:#C5BEAD; --ink-3:#938C7C;
+    --line:#332E22; --line-2:#463F2F;
     --accent:#8FB3CC; --accent-2:#A9C8DD; --accent-ink:#0A1116; --accent-soft:#1C2E3C;
     --ok:#6FC79A; --ok-soft:#12301F; --warn:#DFBB6B; --warn-soft:#33280F;
+    --atraso:#F0A06A; --atraso-soft:#3A2113;
     --crit:#EE8B82; --crit-soft:#3A1B18;
     --shadow-sm:0 1px 2px rgba(0,0,0,.4);
     --shadow:0 2px 6px rgba(0,0,0,.45), 0 14px 30px -20px rgba(0,0,0,.9);
@@ -73,12 +91,13 @@
   }
 }
 :root[data-theme="dark"]{
-  --marca:#8FB3CC; --marca-escura:#101A22; --ouro:#D7B45C; --ouro-claro:#EADCB8;
-  --ground:#111A21; --shell:#0A1116; --surface:#18232C; --surface-2:#1F2D38;
-  --ink:#ECEFF1; --ink-2:#AEBCC7; --ink-3:#7E8D99;
-  --line:#26323C; --line-2:#364653;
+  --marca:#E3C372; --marca-escura:#2A2110; --ouro:#D7B45C; --ouro-claro:#EADCB8;
+  --ground:#17150F; --shell:#0F0E0A; --surface:#211D15; --surface-2:#2A251B;
+  --ink:#F3F0E8; --ink-2:#C5BEAD; --ink-3:#938C7C;
+  --line:#332E22; --line-2:#463F2F;
   --accent:#8FB3CC; --accent-2:#A9C8DD; --accent-ink:#0A1116; --accent-soft:#1C2E3C;
   --ok:#6FC79A; --ok-soft:#12301F; --warn:#DFBB6B; --warn-soft:#33280F;
+  --atraso:#F0A06A; --atraso-soft:#3A2113;
   --crit:#EE8B82; --crit-soft:#3A1B18;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);
   --shadow:0 2px 6px rgba(0,0,0,.45), 0 14px 30px -20px rgba(0,0,0,.9);
@@ -545,6 +564,37 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
    rótulos encavalavam uns nos outros ("MASTERCARD" por cima de "HIPER")
    e virava borrão. Grade de largura fixa resolve, e de quebra dá alvo
    de toque de verdade no celular, que é onde isso é preenchido. */
+/* ---------- sugestão de kit do procedimento ---------- */
+.sugestao-kit{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;
+  background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;margin-bottom:10px}
+.sugestao-kit b{display:block;font-size:12.5px;color:var(--ink)}
+.sugestao-kit span{display:block;font-size:11.5px;color:var(--ink-2);margin-top:2px;line-height:1.45}
+.sugestao-kit .row{flex:0 0 auto;gap:6px}
+input.travado{background:var(--surface-2);color:var(--ink-3);cursor:default}
+
+/* ---------- busca de material na ficha ----------
+   Eram 40 e poucos itens numa lista suspensa: no celular vira rolagem
+   cega, e o dentista com luva não acha "parafuso de cobertura" rolando.
+   Digitar três letras é mais rápido do que qualquer lista. */
+.busca-mat{position:relative}
+.oculto-visual{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
+  clip-path:inset(50%);white-space:nowrap}
+.resultado-mat{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-sm);
+  box-shadow:var(--shadow);max-height:300px;overflow:auto}
+.resultado-mat button{display:flex;width:100%;gap:10px;align-items:baseline;text-align:left;
+  padding:10px 12px;border:0;background:transparent;cursor:pointer;font-family:inherit;
+  font-size:13.5px;color:var(--ink);border-bottom:1px solid var(--line)}
+.resultado-mat button:last-child{border-bottom:0}
+.resultado-mat button:hover,.resultado-mat button[aria-selected="true"]{background:var(--accent-soft)}
+.resultado-mat button b{font-weight:600;flex:1 1 auto;min-width:0}
+.resultado-mat button .saldo{flex:0 0 auto;font-size:11.5px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums}
+.resultado-mat button .saldo.zero{color:var(--crit)}
+.resultado-mat .nada{padding:11px 12px;font-size:12.5px;color:var(--ink-3)}
+.resultado-mat mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
+
 .band-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
 .band-grid label{display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer;
   border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--surface);
@@ -1013,9 +1063,17 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
           <div>
             <div class="sec-h" style="padding:0 0 4px"><h2 style="font-size:13px">Materiais utilizados</h2>
               <span class="hint" id="matHint">baixa automática no estoque</span></div>
+            <div class="stage" style="margin-bottom:8px">Usou algo que não está no estoque?
+              Digite o nome na busca abaixo e escolha <b>“lançar mesmo assim”</b> — entra na
+              ficha e na cobrança, sem mexer no saldo.</div>
+            <div id="kitSugestao" hidden></div>
             <div id="matList"></div>
-            <div class="field" style="margin-top:10px">
-              <select id="addMat"><option value="">+ adicionar material do estoque…</option></select>
+            <div class="field busca-mat" style="margin-top:10px">
+              <label for="matBusca" class="oculto-visual">Procurar material</label>
+              <input id="matBusca" type="search" autocomplete="off" role="combobox"
+                aria-expanded="false" aria-controls="matResult"
+                placeholder="+ adicionar material — digite para procurar">
+              <div id="matResult" class="resultado-mat" role="listbox" hidden></div>
             </div>
           </div>
 
@@ -1056,7 +1114,8 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 
       <div class="row" id="estoqueAcoes" hidden>
         <button class="btn primary" id="novaEntradaBtn">+ Entrada por nota fiscal</button>
-        <button class="btn" id="novoMatBtn">+ Material novo</button>
+        <button class="btn" id="entradaSemNfBtn">+ Entrada sem nota fiscal</button>
+        <button class="btn" id="novoMatBtn">+ Cadastrar material</button>
         <button class="btn" id="relatBtn" hidden>Relatórios</button>
       </div>
 
@@ -1102,6 +1161,13 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <div id="finPainel"></div>
     </section>
 
+    <!-- ===== PARCEIROS ===== -->
+    <section class="screen" id="scr-parceiros">
+      <div class="sec-h"><h2>Parceiros</h2>
+        <span class="hint">laboratório, radiologia, sedação e quem mais a clínica usa</span></div>
+      <div id="parcBox"></div>
+    </section>
+
     <!-- ===== ACESSOS (admin) ===== -->
     <section class="screen" id="scr-acessos">
       <button class="backlink" id="voltarAcessos">← Voltar</button>
@@ -1129,6 +1195,9 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
       <button class="tab" data-scr="financeiro">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12.5" rx="2.5"></rect><path d="M2.5 10.5h19M6 15h3"></path></svg>
         Financeiro</button>
+      <button class="tab" data-scr="parceiros">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 10.5V7a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v3.5"></path><rect x="3" y="10.5" width="18" height="9" rx="2"></rect><path d="M3 14.5h18"></path></svg>
+        Parceiros</button>
       <div class="mini-agenda" id="miniAgenda" hidden></div>
       <div class="navfoot"><span id="dispLabel"></span> · <span class="pill" id="modoBadge">—</span>
         <br><span id="versaoSel" style="opacity:.7">—</span></div>
@@ -1169,14 +1238,16 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
    desenhar e validar o fluxo e os níveis de acesso. */
 const PERFIS = {
   Administrador:{rotulo:"Administrador", desc:"Acesso total e aprovação de usuários",
-    telas:["hoje","pacientes","estoque","agenda","financeiro"],
+    telas:["hoje","pacientes","estoque","agenda","financeiro","parceiros"],
     atender:true, prontuario:true, verClinico:true, estoque:true, agenda:true, financeiro:true, cadastro:true, admin:true,
+    parceiros:true, parceirosEdita:true,
     valores:true, lancaLote:true, caixa:true, projecao:true, relatorios:true,
     lancaPagamento:true,
     precos:true, precoTodos:true, soMinhas:false},
   Dentista:{rotulo:"Dentista", desc:"Atende, edita prontuário e agenda",
-    telas:["hoje","pacientes","estoque","agenda","financeiro"],
+    telas:["hoje","pacientes","estoque","agenda","financeiro","parceiros"],
     atender:true, prontuario:true, verClinico:true, estoque:false, agenda:true, financeiro:true, cadastro:true, admin:false,
+    parceiros:true, parceirosEdita:true,
     valores:false, lancaLote:false, caixa:true, projecao:true, relatorios:false,
     /* lancaPagamento:false espelha a política do banco: só
        administrador, financeiro e secretaria inserem em pagamentos. O
@@ -1188,21 +1259,30 @@ const PERFIS = {
     // própria, cobranças próprias, recebimento próprio
     precos:true, precoTodos:false, soMinhas:true},
   Secretaria:{rotulo:"Secretária", desc:"Cadastro, contato e agenda",
-    telas:["pacientes","agenda"],
+    /* a secretária entra em Parceiros por pedido do cliente, e com
+       razão: é ela quem liga para o laboratório, marca a tomografia e
+       combina a sedação. Cadastro trancado no administrador envelhece
+       parado. */
+    telas:["pacientes","agenda","parceiros"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:true, financeiro:false, cadastro:true, admin:false,
+    parceiros:true, parceirosEdita:true,
     valores:false, lancaLote:false, caixa:true, projecao:false, relatorios:false,
     lancaPagamento:true,
     // lê a tabela de todos para cobrar certo, mas não tabela preço de ninguém
     precos:"ler", precoTodos:true, soMinhas:false},
   Financeiro:{rotulo:"Financeiro", desc:"Faturamento e agenda",
-    telas:["financeiro","agenda"],
+    /* financeiro VÊ os parceiros — é quem paga o laboratório — mas não
+       mexe no cadastro deles */
+    telas:["financeiro","agenda","parceiros"],
     atender:false, prontuario:false, verClinico:false, estoque:false, agenda:false, financeiro:true, cadastro:false, admin:false,
+    parceiros:true, parceirosEdita:false,
     valores:true, lancaLote:false, caixa:true, projecao:true, relatorios:true,
     lancaPagamento:true,
     precos:true, precoTodos:true, soMinhas:false},
   Estoque:{rotulo:"Estoque", desc:"Entradas, baixas e reposição",
     telas:["estoque"],
     atender:false, prontuario:false, verClinico:false, estoque:true, agenda:false, financeiro:false, cadastro:false, admin:false,
+    parceiros:false, parceirosEdita:false,
     valores:true, lancaLote:true, caixa:false, projecao:false, relatorios:true,
     lancaPagamento:false,
     precos:false, precoTodos:false, soMinhas:false}
@@ -1230,7 +1310,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v35 · 23/10/2026";
+const VERSAO = "v37 · 27/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -1403,8 +1483,13 @@ const DB = {
   async carregarTudo(){
     const [mats, proc, kits, est, pacs, consent, atds] = await Promise.all([
       DB.rest("GET","materiais?select=id,nome,categoria,unidade,minimo,termos_voz,codigo,margem_pct&ativo=is.true&order=nome"),
-      DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz&ativo=is.true"),
-      DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade"),
+      /* escopo e dentista_id entram pela via tolerante: quem ainda não
+         rodou a 0019 continua carregando o resto em vez de ficar sem
+         procedimento nenhum na tela */
+      DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz,escopo&ativo=is.true")
+        .catch(()=>DB.rest("GET","procedimentos?select=id,nome,duracao_min,padrao_voz&ativo=is.true")),
+      DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade,dentista_id")
+        .catch(()=>DB.rest("GET","procedimento_kit?select=procedimento_id,material_id,quantidade")),
       DB.rest("GET","estoque?select=material_id,saldo"),
       DB.rest("GET","pacientes?select=id,nome,nascimento,sexo,cpf,telefone,email,pacientes_clinico(observacao)&order=nome"),
       DB.rest("GET","vw_consentimento_vigente?select=paciente_id,grava_consulta,texto_versao,concedido_em")
@@ -1444,6 +1529,7 @@ const DB = {
     await DB.carregarCaixa();
     await DB.carregarPrecos();
     await DB.carregarComposicao();
+    await DB.carregarParceiros();
   },
 
   mapearMateriais(mats){
@@ -1472,10 +1558,22 @@ const DB = {
       const itens = kits.filter(k=>k.procedimento_id===p.id)
         .map(k=>[UID.matRev[k.material_id], Number(k.quantidade)])
         .filter(k=>k[0]!==undefined);
-      if(alvo){ alvo.dur=p.duracao_min; if(itens.length) alvo.kit=itens; }
+      /* kits por dentista vêm na mesma consulta; cada um no seu balde */
+      const meus = {};
+      kits.filter(k=>k.procedimento_id===p.id && k.dentista_id).forEach(k=>{
+        const curto = UID.matRev[k.material_id];
+        if(curto===undefined) return;
+        (meus[k.dentista_id] = meus[k.dentista_id] || []).push([curto, Number(k.quantidade)]);
+      });
+      if(alvo){
+        alvo.dur = p.duracao_min;
+        if(p.escopo) alvo.esc = p.escopo;
+        if(itens.length) alvo.kit = itens;
+        if(Object.keys(meus).length) alvo.kits = meus;
+      }
       else if(itens.length || p.nome){
         PROCEDIMENTOS.push({nome:p.nome, re:new RegExp(norm(p.nome).slice(0,18),"i"),
-          dur:p.duracao_min, kit:itens});
+          dur:p.duracao_min, esc:p.escopo||"dente", kit:itens, kits:meus});
       }
     });
   },
@@ -1608,7 +1706,11 @@ const DB = {
       nf_serie:   d.nfSerie || null,
       nf_emissao: d.nfData || null,
       recebido_por: DB.meuId,
-      observacao: d.obs || null
+      /* sem nota o motivo vira observação do lote: o relatório contábil
+         já separa "com nota" de "sem nota" pela ausência do número, mas
+         "sem nota" sem motivo é um buraco que ninguém consegue explicar
+         seis meses depois, na frente do contador */
+      observacao: d.obs || (d.semNota && d.motivo ? "Entrada sem nota — "+d.motivo : null)
     }, "return=representation");
     const lote = r[0];
     if(d.custo !== null && d.custo !== undefined && d.custo !== ""){
@@ -1737,6 +1839,57 @@ const DB = {
     if(d.taxa !== null && d.taxa !== undefined && d.taxa !== "") corpo.taxa = d.taxa;
     const r = await DB.inserirTolerante("pagamentos", corpo, "return=representation");
     return r[0].id;
+  },
+
+  /* Procedimento e kit num lugar só. O procedimento é da clínica; o
+     kit é do dentista quando `dono` tem valor, e da clínica quando é
+     nulo. Apagar e reescrever o kit inteiro é de propósito: diff de
+     kit com 8 itens não paga o que custa, e a RLS já impede que isso
+     alcance o kit de outra pessoa. */
+  async gravarProcedimento(p, dono, nomeAntigo){
+    const achaId = async nome => {
+      const r = await DB.rest("GET","procedimentos?select=id&nome=eq."+
+        encodeURIComponent(nome)+"&limit=1");
+      return r[0] ? r[0].id : null;
+    };
+    let pid = await achaId(nomeAntigo || p.nome);
+    const corpo = {nome:p.nome, duracao_min:p.dur, escopo:p.esc || "dente", ativo:true};
+    if(pid){
+      await DB.rest("PATCH","procedimentos?id=eq."+pid, corpo);
+    }else{
+      const r = await DB.inserirTolerante("procedimentos",
+        {clinica_id:DB.clinica, ...corpo}, "return=representation");
+      pid = r[0].id;
+    }
+
+    const itens = (dono ? ((p.kits||{})[dono]||[]) : (p.kit||[]))
+      .map(([id,q])=>({material_id: UID.mat[id], quantidade: Number(q)||1}))
+      .filter(x=>x.material_id);
+
+    const filtro = "procedimento_id=eq."+pid +
+      (dono ? "&dentista_id=eq."+dono : "&dentista_id=is.null");
+    await DB.rest("DELETE","procedimento_kit?"+filtro);
+    if(itens.length){
+      await DB.rest("POST","procedimento_kit",
+        itens.map(x=>({procedimento_id:pid, dentista_id:dono||null, ...x})));
+    }
+  },
+
+  async carregarParceiros(){
+    try{
+      S.parceiros = await DB.rest("GET","parceiros?select=id,tipo,nome,contato,telefone,"+
+        "whatsapp,email,endereco,cnpj,prazo_dias,observacao,preferido,ativo&order=tipo,nome");
+    }catch(e){ S.parceiros = null; }
+  },
+
+  async gravarParceiro(p){
+    const corpo = {tipo:p.tipo, nome:p.nome, contato:p.contato||null,
+      telefone:p.telefone||null, whatsapp:p.whatsapp||null, email:p.email||null,
+      endereco:p.endereco||null, cnpj:p.cnpj||null,
+      prazo_dias:(p.prazo_dias===null||p.prazo_dias===undefined)?null:Number(p.prazo_dias),
+      observacao:p.observacao||null, preferido:!!p.preferido, ativo:p.ativo!==false};
+    if(p.id && String(p.id).length>20) await DB.rest("PATCH","parceiros?id=eq."+p.id, corpo);
+    else await DB.inserirTolerante("parceiros", {clinica_id:DB.clinica, ...corpo});
   },
 
   async gravarTaxa(t){
@@ -1904,7 +2057,8 @@ const DB = {
     const alvos = [
       ["vw_fluxo_caixa",   "financeiro e fluxo de caixa",  "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
       ["vw_rel_saidas",    "relatórios de estoque",        "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
-      ["precos_dentista",  "preço por dentista",           "ATUALIZAR-PRECOS-POR-DENTISTA.sql"]
+      ["precos_dentista",  "preço por dentista",           "ATUALIZAR-PRECOS-POR-DENTISTA.sql"],
+      ["parceiros",        "parceiros da clínica",         "ATUALIZAR-PARCEIROS.sql"]
     ];
     S.faltaSql = [];
     for(const [tab, nome, arquivo] of alvos){
@@ -2001,6 +2155,12 @@ const CATALOGO = [
   {id:"lido",    nome:"Lidocaína 2% c/ epinefrina 1:100.000", un:"tubete", min:20, sug:40, cat:"Anestésicos", termos:["lidocaina","lidocaína","lido"]},
   {id:"ag30",    nome:"Agulha gengival 30G curta", un:"un", min:50, sug:100, cat:"Descartáveis", termos:["agulha","30g"]},
   {id:"gaze",    nome:"Gaze estéril 7,5 × 7,5", un:"pacote", min:20, sug:40, cat:"Descartáveis", termos:["gaze"]},
+  /* periodontia e higiene — o consultório é de implantodontia E
+     periodontia, e o catálogo não tinha nada de profilaxia */
+  {id:"pasta_prof", nome:"Pasta profilática com flúor", un:"bisnaga", min:4, sug:10, cat:"Periodontia", termos:["pasta profilatica","pasta de profilaxia","pasta"]},
+  {id:"esc_rob",    nome:"Escova Robinson / taça de borracha", un:"un", min:20, sug:50, cat:"Periodontia", termos:["escova robinson","taca de borracha","taca","robinson"]},
+  {id:"cureta",     nome:"Cureta Gracey (jogo)", un:"jogo", min:2, sug:4, cat:"Periodontia", termos:["cureta","gracey","cureta periodontal"]},
+  {id:"fluor",      nome:"Flúor gel acidulado", un:"frasco", min:2, sug:5, cat:"Periodontia", termos:["fluor","fluor gel","fluoretacao"]},
   {id:"sug",     nome:"Sugador descartável", un:"un", min:100, sug:200, cat:"Descartáveis", termos:["sugador"]},
   {id:"luva",    nome:"Luva cirúrgica estéril 7,5", un:"par", min:40, sug:80, cat:"Descartáveis", termos:["luva","luva cirurgica"]},
   {id:"silic",   nome:"Silicone de adição (leve + pesado)", un:"kit", min:3, sug:6, cat:"Moldagem", termos:["silicone de adicao","silicone de adição","polivinil","pvs","silicone"]},
@@ -2019,41 +2179,55 @@ const CATALOGO = [
 ];
 
 const PROCEDIMENTOS = [
-  {nome:"Instalação de implante unitário", re:/implante unitario|instalacao de implante|instalei .{0,12}implante|coloquei .{0,12}implante|colocacao de implante/, dur:90,
+  /* Higiene e periodontia. Faltavam, e foi justamente a limpeza o
+     exemplo que o cliente deu: é feita na boca inteira, não tem dente
+     nem região, e pedir região aqui é pedir um dado que não existe —
+     quem preenche inventa "todos" ou "-" e o histórico fica sujo. */
+  {nome:"Limpeza / profilaxia", esc:"boca_toda", re:/limpeza|profilaxia|polimento coronario/, dur:40,
+   kit:[["pasta_prof",1],["esc_rob",1],["gaze",2]]},
+  {nome:"Raspagem supragengival", esc:"boca_toda", re:/raspagem supra|raspagem supragengival|tartaro/, dur:50,
+   kit:[["artic",1],["gaze",2],["soro",1]]},
+  {nome:"Raspagem subgengival / alisamento radicular", esc:"quadrante", re:/raspagem sub|alisamento radicular|raspagem por sextante|raspagem periodontal/, dur:60,
+   kit:[["artic",2],["cureta",1],["gaze",2],["soro",1]]},
+  {nome:"Manutenção periodontal", esc:"boca_toda", re:/manutencao periodontal|controle periodontal|profilaxia de manutencao/, dur:45,
+   kit:[["pasta_prof",1],["gaze",2]]},
+  {nome:"Aplicação de flúor", esc:"boca_toda", re:/fluor|aplicacao de fluor|fluoretacao/, dur:20,
+   kit:[["fluor",1]]},
+  {nome:"Instalação de implante unitário", esc:"dente", re:/implante unitario|instalacao de implante|instalei .{0,12}implante|coloquei .{0,12}implante|colocacao de implante/, dur:90,
    kit:[["imp_cm",1],["par_cob",1],["artic",2],["ptfe",1],["lam15",1],["soro",1]]},
-  {nome:"Instalação de múltiplos implantes", re:/multiplos implantes|varios implantes|dois implantes|tres implantes|quatro implantes/, dur:150,
+  {nome:"Instalação de múltiplos implantes", esc:"regiao", re:/multiplos implantes|varios implantes|dois implantes|tres implantes|quatro implantes/, dur:150,
    kit:[["imp_cm",2],["par_cob",2],["artic",4],["ptfe",2],["lam15",1],["soro",2]]},
-  {nome:"Levantamento de seio maxilar", re:/levantamento de seio|seio maxilar|sinus lift/, dur:120,
+  {nome:"Levantamento de seio maxilar", esc:"regiao", re:/levantamento de seio|seio maxilar|sinus lift/, dur:120,
    kit:[["enx",2],["memb",1],["artic",4],["ptfe",2],["lam15",1]]},
-  {nome:"Regeneração óssea guiada (enxerto)", re:/regeneracao ossea|enxerto osseo|\brog\b|preenchimento osseo/, dur:90,
+  {nome:"Regeneração óssea guiada (enxerto)", esc:"regiao", re:/regeneracao ossea|enxerto osseo|\brog\b|preenchimento osseo/, dur:90,
    kit:[["enx",1],["memb",1],["ptfe",1],["artic",3],["lam15",1]]},
-  {nome:"Segunda fase cirúrgica (reabertura)", re:/segunda fase|reabertura|instalacao de cicatrizador|troca por cicatrizador/, dur:40,
+  {nome:"Segunda fase cirúrgica (reabertura)", esc:"dente", re:/segunda fase|reabertura|instalacao de cicatrizador|troca por cicatrizador/, dur:40,
    kit:[["cicatr",1],["artic",1],["lam15",1]]},
-  {nome:"Moldagem para prótese sobre implante", re:/moldagem/, dur:60,
+  {nome:"Moldagem para prótese sobre implante", esc:"arcada", re:/moldagem/, dur:60,
    kit:[["transf",1],["analogo",1],["silic",1],["moldeira",1]]},
-  {nome:"Instalação de coroa sobre implante", re:/coroa sobre implante|coroa parafusada|coroa cimentada|instalacao de coroa|entrega de coroa/, dur:60,
+  {nome:"Instalação de coroa sobre implante", esc:"dente", re:/coroa sobre implante|coroa parafusada|coroa cimentada|instalacao de coroa|entrega de coroa/, dur:60,
    kit:[["par_pro",1],["teflon",1],["carbono",1]]},
-  {nome:"Carga imediata / provisório sobre implante", re:/carga imediata|protese provisoria|provisorio imediato|provisorio sobre implante/, dur:120,
+  {nome:"Carga imediata / provisório sobre implante", esc:"arcada", re:/carga imediata|protese provisoria|provisorio imediato|provisorio sobre implante/, dur:120,
    kit:[["multiu",2],["bisacr",1],["par_pro",2],["carbono",1]]},
-  {nome:"Protocolo total fixo sobre implantes", re:/protocolo|protese total fixa|all on four|all-on-4|all on 4/, dur:180,
+  {nome:"Protocolo total fixo sobre implantes", esc:"arcada", re:/protocolo|protese total fixa|all on four|all-on-4|all on 4/, dur:180,
    kit:[["multiu",4],["par_pro",4],["acril",1],["carbono",1]]},
-  {nome:"Overdenture sobre implantes", re:/overdenture|sobredentadura|protese removivel sobre implante/, dur:90,
+  {nome:"Overdenture sobre implantes", esc:"arcada", re:/overdenture|sobredentadura|protese removivel sobre implante/, dur:90,
    kit:[["acril",1],["silic",1],["moldeira",1]]},
-  {nome:"Coroa unitária em cerâmica", re:/coroa unitaria|coroa em ceramica|coroa de ceramica|coroa total/, dur:70,
+  {nome:"Coroa unitária em cerâmica", esc:"dente", re:/coroa unitaria|coroa em ceramica|coroa de ceramica|coroa total/, dur:70,
    kit:[["diamant",2],["fio_ret",1],["silic",1],["bisacr",1],["cim_res",1]]},
-  {nome:"Faceta em cerâmica", re:/faceta|laminado ceramico/, dur:70,
+  {nome:"Faceta em cerâmica", esc:"dente", re:/faceta|laminado ceramico/, dur:70,
    kit:[["diamant",2],["fio_ret",1],["silic",1],["acido",1],["adesivo",1],["cim_res",1]]},
-  {nome:"Prova de infraestrutura / prova de peça", re:/prova de infraestrutura|prova da peca|prova de barra|prova do protocolo/, dur:45, kit:[["carbono",1]]},
-  {nome:"Ajuste oclusal", re:/ajuste oclusal|ajuste de oclusao|ajuste da oclusao/, dur:30, kit:[["carbono",1],["polim",1]]},
-  {nome:"Reaperto / manutenção de prótese", re:/reaperto|manutencao de protese|troca de parafuso|parafuso soltou|afrouxou/, dur:30,
+  {nome:"Prova de infraestrutura / prova de peça", esc:"arcada", re:/prova de infraestrutura|prova da peca|prova de barra|prova do protocolo/, dur:45, kit:[["carbono",1]]},
+  {nome:"Ajuste oclusal", esc:"boca_toda", re:/ajuste oclusal|ajuste de oclusao|ajuste da oclusao/, dur:30, kit:[["carbono",1],["polim",1]]},
+  {nome:"Reaperto / manutenção de prótese", esc:"dente", re:/reaperto|manutencao de protese|troca de parafuso|parafuso soltou|afrouxou/, dur:30,
    kit:[["par_pro",1],["teflon",1],["carbono",1]]},
-  {nome:"Tratamento de peri-implantite", re:/peri implantite|periimplantite|peri-implantite|mucosite peri/, dur:60,
+  {nome:"Tratamento de peri-implantite", esc:"dente", re:/peri implantite|periimplantite|peri-implantite|mucosite peri/, dur:60,
    kit:[["artic",2],["soro",1],["gaze",2]]},
-  {nome:"Remoção de implante", re:/remocao de implante|explantacao|retirada de implante/, dur:60,
+  {nome:"Remoção de implante", esc:"dente", re:/remocao de implante|explantacao|retirada de implante/, dur:60,
    kit:[["artic",3],["ptfe",1],["lam15",1],["soro",1]]},
-  {nome:"Cirurgia guiada com guia prototipada", re:/cirurgia guiada|guia prototipada|guia cirurgica/, dur:120,
+  {nome:"Cirurgia guiada com guia prototipada", esc:"regiao", re:/cirurgia guiada|guia prototipada|guia cirurgica/, dur:120,
    kit:[["imp_cm",1],["par_cob",1],["artic",3],["fresas",1],["soro",1]]},
-  {nome:"Consulta de avaliação / planejamento", re:/avaliacao|planejamento|primeira consulta|tomografia/, dur:40, kit:[]}
+  {nome:"Consulta de avaliação / planejamento", esc:"nao_se_aplica", re:/avaliacao|planejamento|primeira consulta|tomografia/, dur:40, kit:[]}
 ];
 
 const SEED = {
@@ -2070,6 +2244,7 @@ const SEED = {
     {id:"ptfe",   qtd:14},{id:"lam15",  qtd:38}, {id:"soro",    qtd:12},
     {id:"artic",  qtd:64},{id:"mepi",   qtd:22}, {id:"ag30",    qtd:150},
     {id:"gaze",   qtd:24},{id:"sug",    qtd:210},{id:"luva",    qtd:36},
+    {id:"pasta_prof", qtd:7},{id:"esc_rob", qtd:34},{id:"cureta", qtd:3},{id:"fluor", qtd:4},
     {id:"silic",  qtd:4}, {id:"moldeira",qtd:18},{id:"bisacr",  qtd:2},
     {id:"cim_res",qtd:3}, {id:"carbono",qtd:4},  {id:"diamant", qtd:21},
     {id:"teflon", qtd:3}
@@ -2265,12 +2440,59 @@ function acharPaciente(falado){
 }
 
 /* ===================== ficha =====================*/
-function fichaVazia(){ return {paciente:"", proc:"", regiao:"", cplx:"", dur:45, mats:[], faltando:[], kit:false, editId:null, obs:""}; }
+function fichaVazia(){ return {paciente:"", proc:"", regiao:"", cplx:"", dur:45, mats:[], faltando:[], kit:false, editId:null, obs:"", esc:null}; }
+
+/* ---------------------------------------------------------------------
+   Escopo do procedimento. "Limpeza é feita na boca por completo, nesse
+   caso não tem dente ou região específica" — exatamente. Antes a ficha
+   exigia região de tudo, e quem preenchia escrevia "todos", "geral" ou
+   "-". Três grafias para a mesma coisa, e nenhuma pesquisável.
+   --------------------------------------------------------------------- */
+const ESCOPOS = {
+  dente:        {rotulo:"Região / dentes", ph:"Ex.: dente 36",            exige:true },
+  regiao:       {rotulo:"Região",          ph:"Ex.: região dos 35 e 36",  exige:true },
+  quadrante:    {rotulo:"Quadrante / sextante", ph:"Ex.: quadrante 2",    exige:true },
+  arcada:       {rotulo:"Arcada",          ph:"Superior ou inferior",     exige:true },
+  boca_toda:    {rotulo:"Região",          fixo:"Boca toda",              exige:false},
+  nao_se_aplica:{rotulo:"Região",          fixo:"Não se aplica",          exige:false}
+};
+const escDe = nome => {
+  const p = PROCEDIMENTOS.find(x=>norm(x.nome)===norm(nome||""));
+  return (p && p.esc) || null;
+};
+function aplicarEscopo(){
+  const campo = $("#inRegiao"), caixa = $("#f-regiao");
+  if(!campo || !caixa) return;
+  const e = ESCOPOS[ficha.esc] || ESCOPOS.dente;
+  const rot = caixa.querySelector("label");
+  if(rot) rot.textContent = e.rotulo;
+  if(e.fixo){
+    /* o valor fica GRAVADO, não só escondido: o histórico precisa dizer
+       "Boca toda" em vez de ficar em branco, senão daqui a um ano
+       ninguém sabe se foi boca toda ou se esqueceram de preencher */
+    ficha.regiao = e.fixo;
+    campo.value = e.fixo;
+    campo.readOnly = true;
+    campo.classList.add("travado");
+    campo.title = "Este procedimento não tem dente nem região específica.";
+  }else{
+    campo.readOnly = false;
+    campo.classList.remove("travado");
+    campo.placeholder = e.ph || "";
+    campo.title = "";
+  }
+}
 let ficha=fichaVazia();
 
 function renderFicha(){
   $("#inPaciente").value=ficha.paciente; $("#inProc").value=ficha.proc;
   $("#inRegiao").value=ficha.regiao; $("#inDur").value=ficha.dur;
+  aplicarEscopo();
+  /* a oferta de kit faz parte do desenho da ficha: se ela só fosse
+     redesenhada por quem a criou, continuaria na tela depois de
+     aceita — oferecendo o que o dentista já pôs */
+  if(ficha.mats.length) procSugerido = null;
+  renderSugestaoKit();
   $$("#segCplx .seg").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.v===ficha.cplx)));
   $("#cplxFlag").hidden = !ficha.faltando.includes("cplx");
   [["paciente","#f-paciente"],["proc","#f-proc"],["regiao","#f-regiao"]].forEach(([k,el])=>
@@ -2330,17 +2552,170 @@ $("#segCplx").addEventListener("click", ev=>{
     const k=map[id];
     ficha[k] = k==="dur" ? (+e.target.value||0) : e.target.value;
     if(e.target.value) ficha.faltando=ficha.faltando.filter(f=>f!==k);
+    if(id==="inProc") combinarProcedimento();
   });
 });
-$("#addMat").addEventListener("change", e=>{
-  const id=e.target.value; if(!id) return;
-  e.target.value="";
+
+/* ---------------------------------------------------------------------
+   Escolher o procedimento digitando tem de valer o mesmo que falar.
+   Antes, só a voz aplicava o kit e a duração: quem digitava montava o
+   kit material por material, todo dia, para o mesmo procedimento.
+
+   O que é automático e o que não é:
+   · duração e escopo entram sozinhos — são do procedimento, não do caso;
+   · o kit é OFERECIDO, não imposto, e some se o dentista já pôs
+     material na ficha. Trocar silenciosamente o que ele escolheu seria
+     a pior forma de ajudar.
+   --------------------------------------------------------------------- */
+let procSugerido = null;   // nome do procedimento cujo kit está sendo oferecido
+
+function combinarProcedimento(){
+  const nome = ($("#inProc").value||"").trim();
+  const p = PROCEDIMENTOS.find(x=>norm(x.nome)===norm(nome));
+  const antes = ficha.esc;
+  ficha.esc = p ? (p.esc||"dente") : null;
+  if(p && !ficha.editId && !$("#inDur").dataset.tocado) {
+    ficha.dur = p.dur; $("#inDur").value = p.dur;
+  }
+  if(ficha.esc !== antes) aplicarEscopo();
+  procSugerido = (p && p.kit && p.kit.length && !ficha.mats.length) ? p.nome : null;
+  renderSugestaoKit();
+}
+
+function renderSugestaoKit(){
+  const alvo = $("#kitSugestao"); if(!alvo) return;
+  if(!procSugerido){ alvo.hidden = true; alvo.innerHTML = ""; return; }
+  const p = PROCEDIMENTOS.find(x=>norm(x.nome)===norm(procSugerido));
+  if(!p){ alvo.hidden = true; return; }
+  const nomes = p.kit.map(([id,q])=>{
+    const c = catById(id); return c ? q+"× "+c.nome : null;
+  }).filter(Boolean);
+  if(!nomes.length){ alvo.hidden = true; return; }
+  alvo.hidden = false;
+  alvo.innerHTML = `<div class="sugestao-kit">
+    <div><b>Kit de ${p.nome}</b><span>${nomes.join(" · ")}</span></div>
+    <div class="row">
+      <button class="minibtn" type="button" id="kitUsar">Usar este kit</button>
+      <button class="minibtn" type="button" id="kitIgnorar">Agora não</button>
+    </div></div>`;
+  $("#kitUsar").addEventListener("click", ()=>{
+    ficha.mats = p.kit.map(([id,q])=>({id,q}));
+    ficha.kit = true; procSugerido = null;
+    renderFicha(); conferirLotes();
+    toast("Kit de "+p.nome+" aplicado — confira as quantidades.");
+  });
+  $("#kitIgnorar").addEventListener("click", ()=>{ procSugerido = null; renderSugestaoKit(); });
+}
+
+/* duração digitada à mão não é mais sobrescrita pelo procedimento */
+$("#inDur").addEventListener("input", e=>{ e.target.dataset.tocado = "1"; });
+/* ---------------------------------------------------------------------
+   Busca de material. Três regras que vêm do uso real:
+   · acento e caixa não podem atrapalhar — "articaina" acha "Articaína";
+   · o saldo aparece junto, porque escolher material sem saldo é escolher
+     um problema para daqui a cinco minutos;
+   · Enter pega o primeiro, para quem está de luva e com pressa.
+   --------------------------------------------------------------------- */
+let matSel = 0;            // item destacado na lista
+
+function materiaisQueCasam(termo){
+  const t = norm((termo||"").trim());
+  const base = (S.estoque||[]).map(e=>({e, c:catById(e.id)})).filter(x=>x.c);
+  /* procura também nos TERMOS do catálogo — os mesmos sinônimos que o
+     ditado por voz usa. Assim "healing" acha "Cicatrizador" e "cone
+     morse" acha o implante, que é como o dentista fala, não como o
+     fornecedor escreveu na caixa. */
+  const casa = !t ? base : base.filter(x =>
+    norm(x.c.nome).includes(t) ||
+    norm(x.c.cat||"").includes(t) ||
+    (x.c.termos||[]).some(k=>norm(k).includes(t)));
+  /* o que tem saldo primeiro: material zerado continua na lista (às
+     vezes é mesmo o que foi usado, e a falta precisa aparecer), mas não
+     disputa o topo com o que está disponível */
+  return casa.sort((a,b)=>{
+    const sa = Number(a.e.saldo||0) > 0 ? 0 : 1, sb = Number(b.e.saldo||0) > 0 ? 0 : 1;
+    if(sa !== sb) return sa - sb;
+    return a.c.nome.localeCompare(b.c.nome, "pt-BR");
+  }).slice(0, 40);
+}
+
+function realcar(nome, termo){
+  const t = (termo||"").trim();
+  if(!t) return nome;
+  const i = norm(nome).indexOf(norm(t));
+  if(i < 0) return nome;
+  return nome.slice(0,i)+"<mark>"+nome.slice(i, i+t.length)+"</mark>"+nome.slice(i+t.length);
+}
+
+function renderBuscaMat(){
+  const campo = $("#matBusca"), cx = $("#matResult");
+  if(!campo || !cx) return;
+  const termo = campo.value;
+  const achados = materiaisQueCasam(termo);
+  const itens = achados.map((x,i)=>{
+    const saldo = Number(x.e.saldo||0);
+    return `<button type="button" role="option" data-mat="${x.c.id}"
+      aria-selected="${i===matSel}">
+      <b>${realcar(x.c.nome, termo)}</b>
+      <span class="saldo ${saldo>0?"":"zero"}">${saldo>0 ? fmtQtd(saldo)+" "+(x.c.un||"un") : "sem saldo"}</span>
+    </button>`;
+  }).join("");
+  /* Escrever um material que não está no catálogo sempre foi possível,
+     mas era o último item de uma lista — e quem não rola até o fim
+     conclui que o sistema só aceita o que está cadastrado. Quando a
+     busca não acha nada, esta opção passa a ser a PRIMEIRA escolha, já
+     com o texto digitado dentro dela: o Enter que ele ia dar de
+     qualquer jeito lança o material pelo nome que ele escreveu. */
+  const t = (termo||"").trim();
+  const nenhum = !achados.length;
+  const avulso = `<button type="button" role="option" data-mat="__avulso"
+      aria-selected="${nenhum ? matSel===0 : matSel===achados.length}">
+      <b>+ ${t ? "lançar “"+t+"” mesmo assim" : "outro material"} — não está no estoque</b>
+      <span class="saldo">entra na cobrança, não baixa saldo</span></button>`;
+  cx.innerHTML = (itens || `<div class="nada">Nada no estoque com “${t}”.
+      Dá para lançar assim mesmo, pelo nome:</div>`) + avulso;
+  cx.hidden = false;
+  campo.setAttribute("aria-expanded","true");
+  cx.querySelectorAll("button[data-mat]").forEach(b=>
+    b.addEventListener("mousedown", ev=>{ ev.preventDefault(); escolherMaterial(b.dataset.mat); }));
+}
+
+function fecharBuscaMat(){
+  const cx = $("#matResult"), campo = $("#matBusca");
+  if(cx) cx.hidden = true;
+  if(campo) campo.setAttribute("aria-expanded","false");
+  matSel = 0;
+}
+
+$("#matBusca").addEventListener("focus", ()=>{ matSel=0; renderBuscaMat(); });
+$("#matBusca").addEventListener("input", ()=>{ matSel=0; renderBuscaMat(); });
+$("#matBusca").addEventListener("blur", ()=> setTimeout(fecharBuscaMat, 120));
+$("#matBusca").addEventListener("keydown", ev=>{
+  const cx = $("#matResult");
+  if(cx.hidden && (ev.key==="ArrowDown"||ev.key==="Enter")){ renderBuscaMat(); return; }
+  const opcoes = [...cx.querySelectorAll("button[data-mat]")];
+  if(!opcoes.length) return;
+  if(ev.key==="ArrowDown"){ ev.preventDefault(); matSel=(matSel+1)%opcoes.length; renderBuscaMat(); }
+  else if(ev.key==="ArrowUp"){ ev.preventDefault(); matSel=(matSel-1+opcoes.length)%opcoes.length; renderBuscaMat(); }
+  else if(ev.key==="Enter"){ ev.preventDefault();
+    const alvo = opcoes[Math.min(matSel, opcoes.length-1)];
+    if(alvo) escolherMaterial(alvo.dataset.mat); }
+  else if(ev.key==="Escape"){ fecharBuscaMat(); }
+});
+
+function escolherMaterial(id){
+  if(!id) return;
+  const campo = $("#matBusca");
+  const digitado = campo ? campo.value.trim() : "";
+  if(campo) campo.value = "";
+  fecharBuscaMat();
   /* Material que o consultório usou mas não tem cadastrado: o dentista
      não pode travar no meio da consulta por causa disso. Entra na ficha
      e na cobrança como AVULSO, e NÃO mexe no estoque — dar baixa de algo
      que nunca teve entrada deixaria saldo negativo fantasma. */
   if(id === "__avulso"){
-    const nome = (prompt("Qual material foi usado? (ele não está no estoque)")||"").trim();
+    const nome = (prompt("Qual material foi usado? (ele não está no estoque)",
+                         digitado || "")||"").trim();
     if(!nome) return;
     const qtd = Math.max(1, Math.round(Number((prompt("Quantidade:", "1")||"1").replace(",","."))) || 1);
     ficha.mats.push({avulso:true, nome, q:qtd});
@@ -2351,7 +2726,7 @@ $("#addMat").addEventListener("change", e=>{
   const ex=ficha.mats.find(m=>m.id===id);
   if(ex) ex.q++; else ficha.mats.push({id,q:1});
   ficha.kit=false; renderFicha(); conferirLotes();
-});
+}
 $("#clearAtend").addEventListener("click", ()=>{ pararAssistente(); ficha=fichaVazia();
   loteAvisado.clear();
   $("#transcript").innerHTML='<span style="color:var(--ink-3)">Ficha limpa.</span>'; renderFicha(); });
@@ -2430,7 +2805,11 @@ function interpretar(texto){
     f.mats = procDef.kit.map(([id,q])=>({id,q}));
     f.kit = true;
   }
-  ["paciente","proc","regiao","cplx"].forEach(k=>{ if(!f[k]) f.faltando.push(k); });
+  f.esc = procDef ? (procDef.esc||"dente") : null;
+  const fixo = f.esc && ESCOPOS[f.esc] && ESCOPOS[f.esc].fixo;
+  if(fixo) f.regiao = fixo;
+  ["paciente","proc","regiao","cplx"].forEach(k=>{
+    if(!f[k] && !(k==="regiao" && fixo)) f.faltando.push(k); });
   return f;
 }
 
@@ -2744,7 +3123,12 @@ function agAplicar(){
   }
   const extras = [f.queixa ? "Queixa: "+f.queixa : "", f.obs||""].filter(Boolean).join(" · ");
   if(extras) ficha.obs = (ficha.obs ? ficha.obs+" · " : "") + extras;
-  ficha.faltando = ["paciente","proc","regiao","cplx"].filter(k=>!ficha[k]);
+  ficha.faltando = ["paciente","proc","regiao","cplx"]
+    .filter(k=>!ficha[k])
+    /* região não entra em falta quando o procedimento não tem região:
+       cobrar o dentista por um campo que o próprio sistema travou é
+       pedir que ele invente alguma coisa para seguir em frente */
+    .filter(k=>!(k==="regiao" && ficha.esc && ESCOPOS[ficha.esc] && !ESCOPOS[ficha.esc].exige));
   const res = VOZAG.resultado;
   if(MODO==="nuvem"){
     const alvo = ficha.paciente ? acharPaciente(ficha.paciente) : null;
@@ -2984,6 +3368,9 @@ function aplicarResposta(campo, texto){
   }
   if(campo==="proc"){
     for(const p of PROCEDIMENTOS){ if(p.re.test(t)){ ficha.proc=p.nome; ficha.dur=p.dur;
+      ficha.esc = p.esc||"dente";
+      const fx = ESCOPOS[ficha.esc] && ESCOPOS[ficha.esc].fixo;
+      if(fx) ficha.regiao = fx;
       if(!ficha.mats.length && p.kit.length){ ficha.mats=p.kit.map(([id,q])=>({id,q})); ficha.kit=true; }
       return true; } }
     const livre=texto.trim();
@@ -5871,6 +6258,11 @@ function renderValidade(){
 
 /* ---------- formulário de entrada por nota fiscal ---------- */
 let entradaAberta=false;
+/* "com nota" e "sem nota" são o MESMO lançamento: o que muda é se há
+   documento para rastrear. Uma tela só, com os campos de nota
+   aparecendo ou não, em vez de dois formulários que divergem no
+   terceiro mês. */
+let entradaSemNf=false;
 function renderEntrada(){
   const card=$("#entradaCard");
   if(!entradaAberta){ card.hidden=true; card.innerHTML=""; return; }
@@ -5878,8 +6270,15 @@ function renderEntrada(){
   const opts = CATALOGO.slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"))
     .map(c=>`<option value="${c.id}">${c.codigo?c.codigo+" · ":""}${c.nome}</option>`).join("");
   card.innerHTML=`
-    <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">Entrada por nota fiscal</h2>
-      <span class="hint">o saldo sobe por aqui, com rastro</span></div>
+    <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">${
+      entradaSemNf ? "Entrada sem nota fiscal" : "Entrada por nota fiscal"}</h2>
+      <span class="hint">${entradaSemNf ? "brinde, amostra, doação, transferência"
+                                        : "o saldo sobe por aqui, com rastro"}</span></div>
+    ${entradaSemNf ? `<div class="stage" style="margin-bottom:10px">Use para o que entrou
+      <b>sem documento</b>: brinde do fornecedor, amostra, doação, sobra de outra unidade.
+      O lote e a validade continuam obrigatórios — é o que diz qual usar primeiro, e isso
+      não depende de haver nota. A entrada fica marcada como <b>sem nota</b> no relatório
+      contábil, separada do que tem documento.</div>` : ""}
     <div style="display:flex;flex-direction:column;gap:12px">
       <div class="field"><label for="enMat">Material</label>
         <select id="enMat"><option value="">selecione…</option>${opts}</select></div>
@@ -5893,12 +6292,23 @@ function renderEntrada(){
         <div class="field"><label for="enFab">Fabricação</label><input id="enFab" type="date"></div>
         <div class="field"><label for="enVal">Validade</label><input id="enVal" type="date"></div>
       </div>
+      ${entradaSemNf ? `
+      <div class="field"><label for="enMotivo">Por que entrou sem nota</label>
+        <select id="enMotivo">
+          <option>Brinde do fornecedor</option>
+          <option>Amostra / demonstração</option>
+          <option>Doação</option>
+          <option>Transferência de outra unidade</option>
+          <option>Devolução de paciente</option>
+          <option>Acerto de inventário</option>
+          <option>Outro</option>
+        </select></div>` : `
       <div class="grid2">
         <div class="field"><label for="enNF">Nota fiscal nº</label>
           <input id="enNF" placeholder="000123" autocomplete="off"></div>
         <div class="field"><label for="enNFData">Emissão da NF</label><input id="enNFData" type="date"></div>
-      </div>
-      <div class="field"><label for="enForn">Fornecedor</label>
+      </div>`}
+      <div class="field"><label for="enForn">${entradaSemNf?"De quem veio":"Fornecedor"}</label>
         <input id="enForn" placeholder="Neodent, Straumann, distribuidor…" autocomplete="off"></div>
       ${pode("valores") ? `
       <div class="grid2">
@@ -5910,7 +6320,8 @@ function renderEntrada(){
       <div class="stage" style="margin:0">Valor de nota e margem aparecem só para Administrador,
         Estoque e Financeiro. Dentista e secretária veem lote, validade e quantidade.</div>` : ""}
       <div class="row">
-        <button class="btn primary" style="flex:1" id="enSalvar">Lançar entrada</button>
+        <button class="btn primary" style="flex:1" id="enSalvar">${
+          entradaSemNf ? "Lançar entrada sem nota" : "Lançar entrada"}</button>
         <button class="btn" id="enCancelar">Cancelar</button>
       </div>
     </div>`;
@@ -5927,8 +6338,11 @@ function renderEntrada(){
     if(val && val < hojeISO() && !confirm("Esse lote já está vencido. Lançar mesmo assim?")) return;
 
     const custoEl=$("#enCusto");
+    const motivo = $("#enMotivo") ? $("#enMotivo").value : null;
     const dados={mat, lote, qtd, fabricacao:fab||null, validade:val||null,
-      nf:$("#enNF").value.trim()||null, nfData:$("#enNFData").value||null,
+      nf: $("#enNF") ? ($("#enNF").value.trim()||null) : null,
+      nfData: $("#enNFData") ? ($("#enNFData").value||null) : null,
+      semNota: entradaSemNf, motivo,
       fornecedor:$("#enForn").value.trim()||null,
       custo: custoEl && custoEl.value!=="" ? parseFloat(custoEl.value) : null,
       nfTotal: $("#enTotal") && $("#enTotal").value!=="" ? parseFloat($("#enTotal").value) : null};
@@ -5936,7 +6350,8 @@ function renderEntrada(){
     if(MODO==="nuvem"){
       const btn=$("#enSalvar"); btn.disabled=true; btn.textContent="Lançando…";
       const ok=await naNuvem(()=>DB.gravarLote(dados), "entrada de estoque");
-      btn.disabled=false; btn.textContent="Lançar entrada";
+      btn.disabled=false;
+      btn.textContent = entradaSemNf ? "Lançar entrada sem nota" : "Lançar entrada";
       if(!ok) return;
     }else{
       // demo: mantém o mesmo formato que vem do banco
@@ -5948,7 +6363,10 @@ function renderEntrada(){
         fornecedor:dados.fornecedor, recebido_em:new Date().toISOString()};
       (S.lotes=S.lotes||[]).push(novoLote);
       registrarMov(mat, qtd, "entrada",
-        dados.nf?("entrada pela NF "+dados.nf):"entrada manual", null, novoLote.id);
+        dados.nf ? ("entrada pela NF "+dados.nf)
+                 : (entradaSemNf ? ("entrada sem nota — "+(motivo||"sem motivo informado"))
+                                 : "entrada manual"),
+        null, novoLote.id);
       if(dados.custo!==null){ (S.custos=S.custos||{})[novoLote.id] =
         {lote_id:novoLote.id, custo_unitario:dados.custo, nf_valor_total:dados.nfTotal}; }
       if(typeof recalcularValorizadoDemo === "function") recalcularValorizadoDemo();
@@ -5957,6 +6375,229 @@ function renderEntrada(){
     entradaAberta=false;
     renderAll();
     toast(catById(mat).nome+": +"+fmtQtd(qtd)+" no lote "+lote+".");
+  });
+}
+
+/* =====================================================================
+   PARCEIROS
+   Laboratório de prótese, radiologia/scanner, sedação — e o que mais a
+   clínica usar. A lista de tipos é ABERTA: toda clínica tem um parceiro
+   que não cabe em lista fechada, e fechar a lista obriga a cadastrar
+   tudo como "Outro", que é o mesmo que não ter campo.
+   ===================================================================== */
+const TIPOS_PARCEIRO = ["Laboratório de prótese", "Radiologia / scanner", "Sedação"];
+let parcForm = null;     // {id} ao editar, {} ao criar, null fechado
+let parcBusca = "";
+
+const PARCEIROS_SEED = [
+  {id:"pc1", tipo:"Laboratório de prótese", nome:"Protética Santana",
+   contato:"Sr. Aílton", telefone:"(11) 3333-4444", whatsapp:"(11) 99888-1122",
+   email:"contato@proteticasantana.com.br", endereco:"R. Voluntários da Pátria, 1200 — Santana",
+   prazo_dias:5, observacao:"Retira e entrega às terças e sextas.", preferido:true, ativo:true},
+  {id:"pc2", tipo:"Radiologia / scanner", nome:"Centro de Imagem Zona Norte",
+   contato:"Recepção", telefone:"(11) 2222-7788", whatsapp:"(11) 97777-3344",
+   email:"agenda@imagemzn.com.br", endereco:"Av. Braz Leme, 900",
+   prazo_dias:1, observacao:"Tomografia sai no mesmo dia se entrar até 14h.",
+   preferido:true, ativo:true},
+  {id:"pc3", tipo:"Sedação", nome:"Dra. Marina Alvarenga — anestesiologia",
+   contato:"Dra. Marina", telefone:"", whatsapp:"(11) 96666-5050",
+   email:"marina.anestesia@email.com", endereco:"", prazo_dias:null,
+   observacao:"Avisar com 48h. Cobra por procedimento.", preferido:true, ativo:true}
+];
+
+const parceiros = () => (S.parceiros && S.parceiros.length) ? S.parceiros
+  : (MODO === "nuvem" ? [] : PARCEIROS_SEED);
+
+function renderParceiros(){
+  const box = $("#parcBox"); if(!box) return;
+  if(!pode("parceiros")){ box.innerHTML = '<div class="empty">Seu perfil não acessa parceiros.</div>'; return; }
+  const edita = pode("parceirosEdita");
+  const todos = parceiros();
+  const t = norm(parcBusca.trim());
+  const lista = !t ? todos : todos.filter(p =>
+    norm(p.nome).includes(t) || norm(p.tipo).includes(t) ||
+    norm(p.contato||"").includes(t) || norm(p.observacao||"").includes(t));
+
+  /* os três tipos pedidos aparecem SEMPRE, mesmo vazios: seção vazia
+     com um botão é um convite a cadastrar; seção ausente é a pessoa
+     achando que o sistema não tem aquilo. */
+  const tipos = [...new Set(TIPOS_PARCEIRO.concat(todos.map(p=>p.tipo)))];
+
+  box.innerHTML = `
+    ${(S.faltaSql||[]).some(f=>f.nome.includes("parceiros")) ? htmlFaltaSql("parceiros") : ""}
+    <div class="stage" style="margin-bottom:12px">Quem a clínica aciona por fora: protético,
+      radiologia, anestesista. Marque um como <b>preferido</b> em cada tipo e ele aparece
+      primeiro — é o que a recepção liga sem perguntar.</div>
+
+    <div class="row" style="gap:10px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap">
+      <div class="field" style="flex:1 1 240px;margin:0">
+        <label for="parcFiltro">Procurar</label>
+        <input id="parcFiltro" type="search" autocomplete="off"
+          value="${(parcBusca||"").replace(/"/g,"&quot;")}" placeholder="nome, tipo ou contato"></div>
+      ${edita?`<button class="btn primary" id="parcNovo">+ Novo parceiro</button>`:""}
+    </div>
+
+    <div class="card" id="parcCard" ${parcForm?"":"hidden"}>${parcForm?formParceiroHtml(parcForm):""}</div>
+
+    ${tipos.map(tp=>{
+      const doTipo = lista.filter(p=>p.tipo===tp)
+        .sort((a,b)=> (b.preferido?1:0)-(a.preferido?1:0) || a.nome.localeCompare(b.nome,"pt-BR"));
+      if(!doTipo.length && t) return "";
+      return `<div class="sec-h" style="margin-top:14px"><h2>${tp}</h2>
+        <span class="hint">${doTipo.length} cadastrado(s)</span></div>
+      ${doTipo.length ? `<div class="list">${doTipo.map(p=>cartaoParceiro(p, edita)).join("")}</div>`
+        : `<div class="empty">Nenhum parceiro de ${tp.toLowerCase()} cadastrado.</div>`}`;
+    }).join("")}
+
+    ${t && !lista.length ? `<div class="empty">Nada encontrado com “${parcBusca}”.</div>` : ""}`;
+
+  ligarParceiros();
+}
+
+function cartaoParceiro(p, edita){
+  const zap = (p.whatsapp||"").replace(/\D/g,"");
+  const tel = (p.telefone||"").replace(/\D/g,"");
+  return `<div class="card" style="margin-bottom:8px${p.ativo===false?";opacity:.55":""}">
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1 1 230px;min-width:0">
+        <b style="font-size:14.5px">${p.nome}</b>
+        ${p.preferido?' <span class="pill accent">preferido</span>':""}
+        ${p.ativo===false?' <span class="pill neutral">inativo</span>':""}
+        ${p.contato?`<div style="font-size:12.5px;color:var(--ink-2);margin-top:3px">${p.contato}</div>`:""}
+        ${p.endereco?`<div style="font-size:11.5px;color:var(--ink-3);margin-top:2px">${p.endereco}</div>`:""}
+        ${p.prazo_dias!==null && p.prazo_dias!==undefined
+          ? `<div style="font-size:11.5px;color:var(--ink-3);margin-top:2px">prazo de ${p.prazo_dias} dia(s)</div>`:""}
+        ${p.observacao?`<div style="font-size:12px;color:var(--ink-2);margin-top:5px;line-height:1.5">${p.observacao}</div>`:""}
+      </div>
+      <div class="row" style="flex:0 0 auto;gap:6px;flex-wrap:wrap">
+        ${zap?`<a class="minibtn" href="https://wa.me/55${zap}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+        ${tel?`<a class="minibtn" href="tel:+55${tel}">Ligar</a>`:""}
+        ${p.email?`<a class="minibtn" href="mailto:${p.email}">E-mail</a>`:""}
+        ${edita?`<button class="minibtn" data-parced="${p.id}">Editar</button>`:""}
+      </div>
+    </div></div>`;
+}
+
+function formParceiroHtml(f){
+  const e = f.id ? (parceiros().find(x=>x.id===f.id)||{}) : {};
+  const campo = (id,rot,val,ph,tipo) => `<div class="field"><label for="${id}">${rot}</label>
+    <input id="${id}" ${tipo?'type="'+tipo+'"':""} value="${(val===null||val===undefined?"":String(val)).replace(/"/g,"&quot;")}"
+      placeholder="${ph||""}" autocomplete="off"></div>`;
+  return `<div class="eyebrow">${f.id?"Editar parceiro":"Novo parceiro"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div class="grid2">
+        <div class="field"><label for="paTipo">Tipo</label>
+          <input id="paTipo" list="tiposParc" value="${(e.tipo||"").replace(/"/g,"&quot;")}"
+            placeholder="Laboratório de prótese" autocomplete="off">
+          <datalist id="tiposParc">${
+            [...new Set(TIPOS_PARCEIRO.concat(parceiros().map(x=>x.tipo)))]
+              .map(x=>`<option value="${x}">`).join("")}</datalist>
+          <div class="hint" style="margin-top:4px">Escolha um da lista ou escreva outro —
+            o campo é livre.</div></div>
+        ${campo("paNome","Nome", e.nome, "Como a clínica chama")}
+      </div>
+      <div class="grid2">
+        ${campo("paContato","Pessoa de contato", e.contato, "Com quem falar")}
+        ${campo("paPrazo","Prazo de entrega (dias)", e.prazo_dias, "opcional", "number")}
+      </div>
+      <div class="grid2">
+        ${campo("paTel","Telefone", e.telefone, "(11) 3333-4444")}
+        ${campo("paZap","WhatsApp", e.whatsapp, "(11) 99999-0000")}
+      </div>
+      <div class="grid2">
+        ${campo("paEmail","E-mail", e.email, "contato@empresa.com.br", "email")}
+        ${campo("paCnpj","CNPJ", e.cnpj, "opcional")}
+      </div>
+      ${campo("paEnd","Endereço", e.endereco, "rua, número, bairro")}
+      <div class="field"><label for="paObs">Observação</label>
+        <input id="paObs" value="${(e.observacao||"").replace(/"/g,"&quot;")}"
+          placeholder="dias de coleta, prazo real, como cobra…" autocomplete="off"></div>
+      <div class="grid2">
+        <div class="field"><label for="paPref">Preferido deste tipo</label>
+          <select id="paPref">
+            <option value="nao" ${e.preferido?"":"selected"}>Não</option>
+            <option value="sim" ${e.preferido?"selected":""}>Sim — é o que a clínica usa</option>
+          </select></div>
+        <div class="field"><label for="paAtivo">Situação</label>
+          <select id="paAtivo">
+            <option value="ativo" ${e.ativo===false?"":"selected"}>Em uso</option>
+            <option value="inativo" ${e.ativo===false?"selected":""}>Fora de uso</option>
+          </select></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="paSalvar">${f.id?"Salvar":"Cadastrar parceiro"}</button>
+        <button class="btn" id="paCancelar">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function ligarParceiros(){
+  const f = $("#parcFiltro");
+  if(f) f.addEventListener("input", ()=>{
+    parcBusca = f.value; const pos = f.selectionStart;
+    renderParceiros();
+    const n = $("#parcFiltro"); if(n){ n.focus(); n.setSelectionRange(pos,pos); }
+  });
+  const nv = $("#parcNovo");
+  if(nv) nv.addEventListener("click", ()=>{ parcForm = {}; renderParceiros(); });
+  $$("#parcBox [data-parced]").forEach(b=>b.addEventListener("click", ()=>{
+    parcForm = {id:b.dataset.parced}; renderParceiros();
+    const c = $("#parcCard"); if(c) c.scrollIntoView({behavior:"smooth", block:"center"});
+  }));
+  const cc = $("#paCancelar");
+  if(cc) cc.addEventListener("click", ()=>{ parcForm = null; renderParceiros(); });
+
+  const sv = $("#paSalvar");
+  if(sv) sv.addEventListener("click", async ()=>{
+    const d = {
+      tipo: $("#paTipo").value.trim(),
+      nome: $("#paNome").value.trim(),
+      contato: $("#paContato").value.trim() || null,
+      telefone: $("#paTel").value.trim() || null,
+      whatsapp: $("#paZap").value.trim() || null,
+      email: $("#paEmail").value.trim() || null,
+      cnpj: $("#paCnpj").value.trim() || null,
+      endereco: $("#paEnd").value.trim() || null,
+      observacao: $("#paObs").value.trim() || null,
+      prazo_dias: $("#paPrazo").value.trim()==="" ? null : Math.max(0, Number($("#paPrazo").value)||0),
+      preferido: $("#paPref").value === "sim",
+      ativo: $("#paAtivo").value === "ativo"
+    };
+    if(d.nome.length < 2){ toast("Informe o nome do parceiro."); $("#paNome").focus(); return; }
+    if(d.tipo.length < 2){ toast("Informe o tipo — ou escolha um da lista."); $("#paTipo").focus(); return; }
+    if(d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){
+      toast("E-mail inválido."); $("#paEmail").focus(); return; }
+
+    /* só um preferido por tipo — o banco também recusa, mas avisar aqui
+       é melhor do que deixar o banco negar depois de digitar tudo */
+    const outroPref = parceiros().find(x => x.id!==parcForm.id && x.tipo===d.tipo
+                                         && x.preferido && x.ativo!==false);
+    if(d.preferido && outroPref &&
+       !confirm("“"+outroPref.nome+"” já é o preferido de "+d.tipo+".\n\nPassar a preferência para “"+d.nome+"”?")){
+      return;
+    }
+    if(d.preferido && outroPref) outroPref.preferido = false;
+
+    if(MODO==="nuvem"){
+      const ok = await naNuvem(async ()=>{
+        if(outroPref && d.preferido) await DB.gravarParceiro({...outroPref, preferido:false});
+        await DB.gravarParceiro(parcForm.id ? {...d, id:parcForm.id} : d);
+        await DB.carregarParceiros();
+      }, "parceiro");
+      if(!ok) return;
+    }else{
+      S.parceiros = S.parceiros && S.parceiros.length ? S.parceiros
+        : JSON.parse(JSON.stringify(PARCEIROS_SEED));
+      if(parcForm.id){
+        const i = S.parceiros.findIndex(x=>x.id===parcForm.id);
+        if(i>=0) S.parceiros[i] = {...S.parceiros[i], ...d};
+      }else{
+        S.parceiros.push({id:"pc"+Date.now(), ...d});
+      }
+      save();
+    }
+    parcForm = null; renderParceiros();
+    toast(d.nome+" salvo.");
   });
 }
 
@@ -6111,9 +6752,6 @@ function renderEstoque(){
     });
     cl.appendChild(b);
   });
-  $("#addMat").innerHTML='<option value="">+ adicionar material do estoque…</option>'+
-    S.estoque.map(e=>catById(e.id)?`<option value="${e.id}">${catById(e.id).nome}</option>`:"").join("")+
-    '<option value="__avulso">+ outro material — não está no estoque</option>';
 }
 
 function painelLotes(matId){
@@ -6218,9 +6856,26 @@ const SIT = {
   atendido:   {cor:"var(--ok-soft)",  texto:"var(--ok)",    rot:"Atendido"},
   cancelado:  {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Cancelado"},
   faltou:     {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Faltou"},
+  /* âmbar, entre o petróleo do agendado e o vermelho do faltou: ainda
+     não virou falta, mas já precisa de alguém ligando */
+  atrasado:   {cor:"var(--atraso-soft)",texto:"var(--atraso)",rot:"Atrasado"},
   encaixe:    {cor:"var(--accent-soft)",texto:"var(--accent)",rot:"Encaixe"},
   emergencia: {cor:"var(--crit-soft)",texto:"var(--crit)",  rot:"Emergência"}
 };
+/* "Atrasado" não é status do banco — e não deve ser. É uma leitura do
+   relógio: agendado ou confirmado, horário já passou, paciente não foi
+   marcado como atendido. Gravar isso como status obrigaria alguém a
+   mudar a linha na mão a cada 15 minutos, e às 9h05 a agenda inteira
+   ficaria mentindo até alguém lembrar. Derivado, acerta sozinho. */
+const ATRASAVEL = ["agendado","confirmado","encaixe","emergencia"];
+function atrasado(e){
+  if(!e || !e.inicio || !ATRASAVEL.includes(e.status)) return false;
+  const ini = new Date(e.inicio);
+  /* tolerância de 10 min: ninguém é "atrasado" por chegar às 9h02, e
+     pintar de vermelho quem está entrando pela porta irrita a recepção */
+  return (Date.now() - ini.getTime()) > 10*60000;
+}
+const sitDeEv = e => atrasado(e) ? SIT.atrasado : sitDe(e && e.status);
 const sitDe = s => SIT[s] || SIT.agendado;
 const OCUPA = ["bloqueado","agendado","confirmado","atendido","encaixe","emergencia"];
 
@@ -6458,17 +7113,20 @@ function renderDia(){
       const ini = minDe(new Date(e.inicio));
       if(ini < t && ini >= H_INI*60) continue;      // já desenhado no slot de início
     }
-    const s = e ? sitDe(e.status) : SIT.livre;
+    const s = e ? sitDeEv(e) : SIT.livre;
     const doOutro = e && e.dentista_id && meu && e.dentista_id !== meu;
     const span = e ? Math.max(1, Math.round(e.duracao_min/PASSO)) : 1;
     linhas += `<div class="slot2" data-min="${t}" ${e?`data-ev="${e.id}"`:""}
         style="--c:${s.cor};--ct:${s.texto};min-height:${span*40}px">
-      <div class="h mono">${hhmm(t)}</div>
+      <div class="h mono">${e && minDe(new Date(e.inicio)) !== t
+        /* com horário livre o evento pode começar no meio do slot: a
+           coluna mostra a hora REAL dele, não a da linha da grade */
+        ? hhmm(minDe(new Date(e.inicio))) : hhmm(t)}</div>
       <div class="corpo">
         ${e ? `
           <div class="t">
-            <b>${e.paciente || e.titulo || sitDe(e.status).rot}</b>
-            <small>${sitDe(e.status).rot}${e.procedimento?" · "+e.procedimento:""} · ${e.duracao_min} min${e.sala?" · "+e.sala:""}</small>
+            <b>${e.paciente || e.titulo || sitDeEv(e).rot}</b>
+            <small>${sitDeEv(e).rot}${atrasado(e)?" há "+Math.round((Date.now()-new Date(e.inicio))/60000)+" min":""}${e.procedimento?" · "+e.procedimento:""} · ${e.duracao_min} min${e.sala?" · "+e.sala:""}</small>
             ${e.dentista?`<small class="quem${doOutro?" outro":""}">${doOutro?"reservado por ":""}${e.dentista}</small>`:""}
             ${e.motivo_cancelamento?`<small style="color:var(--crit)">${e.motivo_cancelamento}</small>`:""}
           </div>`
@@ -6518,8 +7176,6 @@ let remarcando = null;
 
 function abrirForm(tipo, minuto){
   const box = $("#agForm");
-  const hs = [];
-  for(let t=H_INI*60; t<H_FIM*60; t+=PASSO) hs.push(t);
   const sel = minuto!==undefined ? minuto : 9*60;
   const meu = DB.meuId || (usuario && usuario.id);
   const bloqueio = tipo==="bloqueio";
@@ -6529,9 +7185,12 @@ function abrirForm(tipo, minuto){
     <div style="display:flex;flex-direction:column;gap:11px;margin-top:9px">
       <div class="grid2">
         <div class="field"><label for="agHora">Início</label>
-          <select id="agHora">${hs.map(t=>`<option value="${t}" ${t===sel?"selected":""}>${hhmm(t)}</option>`).join("")}</select></div>
+          <input id="agHora" type="time" step="300" value="${hhmm(sel)}" class="mono">
+          <div class="hint" style="margin-top:4px">Qualquer horário — a grade é de 30 em 30
+            só para desenhar o dia.</div></div>
         <div class="field"><label for="agDur">Duração (min)</label>
-          <select id="agDur">${[30,45,60,90,120,150,180].map(d=>`<option value="${d}" ${d===(bloqueio?60:30)?"selected":""}>${d}</option>`).join("")}</select></div>
+          <select id="agDur">${[15,20,30,45,60,90,120,150,180,240].map(d=>`<option value="${d}" ${d===(bloqueio?60:30)?"selected":""}>${d}</option>`).join("")}</select>
+          <div class="hint" style="margin-top:4px">&nbsp;</div></div>
       </div>
       <div class="grid2">
         <div class="field"><label for="agSala">Sala</label>
@@ -6554,7 +7213,15 @@ function abrirForm(tipo, minuto){
 
   $("#agCancelar").addEventListener("click", ()=>{ box.innerHTML=""; });
   $("#agSalvar").addEventListener("click", async ()=>{
-    const t = +$("#agHora").value, dur = +$("#agDur").value;
+    /* o campo agora é hora livre ("09:15"), não mais um índice de slot */
+    const hv = ($("#agHora").value||"").split(":");
+    const t = (Number(hv[0])||0)*60 + (Number(hv[1])||0);
+    const dur = +$("#agDur").value;
+    if(!(t>=0 && t<24*60)){ toast("Informe o horário de início."); $("#agHora").focus(); return; }
+    if(t < H_INI*60 || t + dur > H_FIM*60){
+      if(!confirm("Esse horário fica fora da grade de "+hhmm(H_INI*60)+" às "+hhmm(H_FIM*60)+
+                  ".\n\nAgendar mesmo assim?")) return;
+    }
     const ini = new Date(agenda.dia+"T00:00:00"); ini.setMinutes(t);
     const salaId = $("#agSala").value, dentId = $("#agDent").value;
 
@@ -6618,7 +7285,7 @@ async function mostrarConflito(salaId, iniISO, fimISO){
       mas não consegui identificar quem está com o horário. Atualize a agenda e tente de novo.</div>`;
   }else{
     lista.innerHTML = quem.map(q=>{
-      const s = sitDe(q.status);
+      const s = sitDeEv(q);
       const ini = new Date(q.inicio), fim = new Date(q.fim);
       const z=n=>String(n).padStart(2,"0");
       return `<div class="lote-row">
@@ -6642,7 +7309,7 @@ async function mostrarConflito(salaId, iniISO, fimISO){
 function acoesDoEvento(ev){
   const meu = DB.meuId || (usuario && usuario.id);
   const doOutro = ev.dentista_id && meu && ev.dentista_id !== meu;
-  const s = sitDe(ev.status);
+  const s = sitDeEv(ev);
   const ini = new Date(ev.inicio), fim = new Date(ev.fim);
   const z=n=>String(n).padStart(2,"0");
 
@@ -6742,7 +7409,8 @@ const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","P
              "PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 const CORES_EQUIPE = ["#0E7183","#8A6BBF","#1C7048","#A8601A","#A82A22","#2B6CA8","#7E9A6B","#C2679A"];
 
-let cfg = {aba:"unidade", clinica:null, salas:[], equipe:[], emails:{}, carregando:false};
+let cfg = {aba:"unidade", clinica:null, salas:[], equipe:[], emails:{}, carregando:false,
+           procEdit:null, procKitDe:null, procBusca:""};
 
 const CFG = {
   async carregar(){
@@ -6840,11 +7508,26 @@ async function abrirConfig(aba){
   window.scrollTo({top:0});
 }
 
+/* Uma lista só de abas, usada para desenhar a tela E para decidir se o
+   botão de configurações aparece. Separar as duas coisas é como se
+   chega a um botão que abre uma tela vazia. */
+function abasConfigDe(pendentes){
+  const abas = [];
+  if(pode("admin")){
+    abas.push(["unidade","Unidade"],["salas","Salas"],["equipe","Equipe"]);
+  }
+  /* procedimento é assunto clínico: administrador e dentista. A
+     secretária agenda e cadastra, não define o que vai na bandeja. */
+  if(pode("admin") || pode("atender")) abas.push(["procedimentos","Procedimentos"]);
+  if(pode("admin")) abas.push(["pedidos","Pedidos"+(pendentes?" ("+pendentes+")":"")]);
+  return abas;
+}
+
 function renderConfig(){
   const box = $("#configBox"); if(!box) return;
   const pend = (S.solicitacoes||[]).filter(s=>s.status==="pendente");
-  const abas = [["unidade","Unidade"],["salas","Salas"],["equipe","Equipe"],
-                ["pedidos","Pedidos"+(pend.length?" ("+pend.length+")":"")]];
+  const abas = abasConfigDe(pend.length);
+  if(!abas.some(([k])=>k===cfg.aba)) cfg.aba = (abas[0]||["procedimentos"])[0];
   box.innerHTML = `
     <div class="aba" role="tablist" style="margin-bottom:12px">
       ${abas.map(([k,r])=>`<button role="tab" aria-selected="${k===cfg.aba}" data-cfg="${k}">${r}</button>`).join("")}
@@ -6860,7 +7543,161 @@ function corpoConfig(){
   if(cfg.aba==="unidade") return htmlUnidade();
   if(cfg.aba==="salas")   return htmlSalas();
   if(cfg.aba==="equipe")  return htmlEquipe();
+  if(cfg.aba==="procedimentos") return htmlProcedimentos();
   return htmlPedidos();
+}
+
+/* =====================================================================
+   PROCEDIMENTOS E KITS
+
+   "Fazer como opcional e editável procedimentos padronizados pelos
+   dentistas já com material, onde eles podem criar no procedimento
+   quais materiais eles geralmente usam."
+
+   Duas decisões que valem registro:
+
+   · O kit é DE QUEM O USA. Dois dentistas fazem a mesma coisa com
+     material diferente; o kit do outro atrapalha mais do que ajuda. O
+     dentista edita o dele, o administrador edita o padrão da clínica, e
+     quem não tem kit próprio herda o padrão. É o mesmo desenho da
+     tabela de preço, que já funciona assim.
+   · Nada disso é obrigatório. Procedimento sem kit continua
+     funcionando: a ficha simplesmente não oferece nada.
+   ===================================================================== */
+function escopoRotulo(e){
+  return ({dente:"Por dente", regiao:"Por região", quadrante:"Por quadrante",
+           arcada:"Por arcada", boca_toda:"Boca toda",
+           nao_se_aplica:"Não se aplica"})[e] || "Por dente";
+}
+
+function kitDonoAtual(){
+  /* dentista mexe no dele; administrador escolhe de quem mexe, e o
+     padrão dele é o padrão da clínica */
+  if(pode("soMinhas")) return meuId();
+  return cfg.procKitDe === undefined ? null : cfg.procKitDe;
+}
+
+function kitDe(proc, dono){
+  const prop = (proc.kits && proc.kits[dono||"__clinica"]) || null;
+  if(prop) return {itens:prop, proprio:!!dono};
+  return {itens:(proc.kit||[]), proprio:false};
+}
+
+function htmlProcedimentos(){
+  const dono = kitDonoAtual();
+  const ds = dentistasDaClinica();
+  const busca = norm(cfg.procBusca||"");
+  const lista = PROCEDIMENTOS
+    .filter(p=>!busca || norm(p.nome).includes(busca))
+    .slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+
+  return `
+    <details class="comofunc" open><summary>Como funcionam os procedimentos</summary>
+      <div class="corpo">
+        <p style="margin:0 0 8px">Cada procedimento guarda três coisas: a
+          <b>duração padrão</b>, <b>sobre o que ele incide</b> e o <b>kit de materiais</b>
+          que costuma usar. Nada é obrigatório — procedimento sem kit continua funcionando,
+          a ficha só não oferece nada.</p>
+        <div class="ex"><b>Sobre o que incide</b>
+          <p><b>Boca toda</b> é o caso da limpeza: não há dente nem região, e a ficha para de
+            pedir. <b>Por dente</b> é o implante. <b>Por arcada</b>, o protocolo. Escolher
+            certo aqui evita que alguém escreva "todos" ou "—" no histórico.</p>
+        </div>
+        <div class="ex"><b>De quem é o kit</b>
+          <p>${pode("soMinhas")
+            ? "Você edita o <b>seu</b> kit. Enquanto não criar um, usa o padrão da clínica."
+            : "Você pode editar o <b>padrão da clínica</b> ou o kit de um dentista. Quem não tiver kit próprio usa o padrão."}</p>
+          <p>Ao escolher o procedimento na ficha, o kit é <b>oferecido</b> — nunca imposto.
+            Se já houver material lançado, a oferta nem aparece.</p>
+        </div>
+      </div>
+    </details>
+
+    ${pode("soMinhas") ? "" : `<div class="field" style="max-width:320px;margin-bottom:12px">
+      <label for="kitDono">Kit de quem</label>
+      <select id="kitDono">
+        <option value="">Padrão da clínica</option>
+        ${ds.map(d=>`<option value="${d.id}" ${dono===d.id?"selected":""}>${d.nome}</option>`).join("")}
+      </select></div>`}
+
+    <div class="field" style="max-width:360px;margin-bottom:10px">
+      <label for="procFiltro">Procurar procedimento</label>
+      <input id="procFiltro" type="search" autocomplete="off" value="${(cfg.procBusca||"").replace(/"/g,"&quot;")}"
+        placeholder="digite parte do nome"></div>
+
+    <div class="row naoimprime" style="margin-bottom:8px">
+      <button class="btn" id="procNovo">+ Novo procedimento</button>
+    </div>
+
+    ${lista.length ? `<div class="list">${lista.map(p=>{
+      const k = kitDe(p, dono);
+      const aberto = cfg.procEdit === p.nome;
+      const nomes = k.itens.map(([id,q])=>{ const c=catById(id); return c? q+"× "+c.nome : null; })
+                           .filter(Boolean);
+      return `<div class="card" style="margin-bottom:8px">
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1 1 220px;min-width:0">
+            <b style="font-size:14px">${p.nome}</b>
+            <div style="font-size:11.5px;color:var(--ink-3);margin-top:3px">
+              ${escopoRotulo(p.esc)} · ${p.dur} min ·
+              ${nomes.length ? (k.proprio ? "kit próprio" : "kit da clínica")+" com "+nomes.length+" item(ns)"
+                             : '<span class="vaga">sem kit</span>'}
+            </div>
+            ${nomes.length ? `<div style="font-size:12px;color:var(--ink-2);margin-top:5px;line-height:1.5">
+              ${nomes.join(" · ")}</div>` : ""}
+          </div>
+          <button class="minibtn" data-proced="${p.nome}">${aberto?"Fechar":"Editar"}</button>
+        </div>
+        ${aberto ? formProcedimento(p, dono) : ""}
+      </div>`;}).join("")}</div>`
+      : `<div class="empty">Nenhum procedimento com “${cfg.procBusca}”.</div>`}`;
+}
+
+function formProcedimento(p, dono){
+  const k = kitDe(p, dono);
+  const quem = dono ? ((dentistasDaClinica().find(d=>d.id===dono)||{}).nome || "este dentista")
+                    : "a clínica";
+  return `<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
+    <div class="grid2">
+      <div class="field"><label for="peNome">Nome</label>
+        <input id="peNome" value="${p.nome.replace(/"/g,"&quot;")}"></div>
+      <div class="field"><label for="peDur">Duração padrão (min)</label>
+        <input id="peDur" type="number" min="5" step="5" class="mono" value="${p.dur}"></div>
+    </div>
+    <div class="field"><label for="peEsc">Sobre o que incide</label>
+      <select id="peEsc">
+        ${["dente","regiao","quadrante","arcada","boca_toda","nao_se_aplica"].map(e=>
+          `<option value="${e}" ${(p.esc||"dente")===e?"selected":""}>${escopoRotulo(e)}</option>`).join("")}
+      </select>
+      <div class="hint" style="margin-top:4px">“Boca toda” e “Não se aplica” fazem a ficha
+        parar de pedir região.</div></div>
+
+    <div class="sec-h" style="margin-top:12px;padding:0 0 4px"><h2 style="font-size:13px">
+      Kit de ${quem}</h2><span class="hint">${k.proprio||!dono ? "" : "ainda usando o padrão da clínica"}</span></div>
+    ${k.itens.length ? `<div class="list">${k.itens.map(([id,q],i)=>{
+      const c = catById(id);
+      return `<div class="matline">
+        <div class="nm">${c?c.nome:id}<small>${c?c.un:""}</small></div>
+        <div class="stepper">
+          <button type="button" data-kq="dec" data-i="${i}" aria-label="Diminuir">−</button>
+          <span class="mono">${q}</span>
+          <button type="button" data-kq="inc" data-i="${i}" aria-label="Aumentar">+</button></div>
+        <button type="button" class="rm" data-kq="rm" data-i="${i}" aria-label="Remover">✕</button>
+      </div>`;}).join("")}</div>`
+      : `<div class="stage">Sem material neste kit. Acrescente abaixo o que você costuma usar.</div>`}
+
+    <div class="field busca-mat" style="margin-top:10px">
+      <label for="kitBusca" class="oculto-visual">Procurar material</label>
+      <input id="kitBusca" type="search" autocomplete="off"
+        placeholder="+ acrescentar material — digite para procurar">
+      <div id="kitResult" class="resultado-mat" hidden></div>
+    </div>
+
+    <div class="rowbtns" style="margin-top:12px">
+      <button class="minibtn" id="peSalvar">Salvar procedimento</button>
+      ${k.proprio ? `<button class="minibtn" id="peZerar">Voltar ao kit da clínica</button>` : ""}
+    </div>
+  </div>`;
 }
 
 /* ---------- unidade ---------- */
@@ -7072,7 +7909,140 @@ function htmlPedidos(){
 }
 
 /* ---------- ligações ---------- */
+/* ---------- procedimentos: handlers ---------- */
+function procPorNome(n){ return PROCEDIMENTOS.find(x=>norm(x.nome)===norm(n)); }
+
+function gravarKitLocal(p, dono, itens){
+  p.kits = p.kits || {};
+  if(dono) p.kits[dono] = itens;
+  else { p.kit = itens; delete p.kits.__clinica; }
+}
+
+function ligarProcedimentos(){
+  const dono = kitDonoAtual();
+
+  const sel = $("#kitDono");
+  if(sel) sel.addEventListener("change", ()=>{
+    cfg.procKitDe = sel.value || null; renderConfig(); });
+
+  const filtro = $("#procFiltro");
+  if(filtro) filtro.addEventListener("input", ()=>{
+    cfg.procBusca = filtro.value;
+    const pos = filtro.selectionStart;
+    renderConfig();
+    const novo = $("#procFiltro");
+    if(novo){ novo.focus(); novo.setSelectionRange(pos,pos); }
+  });
+
+  const novoBtn = $("#procNovo");
+  if(novoBtn) novoBtn.addEventListener("click", ()=>{
+    const nome = (prompt("Nome do procedimento:")||"").trim();
+    if(!nome) return;
+    if(procPorNome(nome)){ toast("Já existe um procedimento com esse nome."); return; }
+    PROCEDIMENTOS.push({nome, esc:"dente", dur:45, kit:[],
+      re:new RegExp(norm(nome).slice(0,18).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i")});
+    cfg.procEdit = nome; cfg.procBusca = "";
+    salvarProcedimento(nome, {criar:true});
+  });
+
+  $$("#cfgCorpo [data-proced]").forEach(b=>b.addEventListener("click", ()=>{
+    cfg.procEdit = (cfg.procEdit === b.dataset.proced) ? null : b.dataset.proced;
+    renderConfig();
+  }));
+
+  if(!cfg.procEdit) return;
+  const p = procPorNome(cfg.procEdit); if(!p) return;
+  const k = kitDe(p, dono);
+
+  /* quantidade e remoção mexem numa CÓPIA: só o botão Salvar grava.
+     Mexer no kit de verdade a cada toque faria o "voltar ao padrão da
+     clínica" perder o sentido. */
+  const itens = k.itens.map(x=>[x[0], x[1]]);
+  const regravar = () => { gravarKitLocal(p, dono, itens); renderConfig(); };
+
+  $$("#cfgCorpo [data-kq]").forEach(b=>b.addEventListener("click", ()=>{
+    const i = Number(b.dataset.i);
+    if(b.dataset.kq==="inc") itens[i][1] = Math.min(99, itens[i][1]+1);
+    else if(b.dataset.kq==="dec") itens[i][1] = Math.max(1, itens[i][1]-1);
+    else itens.splice(i,1);
+    regravar();
+  }));
+
+  /* mesma busca da ficha, aqui dentro: um jeito só de procurar material
+     no sistema inteiro */
+  const bk = $("#kitBusca"), rk = $("#kitResult");
+  if(bk && rk){
+    let selK = 0;
+    const desenhar = () => {
+      const achados = materiaisQueCasam(bk.value);
+      rk.innerHTML = achados.length ? achados.map((x,i)=>{
+        const saldo = Number(x.e.saldo||0);
+        return `<button type="button" data-kmat="${x.c.id}" aria-selected="${i===selK}">
+          <b>${realcar(x.c.nome, bk.value)}</b>
+          <span class="saldo ${saldo>0?"":"zero"}">${saldo>0?fmtQtd(saldo)+" "+(x.c.un||"un"):"sem saldo"}</span>
+        </button>`; }).join("")
+        : `<div class="nada">Nada no estoque com “${bk.value.trim()}”.</div>`;
+      rk.hidden = false;
+      rk.querySelectorAll("[data-kmat]").forEach(b2=>b2.addEventListener("mousedown", ev=>{
+        ev.preventDefault();
+        const id = b2.dataset.kmat;
+        const ja = itens.find(x=>x[0]===id);
+        if(ja) ja[1]++; else itens.push([id,1]);
+        bk.value=""; rk.hidden=true; regravar();
+      }));
+    };
+    bk.addEventListener("focus", ()=>{ selK=0; desenhar(); });
+    bk.addEventListener("input", ()=>{ selK=0; desenhar(); });
+    bk.addEventListener("blur", ()=> setTimeout(()=>{ rk.hidden=true; }, 120));
+    bk.addEventListener("keydown", ev=>{
+      const ops = [...rk.querySelectorAll("[data-kmat]")];
+      if(ev.key==="Enter" && ops.length){ ev.preventDefault();
+        ops[Math.min(selK, ops.length-1)].dispatchEvent(new MouseEvent("mousedown")); }
+      else if(ev.key==="ArrowDown" && ops.length){ ev.preventDefault(); selK=(selK+1)%ops.length; desenhar(); }
+      else if(ev.key==="ArrowUp" && ops.length){ ev.preventDefault(); selK=(selK-1+ops.length)%ops.length; desenhar(); }
+      else if(ev.key==="Escape"){ rk.hidden=true; }
+    });
+  }
+
+  const sv = $("#peSalvar");
+  if(sv) sv.addEventListener("click", ()=>{
+    const nome = $("#peNome").value.trim();
+    if(!nome){ toast("O procedimento precisa de um nome."); return; }
+    const outro = PROCEDIMENTOS.find(x=>x!==p && norm(x.nome)===norm(nome));
+    if(outro){ toast("Já existe um procedimento com esse nome."); return; }
+    const antigo = p.nome;
+    p.nome = nome;
+    p.dur  = Math.max(5, Number($("#peDur").value)||p.dur);
+    p.esc  = $("#peEsc").value;
+    gravarKitLocal(p, dono, itens);
+    cfg.procEdit = null;
+    salvarProcedimento(nome, {antigo});
+  });
+
+  const zr = $("#peZerar");
+  if(zr) zr.addEventListener("click", ()=>{
+    if(!dono || !p.kits) return;
+    delete p.kits[dono];
+    cfg.procEdit = null;
+    salvarProcedimento(p.nome, {zerar:dono});
+  });
+}
+
+/* Grava no banco quando há banco; no demo fica no navegador, como todo
+   o resto. O procedimento é da clínica, o kit é de quem o usa. */
+async function salvarProcedimento(nome, opc){
+  const p = procPorNome(nome); if(!p) return;
+  const dono = kitDonoAtual();
+  if(MODO!=="nuvem"){ save(); renderConfig(); toast("Procedimento salvo neste navegador."); return; }
+  const ok = await naNuvem(async ()=>{
+    await DB.gravarProcedimento(p, dono, (opc||{}).antigo);
+  }, "procedimento");
+  renderConfig();
+  if(ok) toast("Procedimento salvo.");
+}
+
 function ligarConfig(){
+  ligarProcedimentos();
   // unidade
   const cs = $("#cSalvar");
   if(cs) cs.addEventListener("click", async ()=>{
@@ -7233,7 +8203,7 @@ function renderMiniAgenda(){
       <b>${evs.length}</b>
     </div>
     ${mostrar.length ? mostrar.map(e=>{
-      const s = sitDe(e.status);
+      const s = sitDeEv(e);
       const d = new Date(e.inicio); const z=n=>String(n).padStart(2,"0");
       const passou = minDe(new Date(e.fim)) < agora;
       return `<button class="mini-ev${passou?" passou":""}" data-ev="${e.id}"
@@ -7349,6 +8319,17 @@ function renderFinanceiro(){
             || (b.dataset.fin==="taxas" && !verTaxa)
             || (b.dataset.fin==="precos" && !pode("precos"));
   });
+  const ab = $("#atrasoBtn");
+  if(ab) ab.addEventListener("click", ()=>{ atrasoAberto = !atrasoAberto; renderFinanceiro(); });
+  $$("#finPainel [data-atrasoPac]").forEach(b=>b.addEventListener("click", ()=>{
+    document.querySelector(".tab[data-scr='pacientes']").click();
+    setTimeout(()=>abrirPaciente(b.dataset.atrasopac), 120);
+  }));
+  const acsv = $("#atrasoCsv");
+  if(acsv) acsv.addEventListener("click", ()=>baixarCSV("parcelas-atrasadas",
+    [["Paciente","Cobrança","Forma","Parcela","Valor","Previsão","Dias de atraso"]].concat(
+      parcelasAtrasadas().map(x=>[x.paciente,x.descricao,x.forma,x.parcela,x.valor,x.previsao,x.dias]))));
+
   const imp = $("#fluxoImprimir"); if(imp) imp.addEventListener("click", ()=>window.print());
   const cc = $("#confCsv");
   if(cc) cc.addEventListener("click", ()=>baixarCSV("conferencia-por-cliente", linhasConferenciaCSV()));
@@ -7356,6 +8337,74 @@ function renderFinanceiro(){
   if(csv) csv.addEventListener("click", ()=>baixarCSV("fluxo-de-caixa",
     [["Mês","Bruto","Taxas","Líquido","Recebido","Previsto","Parcelas","Atrasadas"]].concat(
       fluxoPorMes().map(f=>[nomeMes(f.mes),f.bruto,f.taxas,f.liquido,f.recebido,f.previsto,f.parcelas,f.atrasadas]))));
+}
+
+/* "No campo parcelas atrasadas, se eu clicar dá para ver o paciente que
+   está atrasado, ou só tenho o valor total e teríamos que abrir um por
+   um para saber quem é?" — dava só o número. Um contador de problemas
+   que não diz quais são os problemas obriga a abrir ficha por ficha, que
+   é exatamente o trabalho que o sistema deveria poupar. */
+let atrasoAberto = false;
+
+function parcelasAtrasadas(){
+  const hojeI = hojeISO();
+  const visiveis = new Set(cobrancasVisiveis().map(c=>c.id));
+  const pagPor = {};
+  (S.pagamentos||[]).forEach(pg=>{ pagPor[pg.id] = pg; });
+
+  return (S.parcelas||[])
+    .filter(x => !x.recebido_em && !x.recebido &&
+                 x.previsao_credito && x.previsao_credito < hojeI)
+    .map(x => {
+      const pg = pagPor[x.pagamento_id];
+      const cob = pg ? (S.cobrancas||[]).find(c=>c.id===pg.cobranca_id) : null;
+      if(cob && !visiveis.has(cob.id)) return null;      // RLS da tela
+      const pac = cob ? pacById(cob.pac) : null;
+      const dias = Math.round((new Date(hojeI) - new Date(x.previsao_credito))/86400000);
+      return {
+        paciente: pac ? pac.nome : (cob ? "(paciente não encontrado)" : "(cobrança apagada)"),
+        pacId: pac ? pac.id : null,
+        descricao: (cob && cob.descricao) || "cobrança",
+        forma: pg ? (ROTULO_FORMA[pg.forma_enum] || pg.forma_enum || "—") : "—",
+        parcela: x.numero && x.total ? x.numero+"/"+x.total : "",
+        valor: Number(x.valor_liquido||0),
+        previsao: x.previsao_credito,
+        dias
+      };
+    })
+    .filter(Boolean)
+    .sort((a,b)=> b.dias - a.dias);
+}
+
+function htmlAtrasadas(){
+  const ls = parcelasAtrasadas();
+  if(!ls.length) return `<div class="stage" style="margin-top:10px">Nenhuma parcela atrasada
+    com os dados carregados.</div>`;
+  const total = cent(ls.reduce((a,x)=>a+x.valor,0));
+  return `
+    <div class="card rolar" style="margin-top:10px">
+      <div class="sec-h" style="padding:0 0 8px"><h2 style="font-size:13px">Quem está atrasado</h2>
+        <span class="hint">${ls.length} parcela(s) · ${fmtBRL(total)}</span></div>
+      <table class="tab-rel tab-edit">
+        <thead><tr><th>Paciente</th><th>Cobrança</th><th>Forma</th><th>Parcela</th>
+          <th class="n">Valor</th><th>Previsão</th><th class="n">Atraso</th>
+          <th class="naoimprime">&nbsp;</th></tr></thead>
+        <tbody>${ls.map(x=>`<tr>
+          <td class="destaque" data-rot=""><b>${x.paciente}</b></td>
+          <td data-rot="Cobrança">${x.descricao}</td>
+          <td data-rot="Forma">${x.forma}</td>
+          <td data-rot="Parcela">${x.parcela||'<span class="vaga">—</span>'}</td>
+          <td class="n" data-rot="Valor">${fmtBRL(x.valor)}</td>
+          <td data-rot="Previsão">${fmtData(x.previsao)}</td>
+          <td class="n" data-rot="Atraso"><b style="color:var(--crit)">${x.dias} dia(s)</b></td>
+          <td class="naoimprime acoes">${x.pacId
+            ? `<button class="minibtn" data-atrasoPac="${x.pacId}">Abrir ficha</button>` : ""}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <div class="row naoimprime" style="margin-top:8px">
+      <button class="minibtn" id="atrasoCsv">Baixar em CSV</button>
+    </div>`;
 }
 
 function htmlFluxo(){
@@ -7379,8 +8428,13 @@ function htmlFluxo(){
       <div class="tile ok"><b>${fmtBRL(esteMes.recebido)}</b><span>total recebido no mês</span></div>
       <div class="tile"><b>${fmtBRL(esteMes.previsto)}</b><span>aguardando pagamento</span></div>
       <div class="tile"><b>${fmtBRL(aReceber)}</b><span>a receber (${futuros.length} meses)</span></div>
-      <div class="tile ${atrasadas?"crit":"warn"}"><b>${atrasadas||"—"}</b><span>parcelas atrasadas</span></div>
+      ${atrasadas
+        ? `<button class="tile crit" id="atrasoBtn" type="button" aria-expanded="${atrasoAberto}"
+             style="cursor:pointer;text-align:left;width:100%">
+             <b>${atrasadas}</b><span>parcelas atrasadas — ${atrasoAberto?"ocultar":"ver quem"}</span></button>`
+        : `<div class="tile warn"><b>—</b><span>parcelas atrasadas</span></div>`}
     </div>
+    ${atrasadas && atrasoAberto ? htmlAtrasadas() : ""}
     <div class="stage" style="margin-top:10px"><b>Onde cada pagamento aparece:</b>
       PIX, dinheiro e débito entram em <b>Total recebido</b> no dia. Cartão de crédito
       entra em <b>A receber</b> e só migra para Total recebido quando a adquirente paga —
@@ -7915,7 +8969,11 @@ async function baixarCSV(nome, linhas){
 function renderAcessos(){
   const pend = (S.solicitacoes||[]).filter(s=>s.status==="pendente");
   const bt = $("#acessosBtn");
-  bt.hidden = !pode("admin");
+  /* o dentista também entra aqui, mas só pela aba Procedimentos: o kit
+     dele é dele, e deixar isso trancado atrás do administrador seria
+     obrigar o consultório a pedir licença para padronizar a própria
+     bandeja. Unidade, salas e equipe continuam só do administrador. */
+  bt.hidden = !abasConfigDe().length;
   bt.textContent = pend.length ? "●" : "⚙";
   bt.title = pend.length ? pend.length+" pedido(s) de acesso" : "Configurações";
   bt.style.color = pend.length ? "var(--crit)" : "";
@@ -8142,7 +9200,7 @@ function aplicarPermissoes(){
   $("#userNome").textContent=usuario.nome.split(" ").slice(0,2).join(" ");
   $("#userPerfil").textContent="· "+P.rotulo;
   $("#saudacao").textContent = P.atender ? "Atendimento" : "Início";
-  $("#acessosBtn").hidden = !P.admin;
+  $("#acessosBtn").hidden = !abasConfigDe().length;
   let primeira=null;
   $$(".tab").forEach(t=>{ const ok=P.telas.includes(t.dataset.scr); t.hidden=!ok; if(ok&&!primeira) primeira=t; });
   document.querySelector(".tabs .inner").style.setProperty("--tabs", P.telas.length);
@@ -8184,11 +9242,19 @@ $("#themeBtn").addEventListener("click", ()=>{
 
 $("#novaEntradaBtn") && $("#novaEntradaBtn").addEventListener("click", ()=>{
   if(!pode("estoque")){ toast("Seu perfil não altera o estoque."); return; }
-  entradaAberta=!entradaAberta; matNovoAberto=false; renderEstoque();
+  const jaAberta = entradaAberta && !entradaSemNf;
+  entradaSemNf = false; entradaAberta = !jaAberta; matNovoAberto = false;
+  renderEstoque();
 });
 $("#novoMatBtn") && $("#novoMatBtn").addEventListener("click", ()=>{
   if(!pode("estoque")){ toast("Seu perfil não cria material."); return; }
   matNovoAberto=!matNovoAberto; entradaAberta=false; renderEstoque();
+});
+$("#entradaSemNfBtn") && $("#entradaSemNfBtn").addEventListener("click", ()=>{
+  if(!pode("estoque")){ toast("Seu perfil não lança entrada."); return; }
+  const jaAberta = entradaAberta && entradaSemNf;
+  entradaSemNf = true; entradaAberta = !jaAberta; matNovoAberto = false;
+  renderEstoque();
 });
 $("#relatBtn") && $("#relatBtn").addEventListener("click", ()=>{
   if(!pode("relatorios")){ toast("Seu perfil não tem acesso aos relatórios."); return; }
@@ -9839,7 +10905,13 @@ function semearCaixaDemo(){
      pagos:[{v:6000, forma:"debito", n:1, dia:dia(-12)}, {v:12500, forma:"credito", n:12, dia:dia(-12)}]},
     {pac:"p3", desc:"Coroa sobre implante 21", valor:2600, venc:dia(9), pagos:[]},
     {pac:"p4", desc:"Manutenção anual de overdenture", valor:650, venc:dia(-3),
-     pagos:[{v:650, forma:"pix", n:1, dia:dia(-3)}]}
+     pagos:[{v:650, forma:"pix", n:1, dia:dia(-3)}]},
+    /* um boleto que venceu e NÃO caiu. Sem ele o demo nunca mostra
+       parcela atrasada — todas as vencidas entram como recebidas logo
+       abaixo — e o indicador de atraso fica eternamente apagado, que é
+       justamente a tela que o cliente quis poder abrir. */
+    {pac:"p3", desc:"Enxerto ósseo — 2ª parcela", valor:1400, venc:dia(-21),
+     atrasa:true, pagos:[{v:1400, forma:"boleto", n:1, dia:dia(-21)}]}
   ];
   vendas.forEach((v,i)=>{
     const cid = "cd"+i;
@@ -9855,9 +10927,12 @@ function semearCaixaDemo(){
         pago_em:pg.dia+"T12:00:00", observacao:null});
       pr.parcelas.forEach(x=>S.parcelas.push({id:pid+"-"+x.numero, pagamento_id:pid, ...x,
         // parcela cuja data já passou entra como recebida: é o que o
-        // extrato mostraria, e é o que faz "já caiu" ter sentido
-        recebido_em: (x.recebido || x.previsao_credito <= hojeISO()) ? x.previsao_credito : null,
-        conciliado: x.recebido}));
+        // extrato mostraria, e é o que faz "já caiu" ter sentido.
+        // Exceto a venda marcada como atrasada, que é o caso contrário.
+        recebido_em: (!v.atrasa && (x.recebido || x.previsao_credito <= hojeISO()))
+                     ? x.previsao_credito : null,
+        recebido: v.atrasa ? false : x.recebido,
+        conciliado: v.atrasa ? false : x.recebido}));
     });
   });
   save();
@@ -9876,7 +10951,7 @@ function renderAll(){
   $("#procList").innerHTML=PROCEDIMENTOS.map(p=>`<option value="${p.nome}"></option>`).join("");
   if(MODO!=="nuvem" && !S.tabelas) sincronizarTabelas();
   renderFicha(); renderHoje(); renderPacientes(); renderEstoque(); renderFinanceiro();
-  renderRelatorios(); renderConferencia();
+  renderRelatorios(); renderConferencia(); renderParceiros();
   if(agenda.eventos.length || agenda.salas.length) renderAgenda();
   renderMiniAgenda();
   if(pode("admin")) renderAcessos();
@@ -9896,6 +10971,14 @@ window.MD = {
   /* o odontograma 3D fica acessível para os testes: sem isso não dá
      para conferir a orientação das faces fora do olho humano */
   cortarEmenda, colapsarGagueira,
+  /* os procedimentos ficam acessíveis ao teste: é a estrutura que
+     decide escopo, duração e kit, e conferir isso pela tela só
+     verificaria o que a tela mostra, não o que ficou guardado */
+  get procedimentos(){ return PROCEDIMENTOS; },
+  /* a agenda fica acessível ao teste: "atrasado" é estado derivado do
+     relógio, e a única forma honesta de verificar que ele pinta é
+     colocar um agendamento no passado e olhar a cor que saiu */
+  agenda(){ return agenda; }, renderAgenda, atrasado,
   /* pode() e PERFIS expostos para o teste comparar, perfil por perfil, o
      que a tela oferece com o que o RLS do banco de fato aceita. Sem
      isso, "o botão aparece mas o banco recusa" só se descobre com o
