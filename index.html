@@ -564,6 +564,15 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
    rótulos encavalavam uns nos outros ("MASTERCARD" por cima de "HIPER")
    e virava borrão. Grade de largura fixa resolve, e de quebra dá alvo
    de toque de verdade no celular, que é onde isso é preenchido. */
+/* ---------- avisos da leitura de nota ---------- */
+.aviso-nf{border-radius:var(--r-sm);padding:10px 12px;font-size:12.5px;line-height:1.5;
+  border:1px solid}
+.aviso-nf b{display:block;font-size:13px;margin-bottom:2px}
+.aviso-nf span{display:block;margin-top:3px}
+.aviso-nf.bom{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.aviso-nf.ruim{background:var(--crit-soft);border-color:var(--crit);color:var(--crit)}
+.aviso-nf.atencao{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+
 /* ---------- sugestão de kit do procedimento ---------- */
 .sugestao-kit{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;
   background:var(--accent-soft);border:1px solid var(--line);border-radius:var(--r-sm);
@@ -1310,7 +1319,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v37 · 27/10/2026";
+const VERSAO = "v38 · 29/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -1530,6 +1539,7 @@ const DB = {
     await DB.carregarPrecos();
     await DB.carregarComposicao();
     await DB.carregarParceiros();
+    await DB.carregarDePara();
   },
 
   mapearMateriais(mats){
@@ -1892,6 +1902,34 @@ const DB = {
     else await DB.inserirTolerante("parceiros", {clinica_id:DB.clinica, ...corpo});
   },
 
+  /* o de-para fornecedor→material é o que faz a segunda nota do mesmo
+     fornecedor entrar sozinha. Fica no banco, não no navegador: quem
+     recebe a nota na recepção não é quem lançou da primeira vez. */
+  async gravarDePara(cnpjEmit, linhas){
+    const cnpj = (cnpjEmit||"").replace(/\D/g,"");
+    if(!cnpj) return;
+    const corpo = linhas.filter(l=>l.materialId && l.item.codigo).map(l=>({
+      clinica_id: DB.clinica,
+      cnpj_emitente: cnpj,
+      codigo_fornecedor: String(l.item.codigo).trim().toUpperCase(),
+      material_id: UID.mat[l.materialId],
+      descricao_nota: l.item.descricao || null
+    })).filter(x=>x.material_id);
+    if(!corpo.length) return;
+    await DB.rest("POST","material_fornecedor", corpo, "resolution=merge-duplicates");
+  },
+
+  async carregarDePara(){
+    try{
+      const r = await DB.rest("GET","material_fornecedor?select=cnpj_emitente,codigo_fornecedor,material_id");
+      S.deParaNf = {};
+      r.forEach(x=>{
+        const curto = UID.matRev[x.material_id];
+        if(curto!==undefined) S.deParaNf[chaveDePara(x.cnpj_emitente, x.codigo_fornecedor)] = curto;
+      });
+    }catch(e){ /* sem a 0021 o de-para fica só na sessão */ }
+  },
+
   async gravarTaxa(t){
     await DB.rest("PATCH","taxas_adquirente?id=eq."+t.id, {
       taxa_pct: t.taxa_pct, taxa_antecip_pct: t.taxa_antecip_pct,
@@ -2129,6 +2167,229 @@ async function naNuvem(fn, oqueFalhou){
 
 
 /* ===================== catálogo =====================*/
+/* =====================================================================
+   NOTA FISCAL ELETRÔNICA: CHAVE DE ACESSO E XML
+
+   O cliente perguntou se dá para reconhecer os produtos digitando o
+   código de barras da DANFE. A resposta honesta tem duas partes:
+
+   · o código de barras da DANFE (Code-128C) carrega APENAS a chave de
+     acesso de 44 posições. Chave não tem produto nenhum dentro — ela
+     identifica a nota, não descreve a mercadoria;
+   · quem tem os produtos é o XML. Para baixar o XML só com a chave é
+     preciso certificado digital A1 da clínica e o serviço
+     NFeDistribuiçãoDFe da SEFAZ, com manifestação do destinatário.
+
+   Então o sistema faz as duas coisas que não dependem de certificado:
+   lê o XML que o fornecedor manda por e-mail (onde está tudo), e
+   aproveita a chave para preencher fornecedor, número e data.
+
+   ATENÇÃO ao CNPJ alfanumérico (2026): a chave deixou de ser 44
+   DÍGITOS e passou a ser 44 CARACTERES — letras maiúsculas podem
+   aparecer nas posições 7 a 20, que são o CNPJ do emitente. Um
+   validador que exija só dígitos vai começar a recusar nota legítima
+   conforme os fornecedores migram. O dígito verificador converte letra
+   por ASCII menos 48 (A=17 … Z=42).
+   ===================================================================== */
+const CHAVE_LIMPA = t => (t||"").toUpperCase().replace(/[^0-9A-Z]/g,"");
+
+function dvChave(c43){
+  /* módulo 11, pesos 2..9 ciclando da direita para a esquerda */
+  let soma = 0, peso = 2;
+  for(let i = c43.length - 1; i >= 0; i--){
+    const ch = c43[i];
+    const valor = ch >= "0" && ch <= "9" ? Number(ch) : ch.charCodeAt(0) - 48;
+    soma += valor * peso;
+    peso = peso === 9 ? 2 : peso + 1;
+  }
+  const r = soma % 11;
+  return r < 2 ? 0 : 11 - r;
+}
+
+const UF_COD = {11:"RO",12:"AC",13:"AM",14:"RR",15:"PA",16:"AP",17:"TO",21:"MA",
+  22:"PI",23:"CE",24:"RN",25:"PB",26:"PE",27:"AL",28:"SE",29:"BA",31:"MG",32:"ES",
+  33:"RJ",35:"SP",41:"PR",42:"SC",43:"RS",50:"MS",51:"MT",52:"GO",53:"DF"};
+
+function lerChave(texto){
+  const c = CHAVE_LIMPA(texto);
+  if(c.length !== 44) return {ok:false, erro:"A chave tem 44 caracteres; esta tem "+c.length+"."};
+  /* letra só pode aparecer no CNPJ (posições 7 a 20) */
+  const fora = c.slice(0,6) + c.slice(20);
+  if(/[^0-9]/.test(fora))
+    return {ok:false, erro:"Há letra fora do CNPJ do emitente — confira a digitação."};
+  const dv = dvChave(c.slice(0,43));
+  if(dv !== Number(c[43]))
+    return {ok:false, erro:"Dígito verificador não confere — há erro de digitação na chave."};
+
+  const uf = Number(c.slice(0,2));
+  const aa = c.slice(2,4), mm = c.slice(4,6);
+  const modelo = c.slice(20,22);
+  return {
+    ok:true, chave:c,
+    uf: UF_COD[uf] || String(uf),
+    ano: 2000 + Number(aa), mes: Number(mm),
+    competencia: mm+"/"+(2000+Number(aa)),
+    cnpj: c.slice(6,20),
+    modelo,
+    modeloRotulo: modelo === "55" ? "NF-e" : modelo === "65" ? "NFC-e" : "modelo "+modelo,
+    serie: String(Number(c.slice(22,25))),
+    numero: String(Number(c.slice(25,34))),
+    tipoEmissao: c[34],
+    codigo: c.slice(35,43)
+  };
+}
+
+const fmtCnpj = c => (c||"").length===14
+  ? c.slice(0,2)+"."+c.slice(2,5)+"."+c.slice(5,8)+"/"+c.slice(8,12)+"-"+c.slice(12)
+  : (c||"");
+
+/* ---------------------------------------------------------------------
+   Leitura do XML da NF-e.
+
+   O fornecedor manda o XML por e-mail junto com a DANFE — é o mesmo
+   arquivo que o contador recebe. Dele sai tudo: emitente, número,
+   data, e cada item com código, descrição, NCM, quantidade, unidade e
+   valor. Lote e validade vêm no grupo `rastro`, que é obrigatório para
+   medicamento e opcional para o resto; quando não vier, a tela pergunta.
+
+   Lê sem biblioteca: DOMParser é do próprio navegador. Trazer um
+   parser de XML para dentro de um arquivo que já tem 570 KB seria
+   pagar caro por algo que o navegador faz de graça.
+   --------------------------------------------------------------------- */
+function lerXmlNFe(texto){
+  let doc;
+  try{ doc = new DOMParser().parseFromString(texto, "text/xml"); }
+  catch(e){ return {ok:false, erro:"Não consegui abrir o arquivo como XML."}; }
+  if(doc.querySelector("parsererror"))
+    return {ok:false, erro:"O arquivo não é um XML válido."};
+
+  /* getElementsByTagName ignora namespace, que é o que queremos: a NF-e
+     vem com xmlns e querySelector com namespace é frágil entre versões */
+  const t = (no, tag) => {
+    if(!no) return "";
+    const el = no.getElementsByTagName(tag)[0];
+    return el ? (el.textContent||"").trim() : "";
+  };
+  const um = tag => doc.getElementsByTagName(tag)[0] || null;
+
+  const infNFe = um("infNFe");
+  if(!infNFe) return {ok:false, erro:"Não encontrei a nota dentro do arquivo. "+
+    "Confira se é o XML da NF-e, e não o PDF da DANFE."};
+
+  const ide = um("ide"), emit = um("emit"), dest = um("dest");
+  const chave = CHAVE_LIMPA((infNFe.getAttribute("Id")||"").replace(/^NFe/i,""));
+
+  const itens = [...doc.getElementsByTagName("det")].map(det => {
+    const prod = det.getElementsByTagName("prod")[0];
+    if(!prod) return null;
+    const rastro = det.getElementsByTagName("rastro")[0];
+    const qtd = Number(t(prod,"qCom")||0);
+    const vUn = Number(t(prod,"vUnCom")||0);
+    return {
+      n: Number(det.getAttribute("nItem")||0),
+      codigo: t(prod,"cProd"),
+      ean: t(prod,"cEAN"),
+      descricao: t(prod,"xProd"),
+      ncm: t(prod,"NCM"),
+      unidade: t(prod,"uCom"),
+      quantidade: qtd,
+      valorUnitario: vUn,
+      valorTotal: Number(t(prod,"vProd") || (qtd*vUn)),
+      lote: rastro ? t(rastro,"nLote") : "",
+      fabricacao: rastro ? t(rastro,"dFab") : "",
+      validade: rastro ? t(rastro,"dVal") : ""
+    };
+  }).filter(Boolean);
+
+  if(!itens.length) return {ok:false, erro:"O XML não tem item nenhum."};
+
+  const dh = t(ide,"dhEmi") || t(ide,"dEmi");
+  return {
+    ok:true,
+    chave,
+    numero: t(ide,"nNF"),
+    serie: t(ide,"serie"),
+    emissao: dh ? dh.slice(0,10) : "",
+    emitente: {
+      cnpj: t(emit,"CNPJ"),
+      nome: t(emit,"xFant") || t(emit,"xNome"),
+      razao: t(emit,"xNome")
+    },
+    destinatario: { cnpj: t(dest,"CNPJ"), nome: t(dest,"xNome") },
+    valorTotal: Number(t(um("ICMSTot"),"vNF")||0),
+    itens
+  };
+}
+
+/* ---------------------------------------------------------------------
+   De item da nota para material do estoque.
+
+   A primeira vez alguém precisa dizer "este 'PARAF COBERT CM 3.5' do
+   fornecedor é o meu 'Parafuso de cobertura'". Da segunda em diante o
+   sistema lembra pelo par (CNPJ do emitente, código do produto) — é o
+   par que identifica o item no catálogo DAQUELE fornecedor, e código
+   sozinho colide entre fornecedores diferentes.
+   --------------------------------------------------------------------- */
+function chaveDePara(cnpj, codigo){
+  return (cnpj||"").replace(/\D/g,"") + "|" + (codigo||"").trim().toUpperCase();
+}
+
+/* Pontua em vez de pegar o primeiro que casa.
+   O primeiro que casa erra feio: "PARAF COBERTURA CONE MORSE 3.5MM"
+   casava com o IMPLANTE cone morse, porque "cone" e "morse" aparecem
+   nos dois — e o parafuso de cobertura custa R$ 38 contra R$ 900 do
+   implante. Sugestão plausível e errada é pior do que nenhuma, porque
+   as pessoas aceitam o que já veio preenchido.
+
+   O que desempata é a PRIMEIRA palavra: na nota fiscal ela nomeia a
+   coisa ("PARAF…", "CICATRIZADOR…", "MEMBRANA…") e o resto descreve.
+   Por isso ela vale mais que as outras somadas. */
+const palavrasUteis = t => norm(t||"").split(/[^a-z0-9]+/).filter(w => w.length >= 4);
+
+/* Para comparar a PRIMEIRA palavra vale até 3 letras ("FIO PTFE"),
+   embora palavras de 3 letras não pontuem sozinhas — "fio", "kit" e
+   "cx" casariam com meio catálogo. */
+const cabeca = t => (norm(t||"").split(/[^a-z0-9]+/).filter(w => w.length >= 3)[0]) || "";
+
+function pontuarMaterial(desc, c){
+  const pd = palavrasUteis(desc);
+  if(!pd.length) return 0;
+  /* o alvo inclui categoria e unidade: a nota escreve "ANESTESICO" e
+     "CX 50 TUBETES", que é como o fornecedor fala; o catálogo guarda
+     isso em `cat` e `un`, não no nome */
+  const alvo = palavrasUteis(norm(c.nome) + " " + (c.termos||[]).map(norm).join(" ")
+                             + " " + norm(c.cat||"") + " " + norm(c.un||""));
+  let p = 0;
+  pd.forEach(w => {
+    /* prefixo nos dois sentidos resolve plural e abreviação:
+       "tubetes"→"tubete", "anestesico"→"anestesicos" */
+    if(alvo.some(a => a === w || a.startsWith(w) || w.startsWith(a))) p += 1;
+  });
+  const a = cabeca(desc), b = cabeca(c.nome);
+  if(a && b && (a === b || a.startsWith(b) || b.startsWith(a))) p += 3;
+  if(norm(c.nome) === norm(desc)) p += 10;
+  return p;
+}
+
+function sugerirMaterial(item, cnpjEmit){
+  const mapa = S.deParaNf || {};
+  const lembrado = mapa[chaveDePara(cnpjEmit, item.codigo)];
+  if(lembrado && catById(lembrado)) return {id:lembrado, como:"lembrado"};
+
+  const d = item.descricao || "";
+  if(!norm(d)) return null;
+  let melhor = null, ponto = 0, segundo = 0;
+  CATALOGO.forEach(c => {
+    const p = pontuarMaterial(d, c);
+    if(p > ponto){ segundo = ponto; ponto = p; melhor = c; }
+    else if(p > segundo){ segundo = p; }
+  });
+  /* dois candidatos empatados querem dizer que o sistema não sabe —
+     e nesse caso é melhor deixar a pessoa escolher do que chutar */
+  if(!melhor || ponto < 3 || ponto === segundo) return null;
+  return {id:melhor.id, como: ponto >= 10 ? "nome igual" : "descrição parecida"};
+}
+
 const CATALOGO = [
   {id:"imp_cm",  nome:"Implante cone morse 3,5 × 10 mm", un:"un", min:6, sug:12, cat:"Implantes", termos:["implante cone morse","cone morse","implante 3,5"]},
   {id:"imp_he",  nome:"Implante hexágono externo 4,0 × 11,5 mm", un:"un", min:4, sug:8, cat:"Implantes", termos:["hexagono externo","implante he","implante 4,0"]},
@@ -6263,13 +6524,276 @@ let entradaAberta=false;
    aparecendo ou não, em vez de dois formulários que divergem no
    terceiro mês. */
 let entradaSemNf=false;
+/* =====================================================================
+   ENTRADA PELA NOTA: XML E CHAVE DE ACESSO
+   ===================================================================== */
+let nfImport = null;   // {nota, linhas:[...]} enquanto confere a nota lida
+let nfChave = null;    // resultado de lerChave, para preencher o formulário
+
+function htmlAtalhoNf(){
+  const c = nfChave;
+  return `
+    <details class="comofunc" open><summary>Lançar a nota de uma vez</summary>
+      <div class="corpo">
+        <p style="margin:0 0 10px">Duas formas de não digitar item por item:</p>
+        <div class="grid2" style="gap:12px">
+          <div class="field" style="margin:0">
+            <label for="nfArquivo">1 · Arquivo XML da nota <b>(traz os produtos)</b></label>
+            <input id="nfArquivo" type="file" accept=".xml,text/xml,application/xml">
+            <div class="hint" style="margin-top:4px">É o arquivo que o fornecedor manda por
+              e-mail junto com a DANFE. Dele saem todos os itens, com quantidade e valor.</div>
+          </div>
+          <div class="field" style="margin:0">
+            <label for="nfChaveIn">2 · Chave de acesso <b>(traz só os dados da nota)</b></label>
+            <div class="row" style="gap:6px">
+              <input id="nfChaveIn" class="mono" style="flex:1;min-width:0"
+                placeholder="44 caracteres" autocomplete="off" inputmode="numeric">
+              <button class="btn" id="nfLerCod" type="button" title="Ler o código de barras com a câmera">Ler</button>
+            </div>
+            <div class="hint" style="margin-top:4px">O código de barras da DANFE é a chave.
+              Ela identifica a nota — <b>não traz os produtos</b>.</div>
+          </div>
+        </div>
+        <div id="nfAviso" style="margin-top:10px">${c ? htmlChaveLida(c) : ""}</div>
+        <video id="nfCam" playsinline muted hidden
+               style="width:100%;max-height:260px;border-radius:var(--r-sm);margin-top:10px;background:#000"></video>
+      </div>
+    </details>`;
+}
+
+function htmlChaveLida(c){
+  if(!c.ok) return `<div class="aviso-nf ruim">${c.erro}</div>`;
+  return `<div class="aviso-nf bom">
+    <b>Chave válida — ${c.modeloRotulo} nº ${c.numero}, série ${c.serie}</b>
+    <span>Emitente CNPJ ${fmtCnpj(c.cnpj)} · ${c.uf} · ${c.competencia}</span>
+    <span>Preenchi o que a chave sabe. <b>Os produtos não vêm na chave</b> — para trazê-los,
+      use o XML da nota.</span></div>`;
+}
+
+function htmlConferenciaNf(){
+  const {nota, linhas} = nfImport;
+  const semMat = linhas.filter(l=>l.usar && !l.materialId).length;
+  const semLote = linhas.filter(l=>l.usar && !String(l.lote||"").trim()).length;
+  const opts = sel => CATALOGO.slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"))
+    .map(c=>`<option value="${c.id}" ${c.id===sel?"selected":""}>${c.nome}</option>`).join("");
+
+  return `
+    <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">Conferir a nota</h2>
+      <span class="hint">${linhas.length} item(ns) lidos do XML</span></div>
+
+    <div class="stage" style="margin-bottom:10px">
+      <b>${nota.emitente.nome || "Fornecedor"}</b> · CNPJ ${fmtCnpj(nota.emitente.cnpj)}<br>
+      NF-e nº ${nota.numero}, série ${nota.serie} · emissão ${nota.emissao?fmtData(nota.emissao):"—"}
+      ${nota.valorTotal?" · total "+fmtBRL(nota.valorTotal):""}
+    </div>
+
+    ${semMat ? `<div class="aviso-nf ruim" style="margin-bottom:10px">
+      <b>${semMat} item(ns) sem material escolhido.</b>
+      <span>Escolha o material do seu estoque em cada linha, ou desmarque o item. Da próxima
+      nota deste fornecedor o sistema já lembra.</span></div>` : ""}
+    ${semLote ? `<div class="aviso-nf atencao" style="margin-bottom:10px">
+      <b>${semLote} item(ns) sem lote.</b>
+      <span>A nota não trouxe o lote — ele só é obrigatório no XML de medicamento. Copie da
+      caixa: é o lote que diz o que usar primeiro.</span></div>` : ""}
+
+    <div class="card rolar"><table class="tab-rel tab-edit">
+      <thead><tr><th>Usar</th><th>Na nota</th><th>Material do estoque</th>
+        <th class="n">Qtd</th><th class="n">Custo un.</th><th>Lote</th><th>Validade</th></tr></thead>
+      <tbody>${linhas.map((l,i)=>`<tr data-nfi="${i}" ${l.usar?"":'style="opacity:.45"'}>
+        <td data-rot="Usar"><input type="checkbox" class="nfUsar" data-i="${i}" ${l.usar?"checked":""}></td>
+        <td class="destaque" data-rot=""><b>${l.item.descricao}</b>
+          <small style="display:block;color:var(--ink-3);font-size:11px">
+            cód. ${l.item.codigo||"—"} · ${l.item.unidade||""}${l.item.ncm?" · NCM "+l.item.ncm:""}
+            ${l.como?" · casou por "+l.como:""}</small></td>
+        <td data-rot="Material"><select class="nfMat" data-i="${i}" style="max-width:220px">
+          <option value="">— escolher —</option>${opts(l.materialId)}</select></td>
+        <td class="n" data-rot="Qtd"><input class="nfQtd" data-i="${i}" inputmode="decimal"
+          style="width:70px" value="${l.qtd}"></td>
+        <td class="n" data-rot="Custo un."><input class="nfCusto" data-i="${i}" inputmode="decimal"
+          style="width:80px" value="${l.custo}"></td>
+        <td data-rot="Lote"><input class="nfLote" data-i="${i}" style="width:110px"
+          value="${(l.lote||"").replace(/"/g,"&quot;")}" placeholder="da caixa"></td>
+        <td data-rot="Validade"><input class="nfVal" data-i="${i}" type="date"
+          value="${l.validade||""}" style="width:140px"></td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" style="flex:1" id="nfLancar">Lançar ${
+        linhas.filter(l=>l.usar).length} item(ns) no estoque</button>
+      <button class="btn" id="nfCancelar">Cancelar</button>
+    </div>`;
+}
+
+function montarConferencia(nota){
+  const linhas = nota.itens.map(item => {
+    const sug = sugerirMaterial(item, nota.emitente.cnpj);
+    return {
+      item, usar:true,
+      materialId: sug ? sug.id : "",
+      como: sug ? sug.como : "",
+      qtd: item.quantidade,
+      custo: item.valorUnitario,
+      lote: item.lote || "",
+      validade: item.validade || ""
+    };
+  });
+  nfImport = {nota, linhas};
+}
+
+function ligarConferenciaNf(){
+  const re = () => renderEntrada();
+  $$("#entradaCard .nfUsar").forEach(c=>c.addEventListener("change", ()=>{
+    nfImport.linhas[+c.dataset.i].usar = c.checked; re(); }));
+  $$("#entradaCard .nfMat").forEach(c=>c.addEventListener("change", ()=>{
+    nfImport.linhas[+c.dataset.i].materialId = c.value;
+    nfImport.linhas[+c.dataset.i].como = "você escolheu"; re(); }));
+  const liga = (cls, campo, num) => $$("#entradaCard ."+cls).forEach(el=>
+    el.addEventListener("input", ()=>{
+      nfImport.linhas[+el.dataset.i][campo] = num ? numBR(el.value) : el.value; }));
+  liga("nfQtd","qtd",true); liga("nfCusto","custo",true);
+  liga("nfLote","lote",false); liga("nfVal","validade",false);
+
+  const cancelar = $("#nfCancelar");
+  if(cancelar) cancelar.addEventListener("click", ()=>{ nfImport=null; renderEntrada(); });
+
+  const lancar = $("#nfLancar");
+  if(lancar) lancar.addEventListener("click", async ()=>{
+    const {nota, linhas} = nfImport;
+    const usar = linhas.filter(l=>l.usar);
+    if(!usar.length){ toast("Marque pelo menos um item."); return; }
+    const semMat = usar.filter(l=>!l.materialId);
+    if(semMat.length){ toast(semMat.length+" item(ns) ainda sem material escolhido."); return; }
+    const semLote = usar.filter(l=>!String(l.lote||"").trim());
+    if(semLote.length && !confirm(semLote.length+" item(ns) sem lote.\n\nSem lote o sistema "+
+      "não consegue dizer qual usar primeiro nem avisar de vencimento.\n\nLançar assim mesmo?")) return;
+    const semQtd = usar.filter(l=>!(l.qtd>0));
+    if(semQtd.length){ toast("Há item com quantidade zerada."); return; }
+
+    lancar.disabled = true; lancar.textContent = "Lançando…";
+    let feitos = 0, erros = [];
+    for(const l of usar){
+      const dados = {mat:l.materialId, lote:String(l.lote||"").trim() || "SEM-LOTE",
+        qtd:l.qtd, fabricacao:l.item.fabricacao||null, validade:l.validade||null,
+        nf:nota.numero, nfData:nota.emissao||null, fornecedor:nota.emitente.nome||null,
+        custo:l.custo, nfTotal:null, semNota:false};
+      try{
+        if(MODO==="nuvem"){ await DB.gravarLote(dados); }
+        else{
+          const e=stockById(dados.mat) || (S.estoque.push({id:dados.mat,qtd:0}), stockById(dados.mat));
+          e.qtd += dados.qtd;
+          const nl = {id:"l"+Date.now()+"-"+feitos, mat:dados.mat, codigo_lote:dados.lote,
+            fabricacao:dados.fabricacao, validade:dados.validade, quantidade_ini:dados.qtd,
+            saldo:dados.qtd, nf_numero:dados.nf, nf_emissao:dados.nfData,
+            fornecedor:dados.fornecedor, recebido_em:new Date().toISOString()};
+          (S.lotes=S.lotes||[]).push(nl);
+          registrarMov(dados.mat, dados.qtd, "entrada", "entrada pela NF "+dados.nf, null, nl.id);
+          if(dados.custo) (S.custos = S.custos||{})[nl.id] = dados.custo;
+        }
+        /* o de-para só é lembrado quando a entrada DEU CERTO: guardar o
+           vínculo de um lançamento que falhou ensina o sistema errado */
+        S.deParaNf = S.deParaNf || {};
+        S.deParaNf[chaveDePara(nota.emitente.cnpj, l.item.codigo)] = l.materialId;
+        feitos++;
+      }catch(e){ erros.push((catById(l.materialId)||{nome:l.materialId}).nome+": "+e.message); }
+    }
+    if(MODO==="nuvem"){
+      try{ await DB.gravarDePara(nota.emitente.cnpj, usar); }catch(e){}
+      await DB.carregarLotes();
+    } else save();
+    nfImport = null; nfChave = null; entradaAberta = false;
+    renderAll();
+    if(erros.length) toast(feitos+" item(ns) lançados; "+erros.length+" falharam: "+erros[0]);
+    else toast(feitos+" item(ns) da NF "+nota.numero+" lançados no estoque.");
+  });
+}
+
+function ligarAtalhoNf(){
+  const arq = $("#nfArquivo");
+  if(arq) arq.addEventListener("change", async ev=>{
+    const f = ev.target.files && ev.target.files[0]; if(!f) return;
+    if(f.size > 8*1024*1024){ toast("Arquivo grande demais para ser um XML de nota."); return; }
+    let texto = "";
+    try{ texto = await f.text(); }catch(e){ toast("Não consegui ler o arquivo."); return; }
+    const r = lerXmlNFe(texto);
+    const box = $("#nfAviso");
+    if(!r.ok){ if(box) box.innerHTML = `<div class="aviso-nf ruim">${r.erro}</div>`; return; }
+    /* a nota é do fornecedor para a CLÍNICA: se o destinatário for
+       outro CNPJ, ou é nota de outra empresa ou é arquivo trocado */
+    const meu = (cfg.clinica && cfg.clinica.cnpj || "").replace(/\D/g,"");
+    const dest = (r.destinatario.cnpj||"").replace(/\D/g,"");
+    if(meu && dest && meu !== dest &&
+       !confirm("Esta nota foi emitida para o CNPJ "+fmtCnpj(dest)+", que não é o da clínica.\n\n"+
+                "Lançar assim mesmo?")) return;
+    montarConferencia(r);
+    renderEntrada();
+  });
+
+  const ch = $("#nfChaveIn");
+  if(ch) ch.addEventListener("input", ()=>{
+    const bruto = CHAVE_LIMPA(ch.value);
+    const box = $("#nfAviso");
+    if(bruto.length < 44){ if(box) box.innerHTML=""; nfChave=null; return; }
+    const r = lerChave(bruto);
+    nfChave = r;
+    if(box) box.innerHTML = htmlChaveLida(r);
+    if(r.ok){
+      const nf=$("#enNF"), nfd=$("#enNFData");
+      if(nf && !nf.value) nf.value = r.numero;
+      if(nfd && !nfd.value) nfd.value = r.ano+"-"+String(r.mes).padStart(2,"0")+"-01";
+    }
+  });
+
+  const cam = $("#nfLerCod");
+  if(cam) cam.addEventListener("click", ()=>lerCodigoDeBarras());
+}
+
+/* Leitura do código de barras pela câmera usando o BarcodeDetector do
+   próprio navegador — sem biblioteca. Onde não existe (iPhone, hoje), o
+   botão diz isso em vez de abrir uma câmera que não decodifica nada. */
+async function lerCodigoDeBarras(){
+  const video = $("#nfCam");
+  if(!("BarcodeDetector" in window)){
+    toast("Este navegador não lê código de barras. Digite a chave — ela está impressa "+
+          "embaixo do código, na DANFE.");
+    return;
+  }
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  }catch(e){ toast("Não consegui abrir a câmera: "+e.message); return; }
+  video.hidden = false; video.srcObject = stream; await video.play();
+  const det = new window.BarcodeDetector({formats:["code_128"]});
+  const parar = () => { stream.getTracks().forEach(t=>t.stop()); video.hidden = true; video.srcObject=null; };
+  const prazo = Date.now() + 30000;
+  const tentar = async () => {
+    if(video.hidden) return;
+    if(Date.now() > prazo){ parar(); toast("Não consegui ler. Digite a chave à mão."); return; }
+    try{
+      const achados = await det.detect(video);
+      const bom = achados.map(a=>CHAVE_LIMPA(a.rawValue)).find(v=>v.length===44 && lerChave(v).ok);
+      if(bom){
+        parar();
+        const campo = $("#nfChaveIn");
+        if(campo){ campo.value = bom; campo.dispatchEvent(new Event("input")); }
+        toast("Chave lida.");
+        return;
+      }
+    }catch(e){ /* quadro ruim: tenta o próximo */ }
+    requestAnimationFrame(tentar);
+  };
+  requestAnimationFrame(tentar);
+}
+
 function renderEntrada(){
   const card=$("#entradaCard");
   if(!entradaAberta){ card.hidden=true; card.innerHTML=""; return; }
   card.hidden=false;
   const opts = CATALOGO.slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"))
     .map(c=>`<option value="${c.id}">${c.codigo?c.codigo+" · ":""}${c.nome}</option>`).join("");
+  if(nfImport) { card.innerHTML = htmlConferenciaNf(); ligarConferenciaNf(); return; }
   card.innerHTML=`
+    ${entradaSemNf ? "" : htmlAtalhoNf()}
     <div class="sec-h" style="padding:0 0 10px"><h2 style="font-size:14px">${
       entradaSemNf ? "Entrada sem nota fiscal" : "Entrada por nota fiscal"}</h2>
       <span class="hint">${entradaSemNf ? "brinde, amostra, doação, transferência"
@@ -6326,7 +6850,9 @@ function renderEntrada(){
       </div>
     </div>`;
 
-  $("#enCancelar").addEventListener("click", ()=>{ entradaAberta=false; renderEntrada(); });
+  ligarAtalhoNf();
+  $("#enCancelar").addEventListener("click", ()=>{
+    entradaAberta=false; nfImport=null; nfChave=null; renderEntrada(); });
   $("#enSalvar").addEventListener("click", async ()=>{
     const mat=$("#enMat").value, lote=$("#enLote").value.trim();
     const qtd=parseFloat($("#enQtd").value);
@@ -6583,6 +7109,7 @@ function ligarParceiros(){
         if(outroPref && d.preferido) await DB.gravarParceiro({...outroPref, preferido:false});
         await DB.gravarParceiro(parcForm.id ? {...d, id:parcForm.id} : d);
         await DB.carregarParceiros();
+    await DB.carregarDePara();
       }, "parceiro");
       if(!ok) return;
     }else{
@@ -10979,6 +11506,8 @@ window.MD = {
      relógio, e a única forma honesta de verificar que ele pinta é
      colocar um agendamento no passado e olhar a cor que saiu */
   agenda(){ return agenda; }, renderAgenda, atrasado,
+  /* leitura de nota fiscal: funções puras, conferidas direto */
+  lerChave, dvChave, lerXmlNFe, sugerirMaterial, chaveDePara,
   /* pode() e PERFIS expostos para o teste comparar, perfil por perfil, o
      que a tela oferece com o que o RLS do banco de fato aceita. Sem
      isso, "o botão aparece mas o banco recusa" só se descobre com o
