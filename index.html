@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0B5967">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>IDente · Dr. Leonardo Reis</title>
+<title>IADent · Dr. Leonardo Reis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -33,6 +33,9 @@
      decoração e não informação. */
   --marca:#7B5803;
   --marca-escura:#5A4002;
+  /* faixas do acetinado — perto umas das outras, senão vira polido */
+  --ouro-alto:#9C7A1C;
+  --ouro-baixo:#5F4502;
   --ouro:#B8912F;
   --ouro-claro:#DDC99C;
 
@@ -78,6 +81,7 @@
   :root:not([data-theme="light"]){
     /* no escuro o ouro pode ser claro: #E3C372 mede 10,8 sobre o fundo */
     --marca:#E3C372; --marca-escura:#2A2110; --ouro:#D7B45C; --ouro-claro:#EADCB8;
+    --ouro-alto:#F2DCA3; --ouro-baixo:#C2A055;
     --ground:#17150F; --shell:#0F0E0A; --surface:#211D15; --surface-2:#2A251B;
     --ink:#F3F0E8; --ink-2:#C5BEAD; --ink-3:#938C7C;
     --line:#332E22; --line-2:#463F2F;
@@ -92,6 +96,7 @@
 }
 :root[data-theme="dark"]{
   --marca:#E3C372; --marca-escura:#2A2110; --ouro:#D7B45C; --ouro-claro:#EADCB8;
+  --ouro-alto:#F2DCA3; --ouro-baixo:#C2A055;
   --ground:#17150F; --shell:#0F0E0A; --surface:#211D15; --surface-2:#2A251B;
   --ink:#F3F0E8; --ink-2:#C5BEAD; --ink-3:#938C7C;
   --line:#332E22; --line-2:#463F2F;
@@ -336,16 +341,33 @@ a{color:var(--accent)}
 }
 .login .marca{display:flex;flex-direction:column;align-items:center;gap:13px;margin-bottom:20px;text-align:center}
 .login .marca svg{width:68px;height:68px;color:var(--marca)}
-.login .marca b{display:block;font-family:var(--f-marca);font-size:27px;font-weight:800;
-  letter-spacing:-.01em;line-height:1.1;color:var(--ink)}
+/* Ouro fosco acetinado: três tons próximos, não um branco espelhado.
+   Acetinado é reflexo DIFUSO — a diferença entre as faixas é pequena de
+   propósito. Brilho de metal polido em tela vira plástico, e o relevo
+   da fachada do Dr. Leonardo é fosco.
+   O color fica como reserva: se o navegador não fizer background-clip,
+   o nome aparece em ouro chapado em vez de sumir. */
+.login .marca b{display:block;font-family:var(--f-marca);font-size:34px;font-weight:800;
+  letter-spacing:-.01em;line-height:1.1;
+  color:var(--marca);
+  background:linear-gradient(168deg,
+    var(--ouro-alto) 0%, var(--marca) 34%, var(--ouro-alto) 52%,
+    var(--marca) 68%, var(--ouro-baixo) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  padding-bottom:1px}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){
+  .login .marca b{-webkit-text-fill-color:currentColor;background:none}
+}
 /* o filete entre nome e especialidade existe no logo impresso; aqui ele
    vem em ouro, que é onde o ouro funciona: traço fino, não área */
 .login .marca i{display:block;width:170px;height:1px;margin:7px auto 6px;
   background:linear-gradient(90deg,transparent,var(--ouro),transparent)}
 .login .marca span{display:block;font-size:10.5px;color:var(--marca);text-transform:uppercase;
   letter-spacing:.19em;font-weight:600}
-/* O sistema é o IDente; a clínica é quem o usa. Separar os dois evita a
-   leitura errada de que "IDente" seria a marca do Dr. Leonardo. */
+/* O sistema é o IADent (iadent.com.br); a clínica é quem o usa. Separar
+   os dois evita a leitura errada de que "IADent" seria a marca do
+   Dr. Leonardo. */
 .login .marca .instalado{margin-top:14px;padding-top:11px;border-top:1px solid var(--line);
   width:230px}
 .login .marca .instalado b{font-family:var(--f-marca);font-size:15px;font-weight:700;
@@ -564,6 +586,24 @@ main{flex:1;padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
    rótulos encavalavam uns nos outros ("MASTERCARD" por cima de "HIPER")
    e virava borrão. Grade de largura fixa resolve, e de quebra dá alvo
    de toque de verdade no celular, que é onde isso é preenchido. */
+/* ---------- prótese: semáforo ---------- */
+.selo-prot{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.05em;padding:1px 6px;border-radius:99px;vertical-align:middle;
+  margin-left:6px;background:var(--sfb);color:var(--sfc);border:1px solid var(--sfc)}
+.prot-cartao{border-left:3px solid var(--sf)}
+.mini-prot{margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.mini-prot .mini-ev .hh{color:var(--ink-2)}
+.mini-prot .mini-ev .hh.atrasada{color:var(--crit);font-weight:700}
+
+/* ---------- ajustes do ditado, recolhidos ---------- */
+.ajustes-voz{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.ajustes-voz>summary{cursor:pointer;list-style:none;font-size:12px;color:var(--ink-3);
+  display:flex;align-items:center;gap:6px;padding:4px 0}
+.ajustes-voz>summary::-webkit-details-marker{display:none}
+.ajustes-voz>summary::before{content:"▸";font-size:10px;transition:transform .15s}
+.ajustes-voz[open]>summary::before{transform:rotate(90deg)}
+.ajustes-voz .corpo{padding-top:6px}
+
 /* ---------- avisos da leitura de nota ---------- */
 .aviso-nf{border-radius:var(--r-sm);padding:10px 12px;font-size:12.5px;line-height:1.5;
   border:1px solid}
@@ -827,7 +867,10 @@ input.travado{background:var(--surface-2);color:var(--ink-3);cursor:default}
 
   /* Hoje: console de voz fixo à esquerda, ficha à direita — o dentista
      dita e confere sem rolar a tela */
-  #scr-hoje.on{display:grid;grid-template-columns:minmax(330px,392px) 1fr;
+  /* a ficha é o trabalho; o ditado é o atalho. 392px de coluna de voz
+     contra o resto fazia a ficha — onde ficam materiais, odontograma e
+     cobrança — espremer num desktop de 1280. */
+  #scr-hoje.on{display:grid;grid-template-columns:minmax(300px,344px) 1fr;
     grid-auto-rows:min-content;gap:14px 24px;align-items:start}
   #scr-hoje > [data-col="full"]{grid-column:1 / -1}
   #scr-hoje > [data-col="a"]{grid-column:1;position:sticky;top:78px}
@@ -859,11 +902,17 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
 <div class="login" id="loginScreen">
   <div style="width:100%;max-width:392px">
     <div class="marca">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <path fill="currentColor" fill-rule="evenodd" d="M27.8 98.7C26.1 98.1 24.1 95.9 22.3 92.8C22.0 92.4 21.5 91.6 21.3 91.1C20.8 90.2 17.2 83.2 17.2 83.0C17.2 83.0 16.9 82.4 16.6 81.6C14.5 77.2 13.0 73.4 10.9 67.0C10.7 66.4 10.3 65.4 10.2 65.0C10.0 64.5 9.8 63.9 9.7 63.7C9.7 63.4 9.4 62.6 9.1 61.8C8.4 59.8 7.5 57.0 7.2 55.7C7.0 55.1 6.8 54.4 6.7 54.1C6.3 53.1 5.3 49.3 5.0 48.1C4.9 47.4 4.6 46.3 4.5 45.6C4.3 44.9 4.1 43.9 4.0 43.4C3.9 42.9 3.8 42.1 3.7 41.6C3.6 41.1 3.5 40.3 3.4 39.8C3.4 39.3 3.2 38.4 3.2 37.8C2.4 31.8 2.1 22.0 2.6 18.8C3.7 11.9 8.1 6.2 13.6 4.3C18.8 2.5 31.9 7.5 41.7 14.9C43.1 16.0 43.1 16.1 41.4 15.4C39.7 14.7 37.6 13.9 37.0 13.8C36.8 13.8 36.3 13.6 36.0 13.5C25.4 10.0 16.7 12.7 12.5 20.6C10.0 25.5 9.0 36.6 10.3 45.6C10.7 48.6 11.2 51.0 11.5 52.6C11.6 53.1 11.8 53.9 11.9 54.4C12.2 56.0 14.2 63.6 15.0 66.3C15.5 68.3 15.5 68.2 16.3 70.9C17.7 75.3 19.2 79.0 20.9 81.8C21.2 82.3 21.5 82.8 21.5 82.9C21.5 83.1 23.8 86.2 24.6 87.1C27.0 89.5 28.5 89.2 30.5 85.6C31.1 84.6 31.4 84.1 33.0 80.8C35.4 75.9 38.0 72.5 43.5 67.0C46.6 63.9 49.1 61.6 50.8 60.5C53.5 58.7 59.2 56.3 64.4 54.9C65.3 54.6 66.2 54.4 66.4 54.3C66.6 54.2 67.2 54.1 67.6 54.0C67.9 53.9 68.7 53.8 69.2 53.7C72.5 52.9 76.0 52.4 76.1 52.7C76.2 52.8 76.1 53.2 75.9 53.6L75.5 54.4L74.0 54.6C71.1 54.9 68.3 55.6 66.1 56.5C65.9 56.6 65.4 56.8 65.0 57.0C56.9 60.3 53.3 62.8 48.7 68.2C48.2 68.8 47.7 69.3 47.7 69.3C47.1 69.9 43.3 75.0 41.9 77.2C41.0 78.6 38.9 82.5 37.7 85.2C37.4 85.9 36.9 87.0 36.5 87.8C36.2 88.5 35.8 89.3 35.6 89.7C35.0 91.1 33.2 94.6 32.7 95.4C30.9 98.5 29.7 99.3 27.8 98.7ZM63.0 81.6C63.0 81.4 64.6 78.8 66.9 75.4C69.8 71.1 70.1 70.6 70.8 69.5C71.7 68.1 75.1 61.5 75.1 61.3C75.1 61.2 75.5 60.2 76.1 59.0C77.0 57.1 79.0 52.6 80.0 50.3C81.0 47.9 82.0 45.4 82.8 43.3C83.3 42.1 83.7 40.9 83.8 40.8C83.9 40.6 84.0 40.3 84.1 40.0C84.2 39.8 84.5 38.9 84.8 38.0C85.3 36.7 86.0 34.5 86.4 33.0C87.7 28.5 88.3 23.0 87.8 19.4C86.7 12.4 81.6 9.1 73.3 10.2C70.7 10.5 69.8 10.6 69.3 10.8C69.1 10.8 68.2 11.0 67.5 11.2C65.5 11.6 62.3 12.5 59.3 13.3C52.1 15.4 46.7 14.2 36.1 8.0C34.9 7.4 31.8 5.7 31.8 5.7C31.7 5.7 31.3 5.5 30.8 5.3C26.6 3.3 21.8 2.3 17.5 2.3C16.1 2.3 14.9 2.3 14.8 2.3C14.5 2.0 18.3 1.3 20.8 1.2C26.1 1.0 29.2 1.9 39.2 6.9C48.1 11.3 47.1 11.0 51.9 11.0C56.4 10.9 57.5 10.7 61.5 9.2C71.0 5.5 76.4 4.0 80.5 4.0C87.5 4.0 93.8 7.0 95.9 11.5C97.8 15.3 98.2 18.9 97.2 24.1C97.1 24.8 96.9 25.6 96.8 26.1C96.0 31.1 92.0 41.5 88.2 48.2C86.4 51.5 86.3 51.7 84.5 54.7C83.9 55.7 80.4 61.0 79.9 61.6C79.8 61.8 78.9 63.0 77.9 64.3C76.2 66.6 73.5 70.0 72.0 71.8C71.6 72.3 71.1 72.9 70.9 73.1C70.1 74.1 66.8 77.8 65.9 78.7C63.5 81.3 63.0 81.7 63.0 81.6Z"></path>
+      <svg viewBox="0 0 100 100" aria-hidden="true" class="marca-ouro">
+        <defs><linearGradient id="ouroFosco" x1="0" y1="0" x2="0.35" y2="1">
+          <stop offset="0" stop-color="var(--ouro-alto)"></stop>
+          <stop offset=".38" stop-color="var(--marca)"></stop>
+          <stop offset=".62" stop-color="var(--ouro-alto)"></stop>
+          <stop offset="1" stop-color="var(--ouro-baixo)"></stop>
+        </linearGradient></defs>
+        <path fill="url(#ouroFosco)" fill-rule="evenodd" d="M27.8 98.7C26.1 98.1 24.1 95.9 22.3 92.8C22.0 92.4 21.5 91.6 21.3 91.1C20.8 90.2 17.2 83.2 17.2 83.0C17.2 83.0 16.9 82.4 16.6 81.6C14.5 77.2 13.0 73.4 10.9 67.0C10.7 66.4 10.3 65.4 10.2 65.0C10.0 64.5 9.8 63.9 9.7 63.7C9.7 63.4 9.4 62.6 9.1 61.8C8.4 59.8 7.5 57.0 7.2 55.7C7.0 55.1 6.8 54.4 6.7 54.1C6.3 53.1 5.3 49.3 5.0 48.1C4.9 47.4 4.6 46.3 4.5 45.6C4.3 44.9 4.1 43.9 4.0 43.4C3.9 42.9 3.8 42.1 3.7 41.6C3.6 41.1 3.5 40.3 3.4 39.8C3.4 39.3 3.2 38.4 3.2 37.8C2.4 31.8 2.1 22.0 2.6 18.8C3.7 11.9 8.1 6.2 13.6 4.3C18.8 2.5 31.9 7.5 41.7 14.9C43.1 16.0 43.1 16.1 41.4 15.4C39.7 14.7 37.6 13.9 37.0 13.8C36.8 13.8 36.3 13.6 36.0 13.5C25.4 10.0 16.7 12.7 12.5 20.6C10.0 25.5 9.0 36.6 10.3 45.6C10.7 48.6 11.2 51.0 11.5 52.6C11.6 53.1 11.8 53.9 11.9 54.4C12.2 56.0 14.2 63.6 15.0 66.3C15.5 68.3 15.5 68.2 16.3 70.9C17.7 75.3 19.2 79.0 20.9 81.8C21.2 82.3 21.5 82.8 21.5 82.9C21.5 83.1 23.8 86.2 24.6 87.1C27.0 89.5 28.5 89.2 30.5 85.6C31.1 84.6 31.4 84.1 33.0 80.8C35.4 75.9 38.0 72.5 43.5 67.0C46.6 63.9 49.1 61.6 50.8 60.5C53.5 58.7 59.2 56.3 64.4 54.9C65.3 54.6 66.2 54.4 66.4 54.3C66.6 54.2 67.2 54.1 67.6 54.0C67.9 53.9 68.7 53.8 69.2 53.7C72.5 52.9 76.0 52.4 76.1 52.7C76.2 52.8 76.1 53.2 75.9 53.6L75.5 54.4L74.0 54.6C71.1 54.9 68.3 55.6 66.1 56.5C65.9 56.6 65.4 56.8 65.0 57.0C56.9 60.3 53.3 62.8 48.7 68.2C48.2 68.8 47.7 69.3 47.7 69.3C47.1 69.9 43.3 75.0 41.9 77.2C41.0 78.6 38.9 82.5 37.7 85.2C37.4 85.9 36.9 87.0 36.5 87.8C36.2 88.5 35.8 89.3 35.6 89.7C35.0 91.1 33.2 94.6 32.7 95.4C30.9 98.5 29.7 99.3 27.8 98.7ZM63.0 81.6C63.0 81.4 64.6 78.8 66.9 75.4C69.8 71.1 70.1 70.6 70.8 69.5C71.7 68.1 75.1 61.5 75.1 61.3C75.1 61.2 75.5 60.2 76.1 59.0C77.0 57.1 79.0 52.6 80.0 50.3C81.0 47.9 82.0 45.4 82.8 43.3C83.3 42.1 83.7 40.9 83.8 40.8C83.9 40.6 84.0 40.3 84.1 40.0C84.2 39.8 84.5 38.9 84.8 38.0C85.3 36.7 86.0 34.5 86.4 33.0C87.7 28.5 88.3 23.0 87.8 19.4C86.7 12.4 81.6 9.1 73.3 10.2C70.7 10.5 69.8 10.6 69.3 10.8C69.1 10.8 68.2 11.0 67.5 11.2C65.5 11.6 62.3 12.5 59.3 13.3C52.1 15.4 46.7 14.2 36.1 8.0C34.9 7.4 31.8 5.7 31.8 5.7C31.7 5.7 31.3 5.5 30.8 5.3C26.6 3.3 21.8 2.3 17.5 2.3C16.1 2.3 14.9 2.3 14.8 2.3C14.5 2.0 18.3 1.3 20.8 1.2C26.1 1.0 29.2 1.9 39.2 6.9C48.1 11.3 47.1 11.0 51.9 11.0C56.4 10.9 57.5 10.7 61.5 9.2C71.0 5.5 76.4 4.0 80.5 4.0C87.5 4.0 93.8 7.0 95.9 11.5C97.8 15.3 98.2 18.9 97.2 24.1C97.1 24.8 96.9 25.6 96.8 26.1C96.0 31.1 92.0 41.5 88.2 48.2C86.4 51.5 86.3 51.7 84.5 54.7C83.9 55.7 80.4 61.0 79.9 61.6C79.8 61.8 78.9 63.0 77.9 64.3C76.2 66.6 73.5 70.0 72.0 71.8C71.6 72.3 71.1 72.9 70.9 73.1C70.1 74.1 66.8 77.8 65.9 78.7C63.5 81.3 63.0 81.7 63.0 81.6Z"></path>
       </svg>
       <div>
-        <b>IDente</b>
+        <b>IADent</b>
         <i></i>
         <span>Gestão de consultório odontológico</span>
       </div>
@@ -1020,23 +1069,32 @@ html[data-toque="sim"] .item:hover{border-color:var(--line)}
             <button class="btn" id="limparFalaBtn">Apagar</button>
           </div>
 
-          <div class="toggles">
-            <label class="tog"><input type="checkbox" id="wakeChk">
-              <span>Escuta contínua — dizer <b>“hei Charles”</b> começa a anotar,
-                <b>“pode parar”</b> encerra</span></label>
-            <label class="tog"><input type="checkbox" id="vozChk" checked>
-              <span>Charles <b>responde em voz</b> e cobra o que falta</span></label>
-            <div id="vozBox"></div>
-          </div>
-          <button class="btn ghost wide" id="diagBtn" style="font-size:12.5px;padding:9px 12px">O ditado não funcionou? Descobrir por quê</button>
-          <div id="diagBox" hidden></div>
-
-          <div class="stage" id="comandos">
-            <b>Comandos por voz:</b> “pode parar” encerra o ditado (ou 10 s em silêncio) ·
-            “ler ficha” confere tudo em voz alta · “o que falta” lista as pendências ·
-            “corrigir procedimento” (ou paciente, dente, complexidade) reabre o campo ·
-            “confirmar” registra · “cancelar” encerra a conferência.
-          </div>
+          <!-- Tudo o que não é "falar e virar ficha" sai da frente.
+               A coluna tinha dois interruptores, um botão de
+               diagnóstico e um parágrafo de comandos competindo com o
+               rascunho; quem atende lê isso uma vez e nunca mais, mas
+               continuava pagando a rolagem todo dia. Fica a um toque. -->
+          <details class="ajustes-voz">
+            <summary>Ajustes do ditado e lista de comandos</summary>
+            <div class="corpo">
+              <div class="toggles">
+                <label class="tog"><input type="checkbox" id="wakeChk">
+                  <span>Escuta contínua — dizer <b>“hei Charles”</b> começa a anotar,
+                    <b>“pode parar”</b> encerra</span></label>
+                <label class="tog"><input type="checkbox" id="vozChk" checked>
+                  <span>Charles <b>responde em voz</b> e cobra o que falta</span></label>
+                <div id="vozBox"></div>
+              </div>
+              <button class="btn ghost wide" id="diagBtn" style="font-size:12.5px;padding:9px 12px;margin-top:8px">O ditado não funcionou? Descobrir por quê</button>
+              <div id="diagBox" hidden></div>
+              <div class="stage" id="comandos" style="margin-top:8px">
+                <b>Comandos por voz:</b> “pode parar” encerra o ditado (ou 10 s em silêncio) ·
+                “ler ficha” confere tudo em voz alta · “o que falta” lista as pendências ·
+                “corrigir procedimento” (ou paciente, dente, complexidade) reabre o campo ·
+                “confirmar” registra · “cancelar” encerra a conferência.
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -1319,7 +1377,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v38 · 29/10/2026";
+const VERSAO = "v39 · 29/10/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -1540,6 +1598,7 @@ const DB = {
     await DB.carregarComposicao();
     await DB.carregarParceiros();
     await DB.carregarDePara();
+    await DB.carregarProteses();
   },
 
   mapearMateriais(mats){
@@ -1930,6 +1989,33 @@ const DB = {
     }catch(e){ /* sem a 0021 o de-para fica só na sessão */ }
   },
 
+  async carregarProteses(){
+    try{
+      const r = await DB.rest("GET","vw_proteses?select=id,paciente_id,tipo,dentes,modelo,"+
+        "parceiro_id,fabricante,fornecedor,pedido_em,entrega_prevista,entregue_em,status,"+
+        "observacao,agendamento_id,dia_consulta,semaforo,dias_para_entrega&order=pedido_em.desc");
+      S.proteses = r.map(x=>({...x, pac: UID.pacRev[x.paciente_id] || x.paciente_id}));
+    }catch(e){ S.proteses = null; }
+  },
+
+  async gravarProtese(id, d){
+    const corpo = {};
+    const copia = ["tipo","dentes","modelo","parceiro_id","fabricante","pedido_em",
+                   "agendamento_id","observacao","status","entregue_em"];
+    copia.forEach(k=>{ if(k in d) corpo[k] = d[k]; });
+    /* entrega_prevista NÃO é enviada: quem calcula é o banco, a partir
+       da consulta. Mandar daqui criaria duas fontes para a mesma data,
+       e elas divergem no primeiro remarcar. */
+    if(id && String(id).length > 20){
+      await DB.rest("PATCH","pedidos_protese?id=eq."+id, corpo);
+    }else{
+      const pid = UID.pac[d.pac];
+      if(!pid) throw new Error("Paciente ainda não gravado no banco.");
+      await DB.inserirTolerante("pedidos_protese",
+        {clinica_id:DB.clinica, paciente_id:pid, dentista_id:DB.meuId, ...corpo});
+    }
+  },
+
   async gravarTaxa(t){
     await DB.rest("PATCH","taxas_adquirente?id=eq."+t.id, {
       taxa_pct: t.taxa_pct, taxa_antecip_pct: t.taxa_antecip_pct,
@@ -2096,7 +2182,8 @@ const DB = {
       ["vw_fluxo_caixa",   "financeiro e fluxo de caixa",  "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
       ["vw_rel_saidas",    "relatórios de estoque",        "ATUALIZAR-FINANCEIRO-E-RELATORIOS.sql"],
       ["precos_dentista",  "preço por dentista",           "ATUALIZAR-PRECOS-POR-DENTISTA.sql"],
-      ["parceiros",        "parceiros da clínica",         "ATUALIZAR-PARCEIROS.sql"]
+      ["parceiros",        "parceiros da clínica",         "ATUALIZAR-PARCEIROS.sql"],
+      ["pedidos_protese",  "pedidos de prótese",           "ATUALIZAR-PROTESE.sql"]
     ];
     S.faltaSql = [];
     for(const [tab, nome, arquivo] of alvos){
@@ -4378,8 +4465,66 @@ function svgDenteVest(fdi, cx, colo, dirY, estados, esperado){
   g.push(`<line x1="${(cx-a*ESC2D).toFixed(1)}" y1="${colo.toFixed(1)}"
     x2="${(cx+a*ESC2D).toFixed(1)}" y2="${colo.toFixed(1)}" stroke="${tr}"
     stroke-width=".8" opacity=".8" pointer-events="none"/>`);
+
+  /* O X do dente extraído — é assim que se anota no papel desde sempre,
+     e é o que o dentista pediu. Cobre coroa E raiz, porque o que saiu
+     foi o dente inteiro. */
+  const cond = condicaoDoDente(fdi, estados);
+  if(denteSaiu(cond) || cond === "extracao_indicada"){
+    const meia = M.md/2*1.05*ESC2D;
+    const yCo = colo + dirY*(M.hc*0.98)*ESC2D;     // ponta da coroa
+    const yRa = colo - dirY*(M.hr*0.62)*ESC2D;     // ápice da raiz
+    const indicada = cond === "extracao_indicada";
+    const corX = indicada ? "var(--warn)" : "var(--crit)";
+    const X = [[cx-meia, yRa, cx+meia, yCo], [cx+meia, yRa, cx-meia, yCo]];
+    X.forEach(([x1,y1,x2,y2])=>{
+      g.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}"
+        x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${corX}"
+        stroke-width="2.1" stroke-linecap="round" pointer-events="none"
+        ${indicada?'stroke-dasharray="4 3"':""} opacity=".92"/>`);
+    });
+  }
+
+  /* Implante: no lugar do dente, um parafuso. Rosca desenhada como
+     zigue-zague no corpo e plataforma reta no topo — é o que distingue
+     implante de "dente pintado de azul" num relance. */
+  if(denteImplante(cond)){
+    const lp = M.md*0.26*ESC2D;                 // meia largura do parafuso
+    const topo = colo + dirY*(M.hc*0.30)*ESC2D; // plataforma, no nível do colo
+    const ponta = colo - dirY*(M.hr*0.58)*ESC2D;
+    const corI = corCondicao("implante");
+    g.push(`<polygon points="${cx-lp},${topo} ${cx+lp},${topo} ${(cx+lp*0.42).toFixed(1)},${ponta} ${(cx-lp*0.42).toFixed(1)},${ponta}"
+      fill="${corI}" stroke="${tr}" stroke-width=".9" stroke-linejoin="round" pointer-events="none"/>`);
+    const voltas = 5;
+    for(let i=1;i<=voltas;i++){
+      const t = i/(voltas+1);
+      const y = topo + (ponta-topo)*t;
+      const l = lp*(1 - 0.58*t);
+      g.push(`<line x1="${(cx-l).toFixed(1)}" y1="${y.toFixed(1)}"
+        x2="${(cx+l).toFixed(1)}" y2="${(y + dirY*1.6).toFixed(1)}"
+        stroke="var(--surface)" stroke-width=".9" opacity=".75" pointer-events="none"/>`);
+    }
+    // plataforma protética
+    g.push(`<rect x="${(cx-lp*1.25).toFixed(1)}" y="${(topo - (dirY>0?0:2.6)).toFixed(1)}"
+      width="${(lp*2.5).toFixed(1)}" height="2.6" rx="1" fill="${corI}"
+      stroke="${tr}" stroke-width=".7" pointer-events="none"/>`);
+  }
   return g.join("");
 }
+
+/* Condições que valem para o DENTE INTEIRO, não para uma face.
+   Extração e implante não são "uma mancha na vestibular": ou o dente
+   saiu, ou no lugar dele há um parafuso. Marcar só a face onde o
+   dentista tocou dava a leitura errada de que o resto do dente
+   continuava lá. */
+const COND_DENTE_TODO = new Set(["extraido","extracao_indicada","ausente","implante"]);
+function condicaoDoDente(fdi, estados){
+  const est = (estados||{})[fdi] || {};
+  const achou = Object.values(est).find(e => COND_DENTE_TODO.has(e.condicao));
+  return achou ? achou.condicao : null;
+}
+const denteSaiu   = c => c === "extraido" || c === "ausente";
+const denteImplante = c => c === "implante";
 
 /* A raiz ganha cor quando o que está lançado é coisa de raiz: canal,
    implante, extração. Pintar a raiz de vermelho porque há cárie na
@@ -4906,12 +5051,89 @@ function secao(t, md, vl, n){
   return pts;
 }
 
+/* ---------------------------------------------------------------------
+   IMPLANTE: no lugar do dente, um parafuso.
+
+   O cliente pediu literalmente "substitua o dente por um parafuso
+   odontológico". É o certo também clinicamente: implante não é um
+   dente azul, é outro corpo — e quem olha a arcada precisa ver de
+   relance que ali não há mais dente.
+
+   Três partes, como o componente real: corpo roscado, plataforma e
+   um munhão curto. A rosca é feita deslocando o raio de cada anel em
+   onda — custa os mesmos triângulos de um cone e lê como rosca.
+   --------------------------------------------------------------------- */
+const malhaImplanteCache = {};
+function malhaImplante(fdi){
+  const ch = "i"+fdi;
+  if(malhaImplanteCache[ch]) return malhaImplanteCache[ch];
+  const M = medidaDe(fdi);
+  const V = [], T = [];
+  const add = p => (V.push(p), V.length-1);
+
+  const raio = Math.min(M.md, M.vl) * 0.21;      // implante é mais estreito que o dente
+  const HR   = M.hr * 0.70;                       // porção intraóssea
+  const anelEm = (y, r, rosca) => {
+    const a = [];
+    for(let i=0;i<SEG;i++){
+      const th = (i/SEG)*Math.PI*2;
+      /* a rosca é uma onda no raio, com passo preso ao Y: sem o Y a
+         onda fica igual em todos os anéis e vira um canelado reto */
+      const ond = rosca ? 1 + 0.085*Math.sin(th*1 + y*5.2) : 1;
+      a.push(add(v3(Math.cos(th)*r*ond, y, Math.sin(th)*r*ond)));
+    }
+    return a;
+  };
+  const costurar = (a, b, face) => {
+    for(let i=0;i<SEG;i++){
+      const j=(i+1)%SEG;
+      T.push({a:a[i], b:a[j], c:b[j], face});
+      T.push({a:a[i], b:b[j], c:b[i], face});
+    }
+  };
+
+  // corpo roscado, do ápice ao colo
+  const niveis = [];
+  const PASSOS = 7;
+  for(let k=0;k<=PASSOS;k++){
+    const t = k/PASSOS;                      // 0 = ápice, 1 = plataforma
+    const y = -HR + t*HR;
+    const r = raio * (0.55 + 0.45*Math.min(1, t*1.6));
+    niveis.push(anelEm(y, r, true));
+  }
+  /* o corpo é INTRAÓSSEO: fica atrás da gengiva, como a raiz. Desenhar
+     sempre fazia o parafuso atravessar o rebordo e sair por cima da
+     arcada — foi o que apareceu na primeira captura. Face própria para
+     ser escondida junto com as raízes, e aparecer quando se pede
+     "Raiz", que é quando o dentista quer ver o que está no osso. */
+  for(let k=0;k<niveis.length-1;k++) costurar(niveis[k], niveis[k+1], "IMPR");
+  const apice = add(v3(0, -HR - raio*0.5, 0));
+  for(let i=0;i<SEG;i++) T.push({a:niveis[0][(i+1)%SEG], b:niveis[0][i], c:apice, face:"IMPR"});
+
+  // plataforma protética: um disco um pouco mais largo
+  const plat0 = anelEm(0, raio*1.12, false);
+  const plat1 = anelEm(M.hc*0.10, raio*1.12, false);
+  costurar(plat0, plat1, "IMP");
+  // munhão: cone curto que entra na coroa
+  const mun0 = anelEm(M.hc*0.10, raio*0.92, false);
+  const mun1 = anelEm(M.hc*0.52, raio*0.66, false);
+  costurar(mun0, mun1, "IMP");
+  const centro = add(v3(0, M.hc*0.52, 0));
+  for(let i=0;i<SEG;i++) T.push({a:mun1[i], b:mun1[(i+1)%SEG], c:centro, face:"IMP"});
+
+  const r = {V, T, M};
+  malhaImplanteCache[ch] = r;
+  return r;
+}
+
 function malhaDente(fdi){
   const ch = "m"+fdi;
   if(malhaCache[ch]) return malhaCache[ch];
   const M = medidaDe(fdi);
   const anterior = M.pos <= 3;
-  const nSup = anterior ? 2.2 : 3.4;
+  /* 3.4 aproximava demais do retângulo e dava ao molar cara de dado.
+     2.7 mantém o contorno quadrangular do molar sem o canto duro. */
+  const nSup = anterior ? 2.1 : 2.7;
 
   const V = [];       // vértices
   const T = [];       // triângulos {a,b,c, face}
@@ -4932,12 +5154,16 @@ function malhaDente(fdi){
         {y:0.70, md:1.03, vl:canino ? 0.76 : 0.58},
         {y:0.88, md:1.04, vl:vlFinal + 0.12},
         {y:1.00, md:1.02, vl:vlFinal} ]    // borda incisal
-    : [ {y:0.00, md:0.78, vl:0.80},        // colo
-        {y:0.20, md:0.90, vl:0.92},
-        {y:0.42, md:0.98, vl:0.99},
-        {y:0.64, md:1.00, vl:1.00},        // maior diâmetro
-        {y:0.84, md:0.99, vl:0.97},
-        {y:1.00, md:0.92, vl:0.90} ];      // oclusal
+    : [ {y:0.00, md:0.74, vl:0.76},        // colo: constrição cervical
+        {y:0.16, md:0.89, vl:0.91},        // sobe rápido — é o contorno
+        {y:0.34, md:0.99, vl:1.00},        // maior diâmetro, no terço cervical
+        {y:0.58, md:1.00, vl:0.99},
+        {y:0.80, md:0.96, vl:0.93},        // converge para a oclusal
+        {y:1.00, md:0.86, vl:0.82} ];      // mesa oclusal, menor que o bojo
+  /* O maior diâmetro subiu de 0,64 para 0,34 da altura. Dente real é
+     bojudo embaixo e converge para cima; com o bojo no meio e paredes
+     quase retas, a coroa lia como caixa arredondada — que foi a
+     queixa. Mesmo número de anéis, mesmo custo. */
   const aneis = niveis.map(n=>{
     const s = secao(n.y, M.md*n.md, M.vl*n.vl, nSup);
     return s.map(p=>add(v3(p.x, n.y*M.hc, p.z)));
@@ -5276,29 +5502,63 @@ const O3D = {
       return {sx: W/2 + q.x*k, sy: H/2 - q.y*k, z: zc, cx:q.x, cy:q.y, cz:q.z};
     };
 
+    /* ---------------------------------------------------------------
+       Luz por normal SUAVIZADA.
+
+       Antes cada triângulo recebia a normal da própria face, e o dente
+       saía com cara de pedra lapidada: cada faceta num tom diferente,
+       com degrau visível entre elas. Era essa a queixa de "modelo
+       gráfico quadrado" — não era a silhueta, era a luz.
+
+       Medido antes de escolher: 12.480 triângulos a 26 ms por quadro.
+       Dobrar a malha para arredondar a silhueta levaria a ~39 ms (25
+       quadros por segundo) num computador de mesa, e pior no tablet do
+       consultório. Então a suavidade vem de onde não custa triângulo:
+       a normal de cada vértice é a MÉDIA das faces que o tocam, e o
+       triângulo se ilumina pela média das três. Mesma geometria,
+       mesma contagem, superfície que lê como curva.
+       --------------------------------------------------------------- */
     const emitir = (proj, lista, extra, mao) => {
-      lista.forEach(t=>{
-        const A=proj[t.a], B=proj[t.b], C=proj[t.c];
-        // descarta o que está de costas; mao=0 é superfície de dois lados
-        const area = (B.sx-A.sx)*(C.sy-A.sy) - (C.sx-A.sx)*(B.sy-A.sy);
-        if(mao ? area*mao <= 0 : area === 0) return;
-        /* Lambert de verdade: normal pelo produto vetorial em espaço de
-           câmera. A primeira versão usava a área projetada, que não é
-           normal nenhuma — por isso os dentes saíam chapados. */
+      // 1ª passada: acumula a normal das faces em cada vértice
+      const ax = new Float32Array(proj.length);
+      const ay = new Float32Array(proj.length);
+      const az = new Float32Array(proj.length);
+      const faceN = new Array(lista.length);
+      for(let k=0;k<lista.length;k++){
+        const t=lista[k], A=proj[t.a], B=proj[t.b], C=proj[t.c];
         const ux=B.cx-A.cx, uy=B.cy-A.cy, uz=B.cz-A.cz;
         const vx=C.cx-A.cx, vy=C.cy-A.cy, vz=C.cz-A.cz;
         let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
         const nl=Math.hypot(nx,ny,nz)||1; nx/=nl; ny/=nl; nz/=nl;
-        /* o Y da tela é invertido em relação ao da câmera, então a
-           normal desta ordem de vértices aponta para LONGE do
-           observador. Sem virar, difuso dá quase zero e tudo sai
-           cinza-chapado — foi exatamente o que aconteceu. */
         if(nz < 0){ nx=-nx; ny=-ny; nz=-nz; }
-        // luz de cima e levemente à frente, mais um ambiente generoso
-        const dif = Math.max(0, nx*LUZ.x + ny*LUZ.y + nz*LUZ.z);
+        faceN[k] = [nx,ny,nz];
+        ax[t.a]+=nx; ay[t.a]+=ny; az[t.a]+=nz;
+        ax[t.b]+=nx; ay[t.b]+=ny; az[t.b]+=nz;
+        ax[t.c]+=nx; ay[t.c]+=ny; az[t.c]+=nz;
+      }
+      /* a luz de cada vértice é calculada UMA vez; antes saía três
+         vezes por triângulo, e cada vértice pertence a cerca de seis */
+      const lumV = new Float32Array(proj.length);
+      for(let i=0;i<proj.length;i++){
+        const x=ax[i], y=ay[i], z=az[i];
+        const l = Math.sqrt(x*x+y*y+z*z) || 1;
+        const d = (x*LUZ.x + y*LUZ.y + z*LUZ.z) / l;
+        lumV[i] = d > 0 ? d : 0;
+      }
+      // 2ª passada: emite com a luz média dos três vértices
+      for(let k=0;k<lista.length;k++){
+        const t=lista[k], A=proj[t.a], B=proj[t.b], C=proj[t.c];
+        // descarta o que está de costas; mao=0 é superfície de dois lados
+        const area = (B.sx-A.sx)*(C.sy-A.sy) - (C.sx-A.sx)*(B.sy-A.sy);
+        if(mao ? area*mao <= 0 : area === 0) continue;
+        const dif = (lumV[t.a] + lumV[t.b] + lumV[t.c]) * 0.3333333;
+        /* um specular fraco e largo: esmalte reflete, mas dente com
+           brilho de bola de bilhar vira plástico */
+        const fn = faceN[k];
+        const esp = Math.pow(Math.max(0, fn[2]), 14) * 0.14;
         tris.push(Object.assign({A,B,C, z:(A.z+B.z+C.z)/3, face:t.face,
-                                 lum: 0.62 + 0.46*dif}, extra));
-      });
+                                 lum: 0.62 + 0.46*dif + esp}, extra));
+      }
     };
 
     /* a gengiva entra primeiro na lista; quem ordena é o z, não a ordem */
@@ -5315,13 +5575,22 @@ const O3D = {
         e.condicao==="ausente" || e.condicao==="extraido");
       if(!d.presente && !Object.keys(est).length) return;   // nem nasceu, nem anotado
 
-      const malha = malhaDente(d.fdi);
+      /* Implante troca a MALHA, não a cor: o dente sai e entra o
+         parafuso. Pintar o dente de azul deixaria a forma dizendo
+         "dente" enquanto a cor diz "implante". */
+      const condDente = condicaoDoDente(d.fdi, odonto.estados);
+      const ehImplante = denteImplante(condDente);
+      const malha = ehImplante ? malhaImplante(d.fdi) : malhaDente(d.fdi);
       const proj = malha.V.map(p=>P(paraMundo(p, d)));
       /* raiz só quando pedida: coberta pela gengiva ela não aparece e
-         ainda custa um terço dos triângulos da cena */
-      const lista = O3D.raizes && !O3D.rapido
-        ? malha.T : malha.T.filter(t=>t.face!=="R");
-      emitir(proj, lista, {fdi:d.fdi, sumiu, deciduo:!!d.deciduo}, d.mao);
+         ainda custa um terço dos triângulos da cena. O corpo do
+         implante é intraósseo e sempre aparece: é o que o dentista
+         quer ver. */
+      const lista = (O3D.raizes && !O3D.rapido)
+        ? malha.T
+        : malha.T.filter(t=>t.face!=="R" && t.face!=="IMPR");
+      emitir(proj, lista, {fdi:d.fdi, sumiu, deciduo:!!d.deciduo,
+                           todo:condDente, implante:ehImplante}, d.mao);
     });
     tris.sort((a,b)=>b.z-a.z);
     return tris;
@@ -5351,10 +5620,21 @@ const O3D = {
       const lum = t.lum;
       let base;
       if(t.face === "G"){ base = GENGIVA; }
+      else if(t.face === "IMP" || t.face === "IMPR"){
+        /* titânio: cinza levemente azulado, não o azul da legenda —
+           a legenda diz o que é, o material diz o que parece */
+        base = "rgb(169,176,184)";
+      }
       else if(t.face === "R"){ base = RAIZ; }
       else{
         const e = ((odonto.estados||{})[t.fdi]||{})[O3D.nomeFace(t.fdi, t.face)];
         base = e ? corReal(corCondicao(e.condicao)) : esmalte;
+      }
+      /* Extração marca o DENTE TODO, como o dentista pediu: não faz
+         sentido um dente com a vestibular vermelha e o resto branco
+         quando ele inteiro vai sair. */
+      if(t.todo && !t.implante && t.face!=="G" && t.face!=="IMP" && t.face!=="IMPR"){
+        base = corReal(corCondicao(t.todo));
       }
       if(t.sumiu) base = rgbMix(osso, 1.0);
 
@@ -5363,12 +5643,14 @@ const O3D = {
       /* seleção não pode APAGAR a condição: pintar a face escolhida de
          azul fazia a cárie recém-lançada sumir sob o realce. Quando a
          face tem condição, o realce é só um clareado dela. */
-      const temCond = base !== esmalte && t.face !== "R" && t.face !== "G";
+      const temCond = base !== esmalte && t.face !== "R" && t.face !== "G"
+                      && t.face !== "IMP" && t.face !== "IMPR";
       ctx.fillStyle = marcado ? (temCond ? rgbMix(base, lum*1.22) : rgbMix(sel, lum*1.15))
                               : rgbMix(base, lum);
       /* com a raiz à mostra a gengiva fica translúcida — é assim que
          se olha um canal sem perder a referência de onde é o colo */
       ctx.globalAlpha = t.face==="G" ? (O3D.raizes ? 0.38 : 1)
+                      : t.implante ? 1
                       : t.sumiu ? 0.30 : (t.deciduo ? 0.96 : 1);
       ctx.beginPath();
       ctx.moveTo(t.A.sx,t.A.sy); ctx.lineTo(t.B.sx,t.B.sy); ctx.lineTo(t.C.sx,t.C.sy);
@@ -6274,6 +6556,7 @@ function abrirPaciente(id){
       <div class="larga">${htmlAlertasAnam()}</div>
       <div class="larga">${htmlAnamnese()}</div>
       ${pode("verClinico")?'<div class="larga" id="odontoBox"></div>':""}
+      <div class="larga" id="proteseBox"></div>
       <div class="larga" id="caixaBox"></div>
 
       <div class="larga">
@@ -6905,6 +7188,341 @@ function renderEntrada(){
 }
 
 /* =====================================================================
+   PEDIDO DE PRÓTESE E MATERIAL EXTERNO
+
+   Implante, coroa, placa, faceta: trabalho que sai da clínica e precisa
+   VOLTAR antes do dia em que o paciente senta na cadeira.
+
+   A regra do dentista — entrega um dia útil antes da consulta — não é
+   um lembrete na tela: é o que separa "a peça chegou" de "o paciente
+   veio de longe e voltou para casa". Por isso a data de entrega NÃO é
+   digitada. Ela sai da consulta escolhida, e quando a consulta é
+   remarcada ela anda junto (o banco faz isso por gatilho, para valer
+   mesmo quando o remarcar vem de outra tela).
+
+   Semáforo, como ele pediu:
+     verde     entregue
+     amarelo   pedido confirmado pelo laboratório
+     vermelho  não confirmado — e também confirmado com entrega vencida,
+               que é o caso que realmente derruba a consulta.
+   ===================================================================== */
+const TIPOS_PROTESE = ["Implante", "Coroa", "Prótese fixa", "Prótese removível",
+  "Placa de proteção", "Faceta", "Provisório", "Barra / protocolo", "Guia cirúrgica", "Outro"];
+
+const SEMAFORO = {
+  verde:    {cor:"var(--ok)",     fundo:"var(--ok-soft)",     rot:"Entregue"},
+  amarelo:  {cor:"var(--warn)",   fundo:"var(--warn-soft)",   rot:"Confirmado"},
+  vermelho: {cor:"var(--crit)",   fundo:"var(--crit-soft)",   rot:"Não confirmado"},
+  cinza:    {cor:"var(--ink-3)",  fundo:"var(--surface-2)",   rot:"Cancelado"}
+};
+
+let proteseForm = null;   // {id} editando, {} novo, null fechado
+
+const proteses = () => S.proteses || [];
+const protesesDe = pacId => proteses().filter(x=>x.pac === pacId)
+  .sort((a,b)=> String(b.pedido_em).localeCompare(String(a.pedido_em)));
+
+/* mesmo cálculo do banco, para a tela mostrar a data antes de gravar.
+   Feriado nacional com Páscoa por Gauss — o laboratório não entrega na
+   Sexta-Feira Santa. */
+function pascoaJS(ano){
+  const a=ano%19, b=Math.floor(ano/100), c=ano%100;
+  const d=(19*a+b-Math.floor(b/4)-Math.floor((b-Math.floor((b+8)/25)+1)/3)+15)%30;
+  const e=(32+2*(b%4)+2*Math.floor(c/4)-d-(c%4))%7;
+  const f=d+e-7*Math.floor((a+11*d+22*e)/451)+114;
+  return new Date(Date.UTC(ano, Math.floor(f/31)-1, (f%31)+1));
+}
+function ehFeriadoNacional(dt){
+  const ano = dt.getUTCFullYear();
+  const dia = x => Date.UTC(ano, x[0]-1, x[1]);
+  const fixos = [[1,1],[4,21],[5,1],[9,7],[10,12],[11,2],[11,15],[11,20],[12,25]].map(dia);
+  const pa = pascoaJS(ano).getTime(), D = 86400000;
+  const moveis = [pa-48*D, pa-47*D, pa-2*D, pa+60*D];
+  return fixos.concat(moveis).some(t => t === dt.getTime());
+}
+function diaUtilAntes(iso, n){
+  if(!iso) return "";
+  const [a,m,d] = iso.split("-").map(Number);
+  let dt = new Date(Date.UTC(a, m-1, d));
+  let faltam = Math.max(1, n||1), voltas = 0;
+  while(faltam > 0){
+    dt = new Date(dt.getTime() - 86400000);
+    if(++voltas > 60) return "";
+    const dow = dt.getUTCDay();
+    if(dow !== 0 && dow !== 6 && !ehFeriadoNacional(dt)) faltam--;
+  }
+  return dt.toISOString().slice(0,10);
+}
+
+/* os pedidos amarrados a uma consulta — é o que pinta o semáforo na
+   agenda e o que a lateral destaca */
+function protesesDoEvento(evId){
+  return proteses().filter(x => x.agendamento_id === evId && x.status !== "cancelado");
+}
+/* pior semáforo manda: uma peça verde e outra vermelha na mesma
+   consulta é uma consulta em risco, não uma consulta meio pronta */
+const ORDEM_SF = {vermelho:0, amarelo:1, verde:2, cinza:3};
+function semaforoDoEvento(evId){
+  const ps = protesesDoEvento(evId);
+  if(!ps.length) return null;
+  return ps.map(semaforoDe).sort((a,b)=>ORDEM_SF[a]-ORDEM_SF[b])[0];
+}
+
+/* A cor diz o RISCO; o rótulo diz o MOTIVO. Sem separar os dois, quem
+   confirma o pedido com a entrega já vencida vê o cartão continuar
+   vermelho e conclui que o botão não funcionou. */
+function rotuloProtese(p){
+  const sf = semaforoDe(p);
+  if(sf === "verde")  return "Entregue";
+  if(sf === "cinza")  return "Cancelado";
+  const atrasada = p.entrega_prevista && !p.entregue_em && p.entrega_prevista < hojeISO();
+  if(atrasada) return (p.status === "confirmado" || p.status === "em_producao")
+    ? "Confirmado · atrasado" : "Atrasado";
+  if(sf === "amarelo") return "Confirmado";
+  return "Não confirmado";
+}
+
+function semaforoDe(p){
+  if(p.status === "cancelado") return "cinza";
+  if(p.status === "entregue" || p.entregue_em) return "verde";
+  if(p.entrega_prevista && p.entrega_prevista < hojeISO()) return "vermelho";
+  if(p.status === "confirmado" || p.status === "em_producao") return "amarelo";
+  return "vermelho";
+}
+
+/* as consultas futuras do MESMO paciente — é a uma delas que a entrega
+   se amarra. Consulta de outro paciente não entra na lista: o pedido é
+   daquele paciente, e oferecer a agenda inteira é convidar ao erro. */
+function consultasFuturasDe(pacId){
+  const p = pacById(pacId);
+  const nome = p ? norm(p.nome) : "";
+  const hojeI = hojeISO();
+  return (agenda.eventos||[])
+    .filter(e => e.status !== "cancelado")
+    .filter(e => (e.paciente_id && UID.pacRev && UID.pacRev[e.paciente_id] === pacId)
+              || (e.paciente && norm(e.paciente) === nome))
+    .filter(e => diaISO(new Date(e.inicio)) >= hojeI)
+    .sort((a,b)=> a.inicio < b.inicio ? -1 : 1);
+}
+
+function renderProtese(pacId){
+  const box = $("#proteseBox"); if(!box) return;
+  if(!pode("verClinico") && !pode("cadastro")){ box.innerHTML=""; return; }
+  const lista = protesesDe(pacId);
+  const edita = pode("atender") || pode("cadastro") || pode("admin");
+
+  box.innerHTML = `
+    <div class="sec-h" style="margin-top:14px"><h2>Pedidos de prótese e material externo</h2>
+      <span class="hint">implante, coroa, placa, faceta — o que vem de fora</span></div>
+    ${(S.faltaSql||[]).some(f=>f.nome.includes("prótese")) ? htmlFaltaSql("prótese") : ""}
+    <div class="row naoimprime" style="margin-bottom:8px">
+      ${edita?`<button class="btn" id="protNovo">+ Novo pedido</button>`:""}
+    </div>
+    <div class="card" id="protCard" ${proteseForm?"":"hidden"}>${
+      proteseForm?formProteseHtml(proteseForm, pacId):""}</div>
+    ${lista.length ? `<div class="list">${lista.map(p=>cartaoProtese(p, edita)).join("")}</div>`
+      : `<div class="empty">Nenhum pedido para este paciente.</div>`}`;
+  ligarProtese(pacId);
+}
+
+function cartaoProtese(p, edita){
+  const sf = SEMAFORO[semaforoDe(p)];
+  const atraso = p.entrega_prevista && !p.entregue_em && p.entrega_prevista < hojeISO();
+  return `<div class="card prot-cartao" style="--sf:${sf.cor};--sfb:${sf.fundo};margin-bottom:8px">
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1 1 230px;min-width:0">
+        <span class="pill" style="background:${sf.fundo};color:${sf.cor};border-color:${sf.cor}">${rotuloProtese(p)}</span>
+        <b style="display:block;font-size:14.5px;margin-top:5px">${p.tipo}${
+          p.dentes?" · dente "+p.dentes:""}</b>
+        <div style="font-size:12.5px;color:var(--ink-2);margin-top:3px">
+          ${p.fornecedor||'<span class="vaga">sem laboratório</span>'}${
+          p.modelo?" · "+p.modelo:""}</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:3px">
+          pedido em ${p.pedido_em?fmtData(p.pedido_em):"—"}
+          ${p.entrega_prevista?` · entrega prevista <b style="color:${atraso?"var(--crit)":"inherit"}">${
+            fmtData(p.entrega_prevista)}</b>`:""}
+          ${p.entregue_em?" · entregue em "+fmtData(p.entregue_em):""}
+        </div>
+        ${p.dia_consulta?`<div style="font-size:11.5px;color:var(--ink-3);margin-top:2px">
+          instalação marcada para ${fmtData(p.dia_consulta)}</div>`:
+          `<div style="font-size:11.5px;color:var(--warn);margin-top:2px">
+          sem consulta de instalação amarrada — a entrega não tem prazo</div>`}
+        ${p.observacao?`<div style="font-size:12px;color:var(--ink-2);margin-top:5px">${p.observacao}</div>`:""}
+      </div>
+      ${edita?`<div class="row" style="flex:0 0 auto;gap:6px;flex-wrap:wrap">
+        ${p.status==="pedido"?`<button class="minibtn" data-protconf="${p.id}">Confirmar</button>`:""}
+        ${!p.entregue_em && p.status!=="cancelado"?`<button class="minibtn" data-protent="${p.id}">Recebi</button>`:""}
+        <button class="minibtn" data-proted="${p.id}">Editar</button>
+      </div>`:""}
+    </div></div>`;
+}
+
+function formProteseHtml(f, pacId){
+  const e = f.id ? (proteses().find(x=>x.id===f.id)||{}) : {};
+  const labs = parceiros().filter(x=>x.ativo!==false);
+  const consultas = consultasFuturasDe(pacId);
+  const agSel = e.agendamento_id || "";
+  const prevista = e.entrega_prevista ||
+    (consultas[0] ? diaUtilAntes(diaISO(new Date(consultas[0].inicio)),1) : "");
+  return `<div class="eyebrow">${f.id?"Editar pedido":"Novo pedido de prótese"}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+      <div class="grid2">
+        <div class="field"><label for="ptTipo">O que foi pedido</label>
+          <input id="ptTipo" list="tiposProtese" value="${(e.tipo||"").replace(/"/g,"&quot;")}"
+            placeholder="Implante, coroa, placa…" autocomplete="off">
+          <datalist id="tiposProtese">${TIPOS_PROTESE.map(x=>`<option value="${x}">`).join("")}</datalist></div>
+        <div class="field"><label for="ptDentes">Dente(s) / região</label>
+          <input id="ptDentes" value="${(e.dentes||"").replace(/"/g,"&quot;")}"
+            placeholder="Ex.: 36 ou arcada superior" autocomplete="off"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="ptLab">Laboratório / fabricante</label>
+          <select id="ptLab">
+            <option value="">— escolher —</option>
+            ${labs.map(l=>`<option value="${l.id}" ${e.parceiro_id===l.id?"selected":""}>${l.nome} · ${l.tipo}</option>`).join("")}
+            <option value="__outro" ${!e.parceiro_id&&e.fabricante?"selected":""}>Outro, não cadastrado…</option>
+          </select>
+          <div class="hint" style="margin-top:4px">Vem da aba <b>Parceiros</b>.</div></div>
+        <div class="field" id="ptOutroWrap" ${(!e.parceiro_id&&e.fabricante)?"":"hidden"}>
+          <label for="ptOutro">Nome do fabricante</label>
+          <input id="ptOutro" value="${(e.fabricante||"").replace(/"/g,"&quot;")}" autocomplete="off"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="ptModelo">Modelo / especificação</label>
+          <input id="ptModelo" value="${(e.modelo||"").replace(/"/g,"&quot;")}"
+            placeholder="Zircônia monolítica, cone morse 3,5…" autocomplete="off"></div>
+        <div class="field"><label for="ptPedido">Data do pedido</label>
+          <input id="ptPedido" type="date" value="${e.pedido_em||hojeISO()}"></div>
+      </div>
+
+      <div class="field"><label for="ptConsulta">Consulta em que a peça será instalada</label>
+        <select id="ptConsulta">
+          <option value="">— sem consulta marcada ainda —</option>
+          ${consultas.map(c=>{
+            const d = new Date(c.inicio);
+            return `<option value="${c.id}" ${agSel===c.id?"selected":""}>${
+              fmtData(diaISO(d))} às ${String(d.getHours()).padStart(2,"0")}:${
+              String(d.getMinutes()).padStart(2,"0")}${c.procedimento?" · "+c.procedimento:""}</option>`;
+          }).join("")}
+        </select>
+        <div class="hint" style="margin-top:4px">Só as consultas futuras <b>deste paciente</b>.</div></div>
+
+      <div class="stage" id="ptPrazo">${prazoProteseTexto(prevista, consultas, agSel)}</div>
+
+      <div class="field"><label for="ptObs">Observação</label>
+        <input id="ptObs" value="${(e.observacao||"").replace(/"/g,"&quot;")}"
+          placeholder="cor, antagonista, o que combinar com o laboratório" autocomplete="off"></div>
+
+      <div class="row">
+        <button class="btn primary" style="flex:1" id="ptSalvar">${f.id?"Salvar pedido":"Registrar pedido"}</button>
+        <button class="btn" id="ptCancelar">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function prazoProteseTexto(prevista, consultas, agSel){
+  const c = (consultas||[]).find(x=>x.id===agSel) || null;
+  if(!c) return `<b>Sem consulta amarrada.</b> A entrega fica sem prazo — e sem prazo
+    ninguém cobra o laboratório. Marque a consulta de instalação e volte aqui.`;
+  const diaC = diaISO(new Date(c.inicio));
+  const ent = diaUtilAntes(diaC, 1);
+  return `<b>Entrega até ${fmtData(ent)}</b> — um dia útil antes da consulta de
+    ${fmtData(diaC)}, como o dentista pede. Calculado pulando fim de semana e feriado
+    nacional; a data não é digitada e acompanha a consulta se ela for remarcada.`;
+}
+
+function ligarProtese(pacId){
+  const nv = $("#protNovo");
+  if(nv) nv.addEventListener("click", ()=>{ proteseForm = {}; renderProtese(pacId); });
+  $$("#proteseBox [data-proted]").forEach(b=>b.addEventListener("click", ()=>{
+    proteseForm = {id:b.dataset.proted}; renderProtese(pacId); }));
+  const cc = $("#ptCancelar");
+  if(cc) cc.addEventListener("click", ()=>{ proteseForm = null; renderProtese(pacId); });
+
+  const lab = $("#ptLab");
+  if(lab) lab.addEventListener("change", ()=>{
+    const w = $("#ptOutroWrap"); if(w) w.hidden = lab.value !== "__outro"; });
+
+  const cons = $("#ptConsulta");
+  if(cons) cons.addEventListener("change", ()=>{
+    const cx = $("#ptPrazo");
+    if(cx) cx.innerHTML = prazoProteseTexto(null, consultasFuturasDe(pacId), cons.value);
+  });
+
+  $$("#proteseBox [data-protconf]").forEach(b=>b.addEventListener("click", ()=>
+    mudarProtese(b.dataset.protconf, {status:"confirmado"}, pacId,
+      "Pedido confirmado com o laboratório.")));
+  $$("#proteseBox [data-protent]").forEach(b=>b.addEventListener("click", ()=>
+    mudarProtese(b.dataset.protent, {entregue_em:hojeISO(), status:"entregue"}, pacId,
+      "Peça registrada como recebida.")));
+
+  const sv = $("#ptSalvar");
+  if(sv) sv.addEventListener("click", async ()=>{
+    const tipo = $("#ptTipo").value.trim();
+    if(tipo.length < 2){ toast("Diga o que foi pedido."); $("#ptTipo").focus(); return; }
+    const labV = $("#ptLab").value;
+    const fabricante = labV === "__outro" ? $("#ptOutro").value.trim() : "";
+    if(!labV){ toast("Escolha o laboratório ou fabricante."); $("#ptLab").focus(); return; }
+    if(labV === "__outro" && fabricante.length < 2){
+      toast("Escreva o nome do fabricante."); $("#ptOutro").focus(); return; }
+    const agId = $("#ptConsulta").value || null;
+    const c = consultasFuturasDe(pacId).find(x=>x.id===agId);
+    const diaC = c ? diaISO(new Date(c.inicio)) : null;
+    const d = {
+      pac: pacId, tipo,
+      dentes: $("#ptDentes").value.trim() || null,
+      parceiro_id: labV === "__outro" ? null : labV,
+      fabricante: fabricante || null,
+      modelo: $("#ptModelo").value.trim() || null,
+      pedido_em: $("#ptPedido").value || hojeISO(),
+      agendamento_id: agId,
+      dia_consulta: diaC,
+      entrega_prevista: diaC ? diaUtilAntes(diaC,1) : null,
+      observacao: $("#ptObs").value.trim() || null
+    };
+    const lb = parceiros().find(x=>x.id===labV);
+    d.fornecedor = lb ? lb.nome : (fabricante || null);
+    await gravarProtese(proteseForm.id, d, pacId);
+  });
+}
+
+async function gravarProtese(id, d, pacId){
+  if(MODO === "nuvem"){
+    const ok = await naNuvem(async ()=>{
+      await DB.gravarProtese(id, d); await DB.carregarProteses();
+    }, "pedido de prótese");
+    if(!ok) return;
+  }else{
+    S.proteses = S.proteses || [];
+    if(id){
+      const i = S.proteses.findIndex(x=>x.id===id);
+      if(i>=0) S.proteses[i] = {...S.proteses[i], ...d};
+    }else{
+      S.proteses.push({id:"pt"+Date.now(), status:"pedido", entregue_em:null, ...d});
+    }
+    save();
+  }
+  proteseForm = null;
+  renderProtese(pacId); renderMiniAgenda(); renderAgenda();
+  toast(id ? "Pedido atualizado." : "Pedido registrado.");
+}
+
+async function mudarProtese(id, campos, pacId, msg){
+  if(MODO === "nuvem"){
+    const ok = await naNuvem(async ()=>{
+      await DB.gravarProtese(id, campos); await DB.carregarProteses();
+    }, "pedido de prótese");
+    if(!ok) return;
+  }else{
+    const i = (S.proteses||[]).findIndex(x=>x.id===id);
+    if(i>=0) S.proteses[i] = {...S.proteses[i], ...campos};
+    save();
+  }
+  renderProtese(pacId); renderMiniAgenda(); renderAgenda();
+  toast(msg);
+}
+
+/* =====================================================================
    PARCEIROS
    Laboratório de prótese, radiologia/scanner, sedação — e o que mais a
    clínica usar. A lista de tipos é ABERTA: toda clínica tem um parceiro
@@ -7110,6 +7728,7 @@ function ligarParceiros(){
         await DB.gravarParceiro(parcForm.id ? {...d, id:parcForm.id} : d);
         await DB.carregarParceiros();
     await DB.carregarDePara();
+    await DB.carregarProteses();
       }, "parceiro");
       if(!ok) return;
     }else{
@@ -7625,6 +8244,20 @@ function irMes(d){
   carregarAgenda();
 }
 
+/* O selo da peça na agenda. Sem ele, o dentista só descobre que a coroa
+   não chegou quando o paciente já está sentado. */
+function seloProtese(evId){
+  const sf = semaforoDoEvento(evId);
+  if(!sf) return "";
+  const d = SEMAFORO[sf];
+  const ps = protesesDoEvento(evId);
+  const pior = ps.slice().sort((a,b)=>ORDEM_SF[semaforoDe(a)]-ORDEM_SF[semaforoDe(b)])[0];
+  const rot = rotuloProtese(pior);
+  const quais = ps.map(p=>p.tipo).join(", ");
+  return ` <span class="selo-prot" style="--sfc:${d.cor};--sfb:${d.fundo}"
+     title="${quais} — ${rot}">${rot}</span>`;
+}
+
 /* ---------- painel do dia ---------- */
 function renderDia(){
   const box = $("#diaPainel"); if(!box) return;
@@ -7652,7 +8285,7 @@ function renderDia(){
       <div class="corpo">
         ${e ? `
           <div class="t">
-            <b>${e.paciente || e.titulo || sitDeEv(e).rot}</b>
+            <b>${e.paciente || e.titulo || sitDeEv(e).rot}${seloProtese(e.id)}</b>
             <small>${sitDeEv(e).rot}${atrasado(e)?" há "+Math.round((Date.now()-new Date(e.inicio))/60000)+" min":""}${e.procedimento?" · "+e.procedimento:""} · ${e.duracao_min} min${e.sala?" · "+e.sala:""}</small>
             ${e.dentista?`<small class="quem${doOutro?" outro":""}">${doOutro?"reservado por ":""}${e.dentista}</small>`:""}
             ${e.motivo_cancelamento?`<small style="color:var(--crit)">${e.motivo_cancelamento}</small>`:""}
@@ -8704,6 +9337,43 @@ function ligarConfig(){
    na sala escolhida. Dentista vê os próprios horários; quem coordena
    (administrador, secretária, financeiro) vê os de todo mundo — é essa a
    diferença entre atender e organizar o dia. */
+/* As entregas em evidência na lateral, como ele pediu. O que entra
+   aqui é só o que exige AÇÃO HOJE: atrasado, vence hoje ou amanhã, e
+   não confirmado. Peça entregue não ocupa espaço — ela já resolveu. */
+function htmlMiniProteses(){
+  const hojeI = hojeISO();
+  const lim = new Date(Date.now() + 2*86400000).toISOString().slice(0,10);
+  const urgentes = proteses()
+    .filter(p => p.status !== "cancelado" && !p.entregue_em && p.status !== "entregue")
+    .filter(p => {
+      const sf = semaforoDe(p);
+      if(sf === "vermelho") return true;                        // atrasado ou não confirmado
+      return p.entrega_prevista && p.entrega_prevista <= lim;    // chega na janela
+    })
+    .sort((a,b)=> String(a.entrega_prevista||"9999").localeCompare(String(b.entrega_prevista||"9999")))
+    .slice(0,4);
+  if(!urgentes.length) return "";
+
+  return `<div class="mini-prot">
+    <div class="mini-cab"><span>Peças a receber</span><b>${urgentes.length}</b></div>
+    ${urgentes.map(p=>{
+      const sf = SEMAFORO[semaforoDe(p)];
+      const pac = pacById(p.pac);
+      const atrasada = p.entrega_prevista && p.entrega_prevista < hojeI;
+      const quando = !p.entrega_prevista ? "sem prazo"
+        : atrasada ? "atrasada"
+        : p.entrega_prevista === hojeI ? "hoje"
+        : fmtData(p.entrega_prevista).slice(0,5);
+      return `<button class="mini-ev" data-protpac="${p.pac}"
+          title="${p.tipo} · ${p.fornecedor||"sem laboratório"} · ${rotuloProtese(p)}">
+        <i style="background:${sf.cor}"></i>
+        <span class="hh mono${atrasada?" atrasada":""}">${quando}</span>
+        <span class="nm">${p.tipo}${pac?" · "+pac.nome.split(" ")[0]:""}</span>
+      </button>`;
+    }).join("")}
+  </div>`;
+}
+
 function renderMiniAgenda(){
   const box = $("#miniAgenda"); if(!box) return;
   if(!usuario || !pode("agenda") && !PERFIS[usuario.perfil].telas.includes("agenda")){
@@ -8725,6 +9395,7 @@ function renderMiniAgenda(){
 
   box.hidden = false;
   box.innerHTML = `
+    ${htmlMiniProteses()}
     <div class="mini-cab">
       <span>Hoje</span>
       <b>${evs.length}</b>
@@ -8743,7 +9414,12 @@ function renderMiniAgenda(){
     ${evs.length > mostrar.length ? `<div class="mini-vazio">+${evs.length-mostrar.length} mais cedo</div>` : ""}
     <button class="mini-abrir" id="miniAbrir">ver agenda</button>`;
 
-  box.querySelectorAll(".mini-ev").forEach(b=>b.addEventListener("click", ()=>{
+  box.querySelectorAll("[data-protpac]").forEach(b=>b.addEventListener("click", ev=>{
+    ev.stopPropagation();
+    document.querySelector(".tab[data-scr='pacientes']").click();
+    setTimeout(()=>abrirPaciente(b.dataset.protpac), 120);
+  }));
+  box.querySelectorAll(".mini-ev:not([data-protpac])").forEach(b=>b.addEventListener("click", ()=>{
     agenda.ano=hoje.getFullYear(); agenda.mes=hoje.getMonth(); agenda.dia=iso;
     document.querySelector(".tab[data-scr='agenda']").click();
     renderAgenda();
@@ -9605,7 +10281,7 @@ function pintarModo(){
   if(sel){ sel.textContent = MODO==="nuvem" ? "nuvem" : "demo";
     sel.className = "pill "+(MODO==="nuvem"?"ok":"warn"); }
   const vs=$("#versaoSel"); if(vs) vs.textContent = VERSAO;
-  const vl=$("#versaoLogin"); if(vl) vl.textContent = "IDente " + VERSAO;
+  const vl=$("#versaoLogin"); if(vl) vl.textContent = "IADent " + VERSAO;
 }
 $("#demoHint").innerHTML = "<b>Acessos de demonstração</b><br>"+
   USUARIOS_SEED.map(u=>`${u.email} · senha <b>${u.senha}</b> — ${PERFIS[u.perfil].rotulo}`).join("<br>");
@@ -9954,6 +10630,7 @@ let caixaForm = null;    // {cobranca} quando o formulário está aberto
 let compAberta = null;   // id da cobrança com a composição expandida
 
 function renderCaixa(pacId){
+  renderProtese(pacId);
   const box = $("#caixaBox"); if(!box) return;
   if(!pode("caixa")){ box.innerHTML=""; return; }
   if((S.faltaSql||[]).some(f=>f.nome.includes("financeiro"))){
@@ -11508,12 +12185,16 @@ window.MD = {
   agenda(){ return agenda; }, renderAgenda, atrasado,
   /* leitura de nota fiscal: funções puras, conferidas direto */
   lerChave, dvChave, lerXmlNFe, sugerirMaterial, chaveDePara,
+  /* a conta de dia útil roda nos DOIS lados — banco e tela — e as duas
+     precisam dar o mesmo resultado. O teste confere uma contra a outra. */
+  diaUtilAntes, ehFeriadoNacional, semaforoDe, semaforoDoEvento, rotuloProtese,
   /* pode() e PERFIS expostos para o teste comparar, perfil por perfil, o
      que a tela oferece com o que o RLS do banco de fato aceita. Sem
      isso, "o botão aparece mas o banco recusa" só se descobre com o
      dentista na frente do paciente. */
   pode, perfis: PERFIS,
-  odo3d: {O3D, dentesDaCena, malhaDente, paraMundo, medidaDe, facesDe,
+  odo3d: {O3D, dentesDaCena, malhaDente, malhaImplante, paraMundo, medidaDe, facesDe,
+          condicaoDoDente, denteSaiu, denteImplante, redesenharOdonto,
           get estados(){ return odonto.estados; }}
 };
 
