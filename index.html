@@ -2,9 +2,18 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#0B5967">
+<meta name="theme-color" content="#F8F4EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17150F" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icone-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="IADent">
+<meta name="application-name" content="IADent">
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>IADent · Dr. Leonardo Reis</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1377,7 +1386,7 @@ const pode = k => !!(usuario && PERFIS[usuario.perfil][k]);
 /* Versão visível na tela. Sem isso, "troquei isso semana passada" e
    "aqui não mudou nada" são as duas verdadeiras ao mesmo tempo, e não dá
    para saber qual cópia a pessoa está usando. */
-const VERSAO = "v39 · 29/10/2026";
+const VERSAO = "v41 · 06/11/2026";
 
 const BACKEND = {
   url: "https://oqncwkwduiniiubklhwk.supabase.co",
@@ -1398,7 +1407,7 @@ const CPLX_APP2DB = {"Baixa":"baixa","Média":"media","Media":"media","Alta":"al
 const UID = {mat:{}, matRev:{}, pac:{}, pacRev:{}, atd:{}, agd:{}, lote:{}};
 
 const DB = {
-  tok:null, ref:null, clinica:null, meuId:null, pausado:false,
+  tok:null, ref:null, clinica:null, meuId:null, pausado:false, semRede:false,
 
   guardarSessao(){
     try{ sessionStorage.setItem("md-sessao", JSON.stringify({tok:DB.tok, ref:DB.ref})); }catch(e){}
@@ -1487,11 +1496,24 @@ const DB = {
     const corta = new AbortController();
     const t = setTimeout(()=>corta.abort(), 8000);
     try{
-      const r = await fetch(BACKEND.url+"/rest/v1/janelas_publicas?select=id&limit=1",
+      /* /auth/v1/health é o endereço certo para sondar: é o próprio serviço
+         de login, é público (não depende de permissão de tabela nenhuma) e
+         responde 200 com um JSON curto. Sondar uma tabela era frágil — basta
+         uma migração tirar a leitura do anon e a sonda passa a devolver 401,
+         que não é >=500, e o projeto pausado deixa de ser detectado. */
+      const r = await fetch(BACKEND.url+"/auth/v1/health",
         {headers:{apikey:BACKEND.key}, signal:corta.signal});
       MODO = "nuvem";
-      DB.pausado = r.status >= 500;
-    }catch(e){ MODO = "demo"; DB.pausado = false; }
+      DB.pausado = !r.ok;
+    }catch(e){
+      /* Instalado como aplicativo, a casca abre mesmo sem rede — e aí cair
+         em "demonstração" seria uma armadilha: o dentista veria uma tela
+         que funciona e registraria o atendimento num lugar que ninguém
+         mais lê. Sem rede não é demonstração, é sem rede, e a tela tem de
+         dizer isso com todas as letras. */
+      MODO = "demo"; DB.pausado = false;
+      DB.semRede = (typeof navigator !== "undefined" && navigator.onLine === false);
+    }
     finally{ clearTimeout(t); }
     return MODO==="nuvem";
   },
@@ -1500,8 +1522,29 @@ const DB = {
     const r = await fetch(BACKEND.url+"/auth/v1/token?grant_type=password",
       {method:"POST", headers:{apikey:BACKEND.key,"Content-Type":"application/json"},
        body:JSON.stringify({email, password:senha})});
-    const d = await r.json().catch(()=>({}));
-    if(!r.ok) throw new Error(d.error_description || d.msg || d.error || "Não foi possível entrar.");
+    /* Quando o projeto está pausado ou fora do ar, a resposta vem da borda
+       (Cloudflare) em HTML, não em JSON. Se eu só tentasse r.json() o erro
+       viraria "Não foi possível entrar." — que se lê como senha errada, e aí
+       a pessoa troca a senha dez vezes à procura de um problema que não é
+       dela. Vale separar: 5xx/corpo não-JSON = banco fora do ar. */
+    const txt = await r.text();
+    let d = {}; try{ d = txt ? JSON.parse(txt) : {}; }catch(e){ d = null; }
+    if(!r.ok){
+      let msg;
+      if(r.status >= 500 || d === null){
+        DB.pausado = true;
+        msg = "O banco da clínica não respondeu (erro "+r.status+"). Não é a sua senha. "+
+              "No plano gratuito o projeto entra em pausa depois de cerca de uma semana "+
+              "sem uso: abra o painel do Supabase e clique em Restore project. "+
+              "Nada foi perdido.";
+        if(typeof pintarModo === "function") pintarModo();
+      }else if(d && d.error_code === "invalid_credentials"){
+        msg = "E-mail ou senha não conferem.";
+      }else{
+        msg = (d && (d.error_description || d.msg || d.error)) || "Não foi possível entrar.";
+      }
+      const err = new Error(msg); err.status = r.status; throw err;
+    }
     DB.tok = d.access_token; DB.ref = d.refresh_token; DB.guardarSessao();
     return await DB.quemSou();
   },
@@ -10258,6 +10301,13 @@ function pintarModo(){
         "Tudo que você registrar fica gravado na nuvem.";
     if(d) d.hidden=true;
   }else{
+    if(DB.semRede){
+      h.innerHTML="<b>Sem conexão</b><br>O aparelho está sem internet, então o sistema não alcança o "+
+        "banco da clínica. <b>Não registre atendimento nesta tela</b> — não chegaria ao banco. "+
+        "Assim que o sinal voltar, recarregue a página.";
+      if(d) d.hidden=true;
+      return;
+    }
     h.innerHTML="<b>Modo demonstração</b><br>Esta cópia não alcança o banco e grava só neste navegador. "+
       "Use o endereço publicado da clínica para trabalhar de verdade.";
     if(d){
@@ -12166,6 +12216,9 @@ function renderAll(){
    logado — quem decide o que pode ser lido é o RLS, no banco. */
 window.MD = {
   get estado(){ return S; },
+  /* o acesso fica acessível ao teste: distinguir "banco fora do ar" de
+     "senha errada" é justamente o que não se consegue conferir pela tela */
+  DB, get pausado(){ return DB.pausado; }, VERSAO,
   get usuario(){ return usuario; },
   get modo(){ return MODO; },
   projetar, taxaPara, resumoPaciente, fluxoPorMes, abrirPaciente, numBR, hojeISO, cent,
@@ -12234,4 +12287,11 @@ $("#todayChip").textContent=hoje.toLocaleDateString("pt-BR",{day:"2-digit",month
 </script>
 
 
+<script>
+if("serviceWorker" in navigator){
+  addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
 </html>
