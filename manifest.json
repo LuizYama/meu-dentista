@@ -1,0 +1,19 @@
+{
+  "name": "IADent · Dr. Leonardo Reis",
+  "short_name": "IADent",
+  "description": "Gestão do consultório: agenda, ficha do paciente, odontograma, estoque, prótese e financeiro.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F8F4EC",
+  "theme_color": "#F8F4EC",
+  "categories": ["medical", "productivity"],
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512-mascara.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
